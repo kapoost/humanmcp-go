@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kapoost/humanmcp/internal/auth"
-	"github.com/kapoost/humanmcp/internal/config"
-	"github.com/kapoost/humanmcp/internal/content"
+	"github.com/kapoost/humanmcp-go/internal/auth"
+	"github.com/kapoost/humanmcp-go/internal/config"
+	"github.com/kapoost/humanmcp-go/internal/content"
 )
 
 // JSON-RPC types
