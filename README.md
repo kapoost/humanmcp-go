@@ -3,19 +3,20 @@
 A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
 **Live:** https://kapoost-humanmcp.fly.dev  
-**Author:** kapoost — sailor, poet, CTO
+**Landing page:** https://kapoost.github.io/humanmcp  
+**Author:** kapoost (Łukasz Kapuśniak) — poet, builder, sailor. Warsaw / Malta.
 
 ## What it is
 
-humanMCP lets you publish poems, essays, notes, and typed data artifacts (images, contacts, datasets, vectors) and expose them to AI agents through a standard MCP interface. Agents can read your content, verify signatures, check licenses, and leave comments.
+humanMCP lets you publish poems, essays, notes, images, and typed data artifacts with cryptographic proof of authorship, explicit license terms, and full control over who can access what. AI agents connect via MCP and interact with your content natively.
 
 ## MCP Tools (12)
 
 | Tool | Description |
 |---|---|
-| `get_author_profile` | Who is kapoost |
-| `list_content` | Browse all pieces |
-| `read_content` | Read a piece (respects access gates) |
+| `get_author_profile` | Who is kapoost — bio, content overview, how to browse |
+| `list_content` | Browse all pieces with metadata, filter by type or tag |
+| `read_content` | Read a piece — respects all access gates |
 | `request_access` | Get gate details for locked content |
 | `submit_answer` | Unlock challenge-gated content |
 | `list_blobs` | Browse typed data artifacts |
@@ -23,8 +24,8 @@ humanMCP lets you publish poems, essays, notes, and typed data artifacts (images
 | `verify_content` | Verify Ed25519 signature |
 | `get_certificate` | Full IP certificate: license, price, originality index, hash, signature |
 | `request_license` | Declare intended use, get terms, logged for audit |
-| `leave_comment` | Leave a reaction on a piece |
-| `leave_message` | Send a direct note to the author |
+| `leave_comment` | Leave a reaction — visible in author dashboard |
+| `leave_message` | Send a direct note (max 2000 chars, URLs welcome) |
 
 ## Connect
 
@@ -42,29 +43,35 @@ humanMCP lets you publish poems, essays, notes, and typed data artifacts (images
 ## Content types
 
 **Pieces** (Markdown files):
-- Types: `poem`, `essay`, `note`, `audio`
+- Types: `poem`, `essay`, `note`, `contact`
 - Access: `public` / `members` / `locked`
 - Gates: `challenge` (Q&A), `time`, `manual`, `trade`
 - Licenses: `free`, `cc-by`, `cc-by-nc`, `commercial`, `exclusive`, `all-rights`
 
-**Blobs** (typed data):
+**Blobs** (typed data artifacts):
 - Types: `image`, `contact`, `vector`, `document`, `dataset`, `capsule`
 - Audience: `[agent:claude, human:alice, agent:*]`
+- Auto-signed on save if SIGNING_PRIVATE_KEY is set
 
-## Intellectual Property
+## Contact
+
+Public links: `read_blob slug:"kapoost-contact"` — name, handle, github, instagram, facebook, landing page.
+
+Private email: `read_content slug:"kapoost-contact-private"` — gated. Answer the challenge to access.
+
+## Intellectual property
 
 Every piece is signed with Ed25519. `get_certificate` returns:
 - SHA-256 content hash
 - Ed25519 signature + public key
-- **Originality Index** (0.0–1.0): burstiness (Fano Factor), lexical density (CTTR), Shannon entropy, structural signature
+- **Originality Index** (0.0–1.0): burstiness (Fano Factor), lexical density (CTTR), Shannon entropy, structural signature — grades S/A/B/C/D
 - License terms and price in sats (for commercial licenses)
 
-## Stack
+## SEO / discovery
 
-- Go 1.22, zero external dependencies
-- Fly.io (region: waw), persistent volume
-- Ed25519 signing (stdlib crypto)
-- Plain Markdown files as database
+- `robots.txt` — `https://kapoost-humanmcp.fly.dev/robots.txt`
+- `sitemap.xml` — `https://kapoost-humanmcp.fly.dev/sitemap.xml`
+- `/.well-known/mcp-server.json` — MCP server discovery
 
 ## Limits
 
@@ -75,6 +82,14 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 | File upload | 50 MB |
 | Slug | 64 chars |
 | Title | 256 chars |
+
+## Stack
+
+- Go 1.22, zero external dependencies
+- Fly.io (region: waw), persistent volume at `/data`
+- Ed25519 signing (stdlib crypto)
+- Plain Markdown files as database
+- No JS except 8-line drag-drop on `/new` page
 
 ## Run locally
 
@@ -91,9 +106,24 @@ fly secrets set EDIT_TOKEN=secret AUTHOR_NAME=yourname
 fly deploy
 ```
 
-## Keygen
+## Signing keys (optional but recommended)
 
 ```bash
 go run ./cmd/keygen/
 fly secrets set SIGNING_PRIVATE_KEY="..." SIGNING_PUBLIC_KEY="..."
+```
+
+## Future
+
+- C2PA manifest embedding for blob files (when CA trust chain opens to individuals)
+- Lightning Network payment gate for commercial licenses
+- Scored conversational gate (agent brings API key, Claude evaluates answers)
+- IP rate limiting + engagement tokens for anti-spam
+
+## Tests
+
+136 tests across content, MCP, and upload/signature/license suites.
+
+```bash
+go test ./...
 ```
