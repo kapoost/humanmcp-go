@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.kapoost/humanmcp",
+  "title": "humanMCP",
+  "description": "A personal content server for artists and creators. Publish poems, essays, images, and data with Ed25519 cryptographic proof of authorship, explicit license terms, and structured access gates. AI agents connect natively via MCP to read, verify, license, and react to content. Run your own instance or connect to kapoost's live server.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "homepage": "https://kapoost.github.io/humanmcp",
+  "repository": "https://github.com/kapoost/humanmcp",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://kapoost-humanmcp.fly.dev/mcp"
+    }
+  ],
+  "tags": [
+    "content",
+    "publishing",
+    "poetry",
+    "intellectual-property",
+    "cryptography",
+    "personal",
+    "creative"
+  ]
+}

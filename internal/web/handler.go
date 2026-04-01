@@ -111,13 +111,19 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"name":        h.cfg.AuthorName + "'s humanMCP",
-		"version":     "0.1.0",
-		"mcp_url":     "https://" + h.cfg.Domain + "/mcp",
-		"sse_url":     "https://" + h.cfg.Domain + "/mcp/sse",
-		"author":      h.cfg.AuthorName,
+		"$schema":     "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+		"name":        "io.github.kapoost/humanmcp",
+		"title":       h.cfg.AuthorName + "'s humanMCP",
 		"description": h.cfg.AuthorBio,
+		"version":     "0.1.0",
+		"homepage":    "https://kapoost.github.io/humanmcp",
+		"repository":  "https://github.com/kapoost/humanmcp",
+		"remotes": []map[string]interface{}{
+			{"type": "streamable-http", "url": "https://" + h.cfg.Domain + "/mcp"},
+		},
+		"tags": []string{"content", "publishing", "poetry", "intellectual-property", "personal", "creative"},
 	})
 }
 
