@@ -545,8 +545,8 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost { http.Redirect(w, r, "/", http.StatusSeeOther); return }
 	slug := strings.TrimPrefix(r.URL.Path, "/delete/")
-	h.store.Load()
-	h.store.Delete(slug)
+	if err := h.store.Load(); err != nil { http.Error(w, "store error: "+err.Error(), 500); return }
+	if err := h.store.Delete(slug); err != nil { http.Error(w, "delete failed: "+err.Error(), 404); return }
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

@@ -706,4 +706,46 @@ No markdown, no explanation, just JSON.'}
 </body></html>
 {{end}}
 
+
+{{define "images.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Images — {{.Author}}</title>
+<style>{{template "css" .}}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1.5rem;}
+.img-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--tag-bg);}
+.img-card img{width:100%;height:180px;object-fit:cover;display:block;}
+.img-info{padding:.6rem .75rem;}
+.img-title{font-size:.88rem;font-weight:500;color:var(--fg);margin-bottom:.2rem;}
+.img-desc{font-size:.76rem;color:var(--muted);line-height:1.4;}
+.img-tags{margin-top:.35rem;display:flex;gap:.3rem;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; back</a>
+<h1 style="font-size:1.1rem;font-weight:500;">Images</h1>
+{{if .Images}}
+<div class="img-grid">
+{{range .Images}}
+<div class="img-card">
+  {{if .FileRef}}<a href="/{{.FileRef}}"><img src="/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>{{end}}
+  <div class="img-info">
+    <div class="img-title">{{if .Title}}{{.Title}}{{else}}{{.Slug}}{{end}}</div>
+    {{if .Description}}<div class="img-desc">{{.Description}}</div>{{end}}
+    {{if .Tags}}<div class="img-tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  </div>
+</div>
+{{end}}
+</div>
+{{else}}
+<div class="empty" style="margin-top:2rem;">No images yet.</div>
+{{end}}
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
 `
