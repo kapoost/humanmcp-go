@@ -13,6 +13,16 @@ const allTemplates = `
 <div class="container">
 {{template "header" .}}
 
+{{if not .IsOwner}}
+<div class="mcp-bar">
+  <span class="mcp-label">humanMCP</span>
+  <span class="mcp-dot">&#9632;</span><a href="/connect" class="mcp-link">connect agent</a>
+  <span class="mcp-dot">&#9632;</span><a href="/images" class="mcp-link">gallery</a>
+  <span class="mcp-dot">&#9632;</span><a href="/contact" class="mcp-link">contact</a>
+  <span class="mcp-meta">mcp/json-rpc&nbsp;2.0 &middot; ed25519 &middot; {{.Domain}}</span>
+</div>
+{{end}}
+
 {{if .IsOwner}}
 <div class="owner-console">
   <div class="owner-console-row">
@@ -397,6 +407,12 @@ a:hover{text-decoration:underline;}
 .neon-link:hover{color:#00ff41;text-decoration:none;}
 .neon-dot{color:#00ff41;margin-right:.2rem;}
 @media(prefers-color-scheme:light){.owner-console{background:#0d1a0d;}}
+.mcp-bar{font-family:monospace;font-size:.72rem;background:#0a0f0a;border:1px solid #00ff4120;border-radius:6px;padding:.55rem 1rem;margin-bottom:1.25rem;color:#00ff4170;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.mcp-label{color:#00ff41;font-weight:bold;margin-right:.3rem;}
+.mcp-dot{color:#00ff4140;font-size:.6rem;}
+.mcp-link{color:#00ff4170;text-decoration:none;font-family:monospace;font-size:.72rem;}
+.mcp-link:hover{color:#00ff41;text-decoration:none;}
+.mcp-meta{margin-left:auto;color:#00ff4138;font-size:.65rem;}
 {{end}}
 
 {{define "header"}}
