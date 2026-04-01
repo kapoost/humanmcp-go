@@ -96,6 +96,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
 
+	// OpenAPI spec for ChatGPT and other REST-based agents
+	mux.HandleFunc("/openapi.json", h.handleOpenAPI)
+
 	// Dashboard (owner only)
 	mux.Handle("/dashboard", h.auth.RequireOwner(http.HandlerFunc(h.handleDashboard)))
 
@@ -136,6 +139,147 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/login", h.handleLogin)
 	mux.HandleFunc("/logout", h.handleLogout)
 }
+
+func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	spec := map[string]interface{}{
+		"openapi": "3.1.0",
+		"info": map[string]interface{}{
+			"title":       h.cfg.AuthorName + "'s humanMCP",
+			"description": h.cfg.AuthorBio + " — Read poems, essays, images and data published by " + h.cfg.AuthorName + ".",
+			"version":     "0.2.0",
+		},
+		"servers": []map[string]interface{}{
+			{"url": "https://" + h.cfg.Domain, "description": "Live server"},
+		},
+		"paths": map[string]interface{}{
+			"/api/content": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "listContent",
+					"summary":     "List all public pieces",
+					"description": "Returns a list of all public poems, essays, notes and other pieces published by " + h.cfg.AuthorName + ".",
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{
+							"description": "Array of pieces",
+							"content": map[string]interface{}{
+								"application/json": map[string]interface{}{
+									"schema": map[string]interface{}{
+										"type":  "array",
+										"items": map[string]interface{}{"$ref": "#/components/schemas/Piece"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"/api/content/{slug}": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "readContent",
+					"summary":     "Read a specific piece",
+					"description": "Returns full content of a poem, essay, note or image piece.",
+					"parameters": []map[string]interface{}{
+						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}, "description": "URL slug of the piece"},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Piece content", "content": map[string]interface{}{"application/json": map[string]interface{}{"schema": map[string]interface{}{"$ref": "#/components/schemas/Piece"}}}},
+						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/api/blobs": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "listBlobs",
+					"summary":     "List all public blobs",
+					"description": "Returns images, datasets, vectors and other typed data published by " + h.cfg.AuthorName + ".",
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{
+							"description": "Array of blobs",
+							"content": map[string]interface{}{
+								"application/json": map[string]interface{}{
+									"schema": map[string]interface{}{
+										"type":  "array",
+										"items": map[string]interface{}{"$ref": "#/components/schemas/Blob"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"/api/blobs/{slug}": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "readBlob",
+					"summary":     "Read a specific blob",
+					"parameters": []map[string]interface{}{
+						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Blob data"},
+						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/contact": map[string]interface{}{
+				"post": map[string]interface{}{
+					"operationId": "leaveMessage",
+					"summary":     "Leave a message or comment",
+					"description": "Send a message to " + h.cfg.AuthorName + ". Optionally reference a specific piece.",
+					"requestBody": map[string]interface{}{
+						"required": true,
+						"content": map[string]interface{}{
+							"application/x-www-form-urlencoded": map[string]interface{}{
+								"schema": map[string]interface{}{
+									"type": "object",
+									"properties": map[string]interface{}{
+										"from":      map[string]interface{}{"type": "string", "description": "Your name or handle (optional)"},
+										"text":      map[string]interface{}{"type": "string", "description": "Your message (max 2000 chars)"},
+										"regarding": map[string]interface{}{"type": "string", "description": "Slug of the piece you are commenting on (optional)"},
+									},
+									"required": []string{"text"},
+								},
+							},
+						},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Message sent"},
+					},
+				},
+			},
+		},
+		"components": map[string]interface{}{
+			"schemas": map[string]interface{}{
+				"Piece": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"Slug":        map[string]interface{}{"type": "string"},
+						"Title":       map[string]interface{}{"type": "string"},
+						"Type":        map[string]interface{}{"type": "string", "enum": []string{"poem", "essay", "note", "image", "contact"}},
+						"Body":        map[string]interface{}{"type": "string"},
+						"Description": map[string]interface{}{"type": "string"},
+						"License":     map[string]interface{}{"type": "string"},
+						"Tags":        map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+						"Published":   map[string]interface{}{"type": "string", "format": "date-time"},
+						"Signature":   map[string]interface{}{"type": "string", "description": "Ed25519 signature — verifies authenticity"},
+					},
+				},
+				"Blob": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"Slug":     map[string]interface{}{"type": "string"},
+						"Title":    map[string]interface{}{"type": "string"},
+						"BlobType": map[string]interface{}{"type": "string"},
+						"FileRef":  map[string]interface{}{"type": "string", "description": "Relative URL — prepend https://" + h.cfg.Domain + "/"},
+						"MimeType": map[string]interface{}{"type": "string"},
+					},
+				},
+			},
+		},
+	}
+	json.NewEncoder(w).Encode(spec)
+}
+
 
 func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

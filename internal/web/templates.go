@@ -329,11 +329,17 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 .connect-section{margin-bottom:2.5rem;}
 .connect-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;margin-bottom:.6rem;}
 .code-block{background:var(--tag-bg);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;font-family:monospace;font-size:.82rem;line-height:1.7;color:var(--fg);overflow-x:auto;white-space:pre;}
-.pill{display:inline-block;font-size:.7rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);margin-bottom:.4rem;}
+.pill{display:inline-block;font-size:.7rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);margin-bottom:.4rem;margin-right:.3rem;}
+.pill.gpt{background:#e8f5e8;color:#1a6b1a;border-color:#4caf4c;}
+.pill.gemini{background:#e8eaf8;color:#1a2a8a;border-color:#4c5caf;}
+.pill.rest{background:#f5f0e8;color:#6b4a1a;border-color:#af8c4c;}
+@media(prefers-color-scheme:dark){.pill.gpt{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.pill.gemini{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.pill.rest{background:#201808;color:#c8a060;border-color:#6b4a1a;}}
 .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
 .tool-card{padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;}
 .tool-card strong{display:block;font-family:monospace;font-size:.8rem;}
 .tool-card span{color:var(--muted);font-size:.75rem;}
+.step{font-size:.85rem;color:var(--muted);margin-bottom:.4rem;padding-left:1.1rem;text-indent:-1.1rem;}
+.step strong{color:var(--fg);}
 </style>
 </head>
 <body>
@@ -341,13 +347,19 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 {{template "header-simple" .}}
 <a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; back</a>
 <h1 style="font-size:1.2rem;font-weight:500;margin-bottom:.4rem;">Connect to this humanMCP</h1>
-<p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Add {{.Author}}&rsquo;s server to your AI agent. 30 seconds.</p>
+<p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Give your AI agent access to {{.Author}}'s content, signatures and tools.</p>
+
 <div class="connect-section">
-  <div class="connect-title">MCP endpoint</div>
-  <div class="code-block" style="word-break:break-all;user-select:all;">https://{{.Domain}}/mcp</div>
+  <div class="connect-title">endpoints</div>
+  <div style="display:flex;flex-direction:column;gap:.4rem;">
+    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">MCP</span><span style="font-family:monospace;user-select:all;">https://{{.Domain}}/mcp</span></div>
+    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">API</span><span style="font-family:monospace;user-select:all;">https://{{.Domain}}/api</span></div>
+    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">OAS</span><a href="/openapi.json" style="font-family:monospace;font-size:.82rem;">https://{{.Domain}}/openapi.json</a></div>
+  </div>
 </div>
+
 <div class="connect-section">
-  <div class="pill">Claude Desktop</div>
+  <div class="pill">Claude</div>
   <div class="connect-title">claude_desktop_config.json</div>
   <div class="code-block" style="user-select:all;">{
   "mcpServers": {
@@ -357,22 +369,65 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
     }
   }
 }</div>
+  <p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Also works in Claude.ai — paste the MCP URL when adding a server.</p>
 </div>
+
 <div class="connect-section">
-  <div class="connect-title">{{.ToolCount}} available tools</div>
+  <div class="pill gpt">ChatGPT</div>
+  <div class="connect-title">Custom GPT — Actions</div>
+  <p class="step"><strong>1.</strong> Open ChatGPT → Explore GPTs → Create</p>
+  <p class="step"><strong>2.</strong> Go to Configure → Add actions → Import from URL</p>
+  <p class="step"><strong>3.</strong> Paste the OpenAPI spec URL:</p>
+  <div class="code-block" style="user-select:all;">https://{{.Domain}}/openapi.json</div>
+  <p class="step" style="margin-top:.6rem;"><strong>4.</strong> Auth: None — the API is public read-only</p>
+  <p class="step"><strong>5.</strong> Add this system prompt to your GPT:</p>
+  <div class="code-block" style="user-select:all;white-space:pre-wrap;">You have access to {{.Author}}'s humanMCP — a personal publishing server with poems, images and signed data. Use listContent to browse, readContent to read any piece. All content carries an Ed25519 signature in the Signature field — always mention when a piece is signed. Respect the License field before quoting.</div>
+</div>
+
+<div class="connect-section">
+  <div class="pill gemini">Gemini</div>
+  <div class="connect-title">Gem — system instructions</div>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.7rem;">Gemini doesn't support external tools directly yet. Use a Gem with these instructions and the REST API URL:</p>
+  <div class="code-block" style="user-select:all;white-space:pre-wrap;">You are connected to {{.Author}}'s personal content server at https://{{.Domain}}.
+
+To browse content: GET https://{{.Domain}}/api/content
+To read a piece:   GET https://{{.Domain}}/api/content/{slug}
+To browse images:  GET https://{{.Domain}}/api/blobs
+
+All pieces carry an Ed25519 signature. Mention when content is signed.
+Respect the License field — "free" means read and share with credit.
+When a user asks about {{.Author}}'s work, always fetch fresh data.</div>
+</div>
+
+<div class="connect-section">
+  <div class="pill rest">Any agent</div>
+  <div class="connect-title">REST API — public, no auth</div>
+  <div class="tool-grid">
+    <div class="tool-card"><strong>GET /api/content</strong><span>List all public pieces</span></div>
+    <div class="tool-card"><strong>GET /api/content/:slug</strong><span>Read a piece</span></div>
+    <div class="tool-card"><strong>GET /api/blobs</strong><span>List images and data</span></div>
+    <div class="tool-card"><strong>GET /api/blobs/:slug</strong><span>Read a blob</span></div>
+    <div class="tool-card"><strong>GET /files/:filename</strong><span>Raw image file</span></div>
+    <div class="tool-card"><strong>POST /contact</strong><span>Leave a message</span></div>
+  </div>
+</div>
+
+<div class="connect-section">
+  <div class="connect-title">{{.ToolCount}} MCP tools</div>
   <div class="tool-grid">
     <div class="tool-card"><strong>list_content</strong><span>Browse poems and essays</span></div>
     <div class="tool-card"><strong>read_content</strong><span>Read any public piece</span></div>
-    <div class="tool-card"><strong>list_blobs</strong><span>Browse typed data artifacts</span></div>
-    <div class="tool-card"><strong>read_blob</strong><span>Read image, vector, contact, dataset</span></div>
+    <div class="tool-card"><strong>list_blobs</strong><span>Browse typed data</span></div>
+    <div class="tool-card"><strong>read_blob</strong><span>Image, vector, dataset</span></div>
     <div class="tool-card"><strong>verify_content</strong><span>Verify Ed25519 signature</span></div>
-    <div class="tool-card"><strong>request_access</strong><span>Get gate details</span></div>
-    <div class="tool-card"><strong>submit_answer</strong><span>Unlock challenge-gated piece</span></div>
+    <div class="tool-card"><strong>request_access</strong><span>Gate details</span></div>
+    <div class="tool-card"><strong>submit_answer</strong><span>Unlock challenge gate</span></div>
     <div class="tool-card"><strong>leave_comment</strong><span>React to a piece</span></div>
-    <div class="tool-card"><strong>leave_message</strong><span>Send a direct note</span></div>
+    <div class="tool-card"><strong>leave_message</strong><span>Direct note</span></div>
     <div class="tool-card"><strong>get_author_profile</strong><span>Who is {{.Author}}</span></div>
   </div>
 </div>
+
 <div class="connect-section">
   <div class="connect-title">Run your own humanMCP</div>
   <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Fork the project and publish your own content on your own terms.</p>
@@ -382,6 +437,7 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 </div>
 </body></html>
 {{end}}
+
 
 {{define "css"}}
 :root{--bg:#fdfcfa;--fg:#1a1a1a;--muted:#6b6b6b;--border:#e2e0db;--accent:#2a6496;--accent-light:#e8f1f8;--locked:#7a5c00;--locked-bg:#fef9ec;--tag-bg:#f0ede8;--tag-fg:#555;--max:660px;--serif:Georgia,'Times New Roman',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
