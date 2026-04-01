@@ -599,7 +599,7 @@ func (h *Handler) handleFile(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "forbidden", http.StatusForbidden)
 				return
 			}
-			filePath := filepath.Join(h.cfg.ContentDir, "blobs", slug)
+			filePath := filepath.Join(h.cfg.ContentDir, "blobs", b.FileRef)
 			w.Header().Set("Content-Type", b.MimeType)
 			w.Header().Set("Cache-Control", "public, max-age=86400")
 			http.ServeFile(w, r, filePath)

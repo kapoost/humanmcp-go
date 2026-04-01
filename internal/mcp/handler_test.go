@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -488,4 +489,239 @@ func TestMessageRecordedInStats(t *testing.T) {
 	tool(t, h, "leave_message", map[string]interface{}{"text": "Hello!", "from": "tester"})
 	stats, _ := h.statStore.Compute()
 	if stats.TotalMessages != 1 { t.Errorf("message not recorded, got %d", stats.TotalMessages) }
+}
+
+// ── agent good behaviour ──────────────────────────────────────────────────────
+
+func TestAgentFullReadFlow(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// 1. profile
+	profile := tool(t, h, "get_author_profile", nil)
+	if !strings.Contains(profile, "testuser") {
+		t.Error("profile missing author name")
+	}
+	// 2. list
+	list := tool(t, h, "list_content", nil)
+	if !strings.Contains(list, "public") {
+		t.Error("list missing public piece")
+	}
+	// 3. read
+	body := tool(t, h, "read_content", map[string]interface{}{"slug": "public"})
+	if !strings.Contains(body, "Hello world") {
+		t.Error("read_content missing body")
+	}
+	// 4. comment after reading
+	comment := tool(t, h, "leave_comment", map[string]interface{}{
+		"slug": "public",
+		"text": "beautiful",
+		"from": "claude",
+	})
+	if !strings.Contains(comment, "recorded") {
+		t.Error("comment not confirmed")
+	}
+}
+
+func TestAgentCanLeaveMessage(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "leave_message", map[string]interface{}{
+		"text": "Hello from an agent. Here is my URL: https://example.com",
+		"from": "gpt-5",
+	})
+	if !strings.Contains(result, "received") {
+		t.Error("message not confirmed")
+	}
+}
+
+func TestAgentFiltersByType(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "list_content", map[string]interface{}{"type": "poem"})
+	if strings.Contains(result, "No content") {
+		t.Error("should find poem-type content")
+	}
+}
+
+func TestAgentFiltersByTag(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "list_content", map[string]interface{}{"tag": "testtag"})
+	if result == "" {
+		t.Error("tag filter returned empty")
+	}
+}
+
+// ── agent hitting locked content ──────────────────────────────────────────────
+
+func TestAgentCannotReadLockedContent(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "read_content", map[string]interface{}{"slug": "locked"})
+	if strings.Contains(result, "secret body") {
+		t.Error("agent read locked content body — must not happen")
+	}
+	if !strings.Contains(result, "locked") {
+		t.Error("agent should be told content is locked")
+	}
+}
+
+func TestAgentGetsGateDetailsForLocked(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "request_access", map[string]interface{}{"slug": "locked"})
+	if !strings.Contains(result, "challenge") && !strings.Contains(result, "question") {
+		t.Error("agent should see gate type for locked content")
+	}
+}
+
+func TestAgentCanUnlockWithCorrectAnswer(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "submit_answer", map[string]interface{}{
+		"slug":   "locked",
+		"answer": "four",
+	})
+	if !strings.Contains(result, "Unlocked") && !strings.Contains(result, "secret body") {
+		t.Error("correct answer should unlock content")
+	}
+}
+
+func TestAgentWrongAnswerBlocked(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "submit_answer", map[string]interface{}{
+		"slug":   "locked",
+		"answer": "wrong-guess",
+	})
+	if strings.Contains(result, "secret body") {
+		t.Error("wrong answer must never return content")
+	}
+}
+
+// ── agent harmful / abuse attempts ───────────────────────────────────────────
+
+func TestAgentCannotInjectHTMLViaComment(t *testing.T) {
+	h, _ := newTestHandler(t)
+	resp := toolRaw(t, h, "leave_comment", map[string]interface{}{
+		"slug": "public",
+		"text": "<script>alert('pwned')</script>",
+		"from": "evil-agent",
+	})
+	// Should either be rejected or sanitised — must not echo raw script
+	if strings.Contains(resp, "<script>") {
+		t.Error("HTML injection via comment not blocked")
+	}
+}
+
+func TestAgentCannotInjectHTMLViaMessage(t *testing.T) {
+	h, _ := newTestHandler(t)
+	resp := toolRaw(t, h, "leave_message", map[string]interface{}{
+		"text": "<iframe src='evil.com'></iframe>",
+		"from": "evil",
+	})
+	if strings.Contains(resp, "<iframe") {
+		t.Error("HTML injection via message not blocked")
+	}
+}
+
+func TestAgentPromptInjectionViaMessage(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// Agent reads a piece that contains "instructions" — this tests
+	// that the server doesn't act on them, just stores as text
+	result := tool(t, h, "read_content", map[string]interface{}{"slug": "public"})
+	// The piece body should be returned as data, not executed
+	if strings.Contains(result, "SYSTEM:") || strings.Contains(result, "ignore previous") {
+		t.Log("piece body returned as-is — up to the calling agent to handle safely")
+	}
+	// Server-side: we just verify no panic and valid response
+	if result == "" {
+		t.Error("read_content returned empty on valid slug")
+	}
+}
+
+func TestAgentOversizedCommentTruncated(t *testing.T) {
+	h, _ := newTestHandler(t)
+	big := strings.Repeat("x", 10000)
+	resp := toolRaw(t, h, "leave_comment", map[string]interface{}{
+		"slug": "public",
+		"text": big,
+		"from": "flooder",
+	})
+	// Must not 500 — either truncate or accept
+	if strings.Contains(resp, "500") || strings.Contains(resp, "internal") {
+		t.Error("oversized comment caused server error")
+	}
+}
+
+func TestAgentOversizedMessageTruncated(t *testing.T) {
+	h, _ := newTestHandler(t)
+	big := strings.Repeat("y", 50000)
+	resp := toolRaw(t, h, "leave_message", map[string]interface{}{
+		"text": big,
+		"from": "flooder",
+	})
+	if strings.Contains(resp, "500") || strings.Contains(resp, "internal") {
+		t.Error("oversized message caused server error")
+	}
+}
+
+func TestAgentUnknownSlugGetsError(t *testing.T) {
+	h, _ := newTestHandler(t)
+	resp := toolErr(t, h, "read_content", map[string]interface{}{"slug": "doesnotexist"})
+	if resp == nil {
+		t.Error("unknown slug should return RPC error")
+	}
+}
+
+func TestAgentMissingRequiredField(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// leave_comment requires slug and text
+	resp := toolErr(t, h, "leave_comment", map[string]interface{}{"from": "agent"})
+	if resp == nil {
+		t.Error("missing required fields should return RPC error")
+	}
+}
+
+func TestAgentCallingUnknownTool(t *testing.T) {
+	h, _ := newTestHandler(t)
+	resp := toolErr(t, h, "delete_all_content", nil)
+	if resp == nil {
+		t.Error("unknown tool should return RPC error")
+	}
+}
+
+func TestAgentCannotAccessOwnerRoutes(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// MCP has no owner tools — verify delete/edit tools don't exist
+	resp := toolErr(t, h, "delete_content", map[string]interface{}{"slug": "public"})
+	if resp == nil {
+		t.Error("delete_content should not exist as MCP tool")
+	}
+	resp2 := toolErr(t, h, "save_content", map[string]interface{}{"slug": "hack", "body": "owned"})
+	if resp2 == nil {
+		t.Error("save_content should not exist as MCP tool")
+	}
+}
+
+func TestAgentRequestsPublicPieceAsPublic(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "read_content", map[string]interface{}{"slug": "public"})
+	if !strings.Contains(result, "Hello world") {
+		t.Error("agent should be able to read public content")
+	}
+}
+
+func TestAgentGetsCertificateForPublicPiece(t *testing.T) {
+	h, _ := newTestHandler(t)
+	result := tool(t, h, "get_certificate", map[string]interface{}{"slug": "public"})
+	if strings.Contains(result, "error") && !strings.Contains(result, "hash") {
+		t.Error("get_certificate failed for public piece")
+	}
+}
+
+// ── helper: toolRaw returns the full response text without failing on error ──
+
+func toolRaw(t *testing.T, h *Handler, name string, args map[string]interface{}) string {
+	t.Helper()
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+		"params": map[string]interface{}{"name": name, "arguments": args},
+	})
+	r := httptest.NewRequest("POST", "/mcp", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	return w.Body.String()
 }
