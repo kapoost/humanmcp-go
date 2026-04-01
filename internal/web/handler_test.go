@@ -280,8 +280,8 @@ func TestEmptyContactMessageRejected(t *testing.T) {
 
 func TestFileServingFindsCorrectPath(t *testing.T) {
 	h, dir := newTestHandler(t)
-	// Create a blob and file as StoreFile would
-	blobsDir := filepath.Join(dir, "blobs", "files")
+	// blobStore uses filepath.Dir(contentDir)/blobs — match that
+	blobsDir := filepath.Join(filepath.Dir(dir), "blobs", "files")
 	os.MkdirAll(blobsDir, 0755)
 	os.WriteFile(filepath.Join(blobsDir, "test-img.jpg"), []byte("JPEG_DATA"), 0644)
 	b := &content.Blob{
@@ -301,7 +301,7 @@ func TestFileServingFindsCorrectPath(t *testing.T) {
 
 func TestLockedFileBlocked(t *testing.T) {
 	h, dir := newTestHandler(t)
-	blobsDir := filepath.Join(dir, "blobs", "files")
+	blobsDir := filepath.Join(filepath.Dir(dir), "blobs", "files")
 	os.MkdirAll(blobsDir, 0755)
 	os.WriteFile(filepath.Join(blobsDir, "private.jpg"), []byte("SECRET"), 0644)
 	b := &content.Blob{
