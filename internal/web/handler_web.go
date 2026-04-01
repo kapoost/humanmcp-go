@@ -489,10 +489,19 @@ func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseMultipartForm(50 << 20)
+
+		pieceType := r.FormValue("type")
+		if pieceType == "" { pieceType = "note" }
+
+		// Option D: image pieces get a pure timestamp slug shared with their blob
+		var unifiedSlug string
+		if pieceType == "image" {
+			unifiedSlug = fmt.Sprintf("%d", time.Now().Unix())
+		}
+
 		p := content.Piece{
-			Slug:        slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix())),
 			Title:       r.FormValue("title"),
-			Type:        r.FormValue("type"),
+			Type:        pieceType,
 			Access:      content.AccessLevel(r.FormValue("access")),
 			Gate:        content.GateType(r.FormValue("gate")),
 			Challenge:   r.FormValue("challenge"),
@@ -501,12 +510,18 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			Body:        r.FormValue("body"),
 			Published:   time.Now(),
 		}
+
+		// Slug priority: slug_override > slug field > unified (image) > title+timestamp
 		if r.FormValue("slug_override") != "" {
 			p.Slug = r.FormValue("slug_override")
 		} else if r.FormValue("slug") != "" {
 			p.Slug = r.FormValue("slug")
+		} else if unifiedSlug != "" {
+			p.Slug = unifiedSlug
+		} else {
+			p.Slug = slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix()))
 		}
-		if p.Type == "" { p.Type = "note" }
+
 		p.License = r.FormValue("license")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
@@ -517,6 +532,38 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
+
+		// For image pieces with a file upload, atomically create the blob with the same slug
+		if pieceType == "image" {
+			if file, header, err := r.FormFile("file"); err == nil {
+				defer file.Close()
+				data := make([]byte, header.Size)
+				file.Read(data)
+				mimeType := header.Header.Get("Content-Type")
+				ref, err := h.blobStore.StoreFile(p.Slug, header.Filename, data)
+				if err != nil {
+					http.Error(w, "file save error: "+err.Error(), 500); return
+				}
+				b := content.Blob{
+					Slug:     p.Slug,
+					Title:    p.Title,
+					BlobType: content.BlobImage,
+					Access:   p.Access,
+					MimeType: mimeType,
+					FileRef:  ref,
+					Tags:     p.Tags,
+				}
+				if h.signingKey != nil {
+					if sig, err := content.SignBlob(&b, h.signingKey); err == nil {
+						b.Signature = sig
+					}
+				}
+				if err := h.blobStore.Save(&b); err != nil {
+					http.Error(w, "blob save error: "+err.Error(), 500); return
+				}
+			}
+		}
+
 		if h.signingKey != nil {
 			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
 				p.Signature = sig
