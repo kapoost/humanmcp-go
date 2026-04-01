@@ -16,6 +16,11 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
+  <a href="/upload" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
+  <span class="owner-bar-sep">|</span>
+  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
+  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
+  <a href="/upload" style="font-size:.78rem;color:var(--muted);text-decoration:none;">upload</a>
   <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
@@ -26,14 +31,12 @@ const allTemplates = `
 <li class="piece-item">
   <div class="piece-meta">
     <span>{{formatDate .Published}}</span>
-    {{if ne .Type "note"}}<span class="type-badge">{{.Type}}</span>{{end}}
+    {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
   </div>
   {{if eq .Type "image"}}
   {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-  {{if $img}}
-  <a href="/p/{{.Slug}}" style="display:block;margin:.35rem 0;"><img src="{{$img}}" alt="{{.Title}}" loading="lazy" style="max-width:100%;max-height:260px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;"></a>
-  {{end}}
+  {{if $img}}<a href="/p/{{.Slug}}" style="display:block;margin:.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" loading="lazy" style="max-width:100%;max-height:280px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;"></a>{{end}}
   {{end}}
   <div class="piece-title">
     <a href="/p/{{.Slug}}">{{.Title}}</a>
@@ -363,17 +366,24 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
-.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
-.type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
-.locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
+.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;}
+.type-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 6px;border-radius:3px;}
+.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
+.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
+.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
+.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
+@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
+.locked-badge{font-size:.65rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
 .piece-desc{font-size:.88rem;color:var(--muted);}
+.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.2rem;line-height:1.55;font-style:italic;}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
 .tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
 .empty{color:var(--muted);padding:2rem 0;text-align:center;}
-.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .8rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
+.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .85rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
+.owner-bar-sep{color:var(--border);margin:0 .1rem;}
 .btn{display:inline-block;padding:.35rem .8rem;border-radius:4px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);}
 .btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -381,6 +391,8 @@ a:hover{text-decoration:underline;}
 .btn-sm{padding:.25rem .6rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+.msg-item{padding:.75rem 0;border-bottom:1px solid var(--border);}
+.msg-item:last-child{border-bottom:none;}
 {{end}}
 
 {{define "header"}}

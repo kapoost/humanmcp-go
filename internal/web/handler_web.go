@@ -16,14 +16,15 @@ import (
 )
 
 type Handler struct {
-	cfg      *config.Config
-	store    *content.Store
-	auth     *auth.Auth
-	msgStore   *content.MessageStore
-	statStore  *content.StatStore
-	blobStore  *content.BlobStore
-	signingKey *content.KeyPair // parsed once at startup
-	tmpl  *template.Template
+	cfg         *config.Config
+	store       *content.Store
+	auth        *auth.Auth
+	msgStore    *content.MessageStore
+	statStore   *content.StatStore
+	blobStore   *content.BlobStore
+	signingKey  *content.KeyPair
+	toolCounter func() int
+	tmpl        *template.Template
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
@@ -140,8 +141,19 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// blobImageMap builds a map keyed by both slug and lowercase title → "/files/..." URL.
-// This lets templates match an image piece to its blob even when their slugs diverge.
+// ToolCounter is satisfied by any type with a ToolCount() int method (e.g. *mcp.Handler).
+type ToolCounter interface {
+	ToolCount() int
+}
+
+// SetToolCounter wires the MCP handler's live tool count into the web handler.
+// Call this from main after both handlers are created.
+func (h *Handler) SetToolCounter(tc ToolCounter) {
+	h.toolCounter = tc.ToolCount
+}
+
+// blobImageMap returns a map keyed by blob slug AND lowercase title → "/files/..." URL.
+// Templates use it to match image pieces to their blobs even when slugs differ.
 func (h *Handler) blobImageMap() map[string]string {
 	m := make(map[string]string)
 	blobs, err := h.blobStore.Load()
@@ -666,11 +678,15 @@ func (h *Handler) handleSitemap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleConnect(w http.ResponseWriter, r *http.Request) {
+	toolCount := 12
+	if h.toolCounter != nil {
+		toolCount = h.toolCounter()
+	}
 	h.render(w, "connect.html", map[string]interface{}{
 		"Author":    h.cfg.AuthorName,
 		"Bio":       h.cfg.AuthorBio,
 		"Domain":    h.cfg.Domain,
-		"ToolCount": 12,
+		"ToolCount": toolCount,
 	})
 }
 
