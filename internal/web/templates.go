@@ -15,14 +15,8 @@ const allTemplates = `
 
 {{if .IsOwner}}
 <div class="owner-bar">
-  <a href="/new" class="btn btn-primary" style="font-size:.82rem;padding:.3rem .9rem;text-decoration:none;">+ post</a>
-  <a href="/new" class="btn" style="font-size:.82rem;padding:.3rem .9rem;text-decoration:none;">+ image</a>
-  <span class="owner-bar-sep">|</span>
-  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
-  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
-  <a href="/upload" style="font-size:.78rem;color:var(--muted);text-decoration:none;">upload</a>
-  <span style="flex:1"></span>
-  <a href="/dashboard" style="font-size:.78rem;color:var(--muted);text-decoration:none;">stats</a>
+  <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
+  <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
 
@@ -32,9 +26,15 @@ const allTemplates = `
 <li class="piece-item">
   <div class="piece-meta">
     <span>{{formatDate .Published}}</span>
-    <span class="type-badge {{.Type}}">{{.Type}}</span>
+    {{if ne .Type "note"}}<span class="type-badge">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
   </div>
+  {{if eq .Type "image"}}
+  {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
+  {{if $img}}
+  <a href="/p/{{.Slug}}" style="display:block;margin:.35rem 0;"><img src="{{$img}}" alt="{{.Title}}" loading="lazy" style="max-width:100%;max-height:260px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;"></a>
+  {{end}}
+  {{end}}
   <div class="piece-title">
     <a href="/p/{{.Slug}}">{{.Title}}</a>
     {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
@@ -112,11 +112,9 @@ const allTemplates = `
   </div>
 {{else}}
   {{if eq .Type "image"}}
-    {{if $.ImageBlob}}{{if $.ImageBlob.FileRef}}
-    <div style="margin:1.5rem 0;"><img src="/{{$.ImageBlob.FileRef}}" alt="{{.Title}}" style="max-width:100%;border-radius:6px;display:block;"></div>
-    {{end}}{{end}}
-    {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
-    {{if .Description}}<p style="color:var(--muted);margin-top:1rem;font-size:.9rem;">{{.Description}}</p>{{end}}
+  {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
+  {{if $img}}<div style="margin:1.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);display:block;"></div>{{end}}
+  {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
   {{else}}
   <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
   {{end}}
@@ -365,46 +363,39 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
-.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;}
-.type-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 6px;border-radius:3px;}
-.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
-.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
-.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
-.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
-@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
-.locked-badge{font-size:.65rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
+.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
+.type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
+.locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
 .piece-desc{font-size:.88rem;color:var(--muted);}
-.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.2rem;line-height:1.55;font-style:italic;}
-.tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.3rem;}
+.tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
 .tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
 .empty{color:var(--muted);padding:2rem 0;text-align:center;}
-.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .85rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
-.owner-bar-sep{color:var(--border);margin:0 .1rem;}
+.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .8rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
 .btn{display:inline-block;padding:.35rem .8rem;border-radius:4px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);}
 .btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn-primary:hover{opacity:.9;background:var(--accent);color:#fff;}
+.btn-sm{padding:.25rem .6rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.msg-item{padding:.75rem 0;border-bottom:1px solid var(--border);}
-.msg-item:last-child{border-bottom:none;}
 {{end}}
 
 {{define "header"}}
-<header style="border-bottom:1px solid var(--border);padding:1.25rem 0 1rem;margin-bottom:1.75rem;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
+<header style="border-bottom:1px solid var(--border);padding:1.25rem 0 .9rem;margin-bottom:1.75rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.4rem;">
     <div>
       <div style="font-size:1.15rem;font-weight:600;display:flex;align-items:center;gap:.5rem;">
         <a href="/" style="color:var(--fg);">{{.Author}}</a>
-        <span style="font-size:.65rem;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:3px;border:1px solid var(--accent);">humanMCP</span>
+        <span style="font-size:.68rem;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:3px;border:1px solid var(--accent);">humanMCP</span>
       </div>
-      {{if .Bio}}<div style="font-size:.82rem;color:var(--muted);margin-top:.25rem;max-width:400px;line-height:1.5;">{{.Bio}}</div>{{end}}
+      {{if .Bio}}<div style="font-size:.82rem;color:var(--muted);margin-top:.2rem;">{{.Bio}}</div>{{end}}
     </div>
-    <nav style="font-size:.8rem;display:flex;gap:.9rem;align-items:flex-start;padding-top:.2rem;flex-wrap:wrap;">
+    <nav style="font-size:.8rem;color:var(--muted);display:flex;gap:.9rem;align-items:center;padding-top:.15rem;">
       {{if .IsOwner}}
+        <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
         <a href="/images" style="color:var(--muted);">images</a>
@@ -766,114 +757,6 @@ No markdown, no explanation, just JSON.'}
 {{else}}
 <div class="empty" style="margin-top:2rem;">No images yet.</div>
 {{end}}
-{{template "footer" .}}
-</div>
-</body></html>
-{{end}}
-
-{{define "messages.html"}}<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Messages — {{.Author}}</title>
-<style>{{template "css" .}}</style>
-</head>
-<body>
-<div class="container">
-{{template "header-simple" .}}
-<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
-  <h1 style="font-size:1.1rem;font-weight:500;">Messages</h1>
-  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
-</div>
-{{if .Messages}}
-{{range .Messages}}
-<div class="msg-item">
-  <div style="font-size:.73rem;color:var(--muted);margin-bottom:.3rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
-    {{if .From}}<strong style="color:var(--fg);font-size:.8rem;">{{.From}}</strong>{{else}}<span>anonymous</span>{{end}}
-    <span>{{formatDate .At}}</span>
-    {{if .Regarding}}<span style="background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;font-size:.7rem;border:1px solid var(--accent);">re: {{.Regarding}}</span>{{end}}
-  </div>
-  <div style="font-size:.9rem;line-height:1.55;">{{.Text}}</div>
-</div>
-{{end}}
-{{else}}
-<div class="empty">No messages yet.</div>
-{{end}}
-{{template "footer" .}}
-</div>
-</body></html>
-{{end}}
-
-{{define "blob-uploader.html"}}<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Upload — {{.Author}}</title>
-<style>{{template "css" .}}
-textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:.95rem;resize:vertical;}
-.field{margin-bottom:.75rem;}
-.fl{font-size:.78rem;color:var(--muted);display:block;margin-bottom:.3rem;}
-input[type=text],select{width:100%;padding:.45rem .6rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-size:.88rem;}
-.file-area{border:2px dashed var(--border);border-radius:6px;padding:1.5rem;text-align:center;font-size:.85rem;color:var(--muted);margin-bottom:.75rem;}
-</style>
-</head>
-<body>
-<div class="container">
-{{template "header-simple" .}}
-<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
-  <h1 style="font-size:1.1rem;font-weight:500;">Upload blob</h1>
-  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
-</div>
-<p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;">For images, use <a href="/new">+ image on the post page</a>. This uploader is for vectors, datasets, documents, and other typed data.</p>
-<form method="POST" action="/api/blobs" enctype="multipart/form-data" style="max-width:520px;">
-  <div class="field">
-    <label class="fl">Slug <span style="color:#c0392b">*</span></label>
-    <input type="text" name="slug" placeholder="my-dataset" required>
-  </div>
-  <div class="field">
-    <label class="fl">Title</label>
-    <input type="text" name="title" placeholder="Human-readable name">
-  </div>
-  <div class="field">
-    <label class="fl">Type</label>
-    <select name="blob_type">
-      <option value="document">document</option>
-      <option value="dataset">dataset</option>
-      <option value="vector">vector</option>
-      <option value="contact">contact</option>
-      <option value="capsule">capsule</option>
-      <option value="image">image</option>
-    </select>
-  </div>
-  <div class="field">
-    <label class="fl">File</label>
-    <div class="file-area">
-      <input type="file" name="file" style="display:block;margin:0 auto;">
-    </div>
-  </div>
-  <div class="field">
-    <label class="fl">Or paste text/JSON data</label>
-    <textarea name="text_data" rows="4" placeholder="Inline text, JSON, CSV..."></textarea>
-  </div>
-  <div class="field">
-    <label class="fl">Description</label>
-    <input type="text" name="description" placeholder="What is this?">
-  </div>
-  <div class="field">
-    <label class="fl">Tags <span style="opacity:.5">(comma-separated)</span></label>
-    <input type="text" name="tags" placeholder="data, embeddings, 2026">
-  </div>
-  <div class="field">
-    <label class="fl">Access</label>
-    <select name="access">
-      <option value="public">public</option>
-      <option value="locked">locked</option>
-    </select>
-  </div>
-  <button type="submit" class="btn btn-primary">Save blob</button>
-</form>
 {{template "footer" .}}
 </div>
 </body></html>
