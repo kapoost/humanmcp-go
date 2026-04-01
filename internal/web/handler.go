@@ -83,6 +83,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Connect page (public)
 	mux.HandleFunc("/connect", h.handleConnect)
 
+	// SEO / crawl
+	mux.HandleFunc("/robots.txt", h.handleRobots)
+	mux.HandleFunc("/sitemap.xml", h.handleSitemap)
+
 	// New post page (owner only)
 	mux.Handle("/new", h.auth.RequireOwner(http.HandlerFunc(h.handleNew)))
 
@@ -553,6 +557,29 @@ func firstLine(s string) string {
 	}
 	if len(s) > 60 { return s[:60] }
 	return strings.TrimSpace(s)
+}
+
+func (h *Handler) handleRobots(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "User-agent: *\nAllow: /\nSitemap: https://%s/sitemap.xml\n", h.cfg.Domain)
+}
+
+func (h *Handler) handleSitemap(w http.ResponseWriter, r *http.Request) {
+	h.store.Load()
+	pieces := h.store.List(false)
+	w.Header().Set("Content-Type", "application/xml")
+	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>`+`
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://%s/</loc></url>
+  <url><loc>https://%s/connect</loc></url>
+`, h.cfg.Domain, h.cfg.Domain)
+	for _, p := range pieces {
+		if p.Access == content.AccessPublic {
+			fmt.Fprintf(w, "  <url><loc>https://%s/p/%s</loc><lastmod>%s</lastmod></url>\n",
+				h.cfg.Domain, p.Slug, p.Published.Format("2006-01-02"))
+		}
+	}
+	fmt.Fprintf(w, "</urlset>\n")
 }
 
 func (h *Handler) handleConnect(w http.ResponseWriter, r *http.Request) {

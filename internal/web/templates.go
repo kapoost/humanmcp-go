@@ -84,6 +84,7 @@ const allTemplates = `
     {{if eq (print .Gate) "challenge"}}
       <p style="margin-bottom:.75rem;font-size:.9rem;">Answer to read this piece:</p>
       <p style="font-weight:500;margin-bottom:1rem;">{{.Challenge}}</p>
+      {{if .Description}}<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem;font-style:italic;">Hint: {{.Description}}</p>{{end}}
       {{if $.WrongAnswer}}<p style="color:#c0392b;font-size:.85rem;margin-bottom:.5rem;">&#10007; Wrong answer, try again.</p>{{end}}
       <form method="POST" action="/unlock/{{.Slug}}">
         <input type="text" name="answer" placeholder="Your answer..." autocomplete="off" autofocus>
@@ -299,12 +300,12 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 <p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Add {{.Author}}&rsquo;s server to your AI agent. 30 seconds.</p>
 <div class="connect-section">
   <div class="connect-title">MCP endpoint</div>
-  <div class="code-block">https://{{.Domain}}/mcp</div>
+  <div class="code-block" style="word-break:break-all;user-select:all;">https://{{.Domain}}/mcp</div>
 </div>
 <div class="connect-section">
   <div class="pill">Claude Desktop</div>
   <div class="connect-title">claude_desktop_config.json</div>
-  <div class="code-block">{
+  <div class="code-block" style="user-select:all;">{
   "mcpServers": {
     "{{.Author}}": {
       "type": "http",

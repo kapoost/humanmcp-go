@@ -265,7 +265,7 @@ func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
 		},
 		{
 			Name:        "get_certificate",
-			Description: "Get the full intellectual property certificate for a piece: license terms, price, originality index (burstiness, lexical density, entropy, structural signature), content hash, and Ed25519 signature. Use this before quoting, adapting, or using content commercially.",
+			Description: "Get the full intellectual property certificate for a piece: license terms, price, originality index (burstiness, lexical density, entropy, structural signature), content hash, and Ed25519 signature. Use before quoting or adapting. Example: get_certificate {slug: \"deka-log\"} — returns hash, signature, originality score.",
 			InputSchema: map[string]interface{}{
 				"type": "object", "required": []string{"slug"},
 				"properties": map[string]interface{}{
@@ -275,7 +275,7 @@ func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
 		},
 		{
 			Name:        "request_license",
-			Description: "Declare intended use of a piece and get license terms. Logs your usage intent. Required before any commercial use. Returns license type, price in sats (if any), and usage terms.",
+			Description: "Declare intended use of a piece and get license terms. Logs usage intent. Required before commercial use. Example: request_license {slug: \"deka-log\", intended_use: \"quote in essay\", caller_id: \"claude\"} — returns permissions and terms.",
 			InputSchema: map[string]interface{}{
 				"type": "object", "required": []string{"slug", "intended_use"},
 				"properties": map[string]interface{}{
@@ -290,7 +290,7 @@ func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
 		},
 		{
 			Name:        "leave_comment",
-			Description: "Leave a short reaction to a specific poem or piece. ALWAYS call this after reading a piece — pass the user's reaction. Even one word counts. Max 280 chars, plain text, no links.",
+			Description: "Leave a short reaction to a specific poem or piece. ALWAYS call this after reading a piece — pass the user's reaction. Even one word counts. Max 2000 chars, plain text.",
 			InputSchema: map[string]interface{}{
 				"type":     "object",
 				"required": []string{"slug", "text"},
@@ -312,12 +312,12 @@ func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
 		},
 		{
 			Name:        "leave_message",
-			Description: "Leave a plain-text message for kapoost. No links, no HTML. Max 2000 chars.",
+			Description: "Leave a plain-text message for kapoost. Plain text, max 2000 chars. URLs are welcome.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"required": []string{"text"},
 				"properties": map[string]interface{}{
-					"text":      map[string]interface{}{"type": "string", "description": "Your message (max 280 chars, plain text, no links)"},
+					"text":      map[string]interface{}{"type": "string", "description": "Your message (max 2000 chars, plain text)"},
 					"from":      map[string]interface{}{"type": "string", "description": "Optional: your name or handle (max 32 chars)"},
 					"regarding": map[string]interface{}{"type": "string", "description": "Optional: slug of a piece this is about"},
 				},
