@@ -452,6 +452,47 @@ func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseMultipartForm(50 << 20)
+
+		// If a file is attached — save as image blob and redirect to /images
+		if file, header, err := r.FormFile("file"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			slug := r.FormValue("slug")
+			if slug == "" {
+				if r.FormValue("title") != "" {
+					slug = slugify(r.FormValue("title"))
+				} else {
+					slug = slugify(header.Filename)
+				}
+			}
+			ref, err := h.blobStore.StoreFile(slug, header.Filename, data)
+			if err != nil { http.Error(w, "file save error: "+err.Error(), 500); return }
+			mimeType := header.Header.Get("Content-Type")
+			if mimeType == "" { mimeType = "image/jpeg" }
+			b := &content.Blob{
+				Slug:        slug,
+				Title:       r.FormValue("title"),
+				BlobType:    content.BlobImage,
+				Description: r.FormValue("description"),
+				Access:      content.AccessPublic,
+				MimeType:    mimeType,
+				FileRef:     ref,
+				Published:   time.Now(),
+			}
+			if tags := r.FormValue("tags"); tags != "" {
+				for _, t := range strings.Split(tags, ",") {
+					if s := strings.TrimSpace(t); s != "" { b.Tags = append(b.Tags, s) }
+				}
+			}
+			if h.signingKey != nil {
+				if sig, err := content.SignBlob(b, h.signingKey); err == nil { b.Signature = sig }
+			}
+			if err := h.blobStore.Save(b); err != nil { http.Error(w, err.Error(), 500); return }
+			http.Redirect(w, r, "/images", http.StatusSeeOther)
+			return
+		}
+
 		p := content.Piece{
 			Slug:        slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix())),
 			Title:       r.FormValue("title"),
