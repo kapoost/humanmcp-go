@@ -16,10 +16,6 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
-  <a href="/new" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
-  <span class="owner-bar-sep">|</span>
-  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
-  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
   <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
@@ -30,23 +26,15 @@ const allTemplates = `
 <li class="piece-item">
   <div class="piece-meta">
     <span>{{formatDate .Published}}</span>
-    {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
   </div>
-  <div class="piece-row">
-    <div class="piece-left">
-      <div class="piece-title">
-        <a href="/p/{{.Slug}}">{{.Title}}</a>
-        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-      </div>
-      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-    </div>
-    {{if eq .Type "image"}}
-    {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
-    {{else if and .Body (not (eq .Type "contact"))}}<div class="piece-right"><div class="piece-excerpt-right">{{truncate .Body 90}}</div></div>
-    {{end}}
+  <div class="piece-title">
+    <a href="/p/{{.Slug}}">{{.Title}}</a>
+    {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+  </div>
+  {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
+  <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem;flex-wrap:wrap;">
+    {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
   </div>
 </li>
 {{end}}
@@ -76,13 +64,6 @@ const allTemplates = `
 .gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
 .gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
 .unlock-success{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;color:#2e7d32;font-size:.85rem;}
-.piece-info{margin-top:.9rem;padding-top:.75rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.4rem;}
-.info-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.75rem;color:var(--muted);}
-.info-label{font-weight:500;color:var(--fg);min-width:4.5rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}
-.info-sig{font-family:monospace;font-size:.72rem;color:var(--muted);letter-spacing:.02em;}
-.info-btn{font-size:.7rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;}
-.info-btn:hover{border-color:var(--accent);color:var(--accent);}
-.info-actions{display:flex;gap:.5rem;margin-top:.2rem;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -94,29 +75,6 @@ const allTemplates = `
   <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}{{if .Signature}} &middot; <span style="font-size:.7rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:3px;border:1px solid #4caf50;">&#10003; signed</span>{{end}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-  {{if or .Signature .License}}
-  <div class="piece-info">
-    {{if .Signature}}
-    <div class="info-row">
-      <span class="info-label">ed25519</span>
-      <span class="info-sig">{{truncate .Signature 28}}</span>
-      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy sig',1500)" data-v="{{.Signature}}">copy sig</button>
-    </div>
-    {{end}}
-    {{if .License}}
-    <div class="info-row">
-      <span class="info-label">license</span>
-      <span>{{licenseLabel .License}}</span>
-    </div>
-    {{end}}
-    <div class="info-actions">
-      <a href="/contact?regarding={{.Slug}}" class="info-btn">✉ leave a message</a>
-      {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
-      <a href="/contact?regarding={{.Slug}}" class="info-btn">⟶ request license</a>
-      {{end}}
-    </div>
-  </div>
-  {{end}}
 </div>
 {{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
 {{if $.IsLocked}}
@@ -146,13 +104,7 @@ const allTemplates = `
     {{end}}
   </div>
 {{else}}
-  {{if eq .Type "image"}}
-  {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-  {{if $img}}<div style="margin:1.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);display:block;"></div>{{end}}
-  {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
-  {{else}}
   <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
-  {{end}}
 {{end}}
 {{end}}
 {{template "footer" .}}
@@ -288,27 +240,31 @@ const allTemplates = `
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{if .Regarding}}Comment — {{.Author}}{{else}}Contact — {{.Author}}{{end}}</title>
+<title>Contact — {{.Author}}</title>
 <style>{{template "css" .}}
 textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:.95rem;resize:vertical;line-height:1.6;}
 .success-box{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:1.25rem;color:#2e7d32;}
-.re-badge{font-size:.82rem;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent);border-radius:4px;padding:.3rem .7rem;display:inline-block;margin-bottom:1rem;}
 </style>
 </head>
 <body>
 <div class="container">
 {{template "header-simple" .}}
 <div style="max-width:520px;">
+<h1 style="font-size:1.1rem;font-weight:500;margin-bottom:1.5rem;">Leave a message</h1>
 {{if .Sent}}
-<div class="success-box"><strong>Sent.</strong> kapoost will read it.<p style="margin-top:.5rem;font-size:.9rem;">&#8592; <a href="/">back to reading</a></p></div>
+<div class="success-box"><strong>Message sent.</strong> kapoost will read it.<p style="margin-top:.5rem;font-size:.9rem;">&#8592; <a href="/">back to reading</a></p></div>
 {{else}}
-{{if .Regarding}}<div class="re-badge">re: {{.RegardingTitle}}</div>{{end}}
 {{if .Error}}<p style="color:#c0392b;margin-bottom:1rem;font-size:.85rem;">{{.Error}}</p>{{end}}
 <form method="POST" action="/contact" style="display:grid;gap:.75rem;">
-  {{if .Regarding}}<input type="hidden" name="regarding" value="{{.Regarding}}">{{end}}
   <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Name or handle <span style="opacity:.5">(optional)</span></label>
   <input type="text" name="from" maxlength="32" value="{{.From}}" placeholder="anonymous" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);"></div>
-  <div><textarea name="text" id="msg-text" maxlength="2000" rows="5" placeholder="Plain text only. No links. Max 2000 characters." oninput="document.getElementById('cc').textContent=this.value.length+'/2000'">{{.Text}}</textarea>
+  {{if .Pieces}}<div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">About a piece <span style="opacity:.5">(optional)</span></label>
+  <select name="regarding" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  <option value="">&#8212; general &#8212;</option>
+  {{range .Pieces}}<option value="{{.Slug}}">{{.Title}}</option>{{end}}
+  </select></div>{{end}}
+  <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Message <span style="color:#c0392b">*</span></label>
+  <textarea name="text" id="msg-text" maxlength="2000" rows="5" placeholder="Plain text only. No links. Max 2000 characters." oninput="document.getElementById('cc').textContent=this.value.length+'/2000'">{{.Text}}</textarea>
   <div style="font-size:.72rem;color:var(--muted);text-align:right;" id="cc">0/2000</div></div>
   <button type="submit" class="btn btn-primary" style="justify-self:start;">Send</button>
 </form>
@@ -371,6 +327,8 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
     <div class="tool-card"><strong>leave_comment</strong><span>React to a piece</span></div>
     <div class="tool-card"><strong>leave_message</strong><span>Send a direct note</span></div>
     <div class="tool-card"><strong>get_author_profile</strong><span>Who is {{.Author}}</span></div>
+    <div class="tool-card"><strong>get_certificate</strong><span>IP certificate: hash, signature, originality</span></div>
+    <div class="tool-card"><strong>request_license</strong><span>Declare intended use, get terms</span></div>
   </div>
 </div>
 <div class="connect-section">
@@ -394,24 +352,17 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
-.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;}
-.type-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 6px;border-radius:3px;}
-.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
-.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
-.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
-.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
-@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
-.locked-badge{font-size:.65rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
+.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
+.type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
+.locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
 .piece-desc{font-size:.88rem;color:var(--muted);}
-.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.2rem;line-height:1.55;font-style:italic;}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
 .tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
 .empty{color:var(--muted);padding:2rem 0;text-align:center;}
-.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .85rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
-.owner-bar-sep{color:var(--border);margin:0 .1rem;}
+.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .8rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
 .btn{display:inline-block;padding:.35rem .8rem;border-radius:4px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);}
 .btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -419,14 +370,6 @@ a:hover{text-decoration:underline;}
 .btn-sm{padding:.25rem .6rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.piece-row{display:flex;gap:1.1rem;align-items:flex-start;margin-top:.15rem;}
-.piece-left{flex:1;min-width:0;}
-.piece-right{flex-shrink:0;width:150px;}
-.piece-thumb{width:150px;height:95px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;}
-.piece-excerpt-right{font-size:.76rem;color:var(--muted);font-style:italic;line-height:1.6;text-align:right;border-right:2px solid var(--border);padding-right:.65rem;margin-top:.1rem;}
-@media(max-width:480px){.piece-right{width:110px;}.piece-thumb{width:110px;height:70px;}.piece-excerpt-right{display:none;}}
-.msg-item{padding:.75rem 0;border-bottom:1px solid var(--border);}
-.msg-item:last-child{border-bottom:none;}
 {{end}}
 
 {{define "header"}}
