@@ -13,16 +13,6 @@ const allTemplates = `
 <div class="container">
 {{template "header" .}}
 
-{{if not .IsOwner}}
-<div class="mcp-bar">
-  <span class="mcp-label">humanMCP</span>
-  <span class="mcp-dot">&#9632;</span><a href="/connect" class="mcp-link">connect agent</a>
-  <span class="mcp-dot">&#9632;</span><a href="/images" class="mcp-link">gallery</a>
-  <span class="mcp-dot">&#9632;</span><a href="/contact" class="mcp-link">contact</a>
-  <span class="mcp-meta">mcp/json-rpc&nbsp;2.0 &middot; ed25519 &middot; {{.Domain}}</span>
-</div>
-{{end}}
-
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.82rem;padding:.3rem .9rem;text-decoration:none;">+ post</a>
@@ -121,7 +111,15 @@ const allTemplates = `
     {{end}}
   </div>
 {{else}}
+  {{if eq .Type "image"}}
+    {{if $.ImageBlob}}{{if $.ImageBlob.FileRef}}
+    <div style="margin:1.5rem 0;"><img src="/{{$.ImageBlob.FileRef}}" alt="{{.Title}}" style="max-width:100%;border-radius:6px;display:block;"></div>
+    {{end}}{{end}}
+    {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
+    {{if .Description}}<p style="color:var(--muted);margin-top:1rem;font-size:.9rem;">{{.Description}}</p>{{end}}
+  {{else}}
   <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
+  {{end}}
 {{end}}
 {{end}}
 {{template "footer" .}}
@@ -379,6 +377,7 @@ a:hover{text-decoration:underline;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
 .piece-desc{font-size:.88rem;color:var(--muted);}
+.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.2rem;line-height:1.55;font-style:italic;}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.3rem;}
 .tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
 .empty{color:var(--muted);padding:2rem 0;text-align:center;}

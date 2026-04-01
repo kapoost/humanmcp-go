@@ -52,6 +52,21 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 		"nl2br": func(s string) template.HTML {
 			return template.HTML(strings.ReplaceAll(template.HTMLEscapeString(s), "\n", "<br>"))
 		},
+		"excerpt": func(s string, n int) string {
+			// strip blank lines, return first n chars cut at word boundary
+			lines := strings.Split(strings.TrimSpace(s), "\n")
+			var out []string
+			for _, l := range lines {
+				if t := strings.TrimSpace(l); t != "" { out = append(out, t) }
+				if len(out) >= 3 { break }
+			}
+			result := strings.Join(out, " ")
+			if len(result) <= n { return result }
+			// cut at last space before n
+			cut := result[:n]
+			if idx := strings.LastIndex(cut, " "); idx > n/2 { cut = cut[:idx] }
+			return cut + "…"
+		},
 		"join": func(slice []string, sep string) string { return strings.Join(slice, sep) },
 		"isoDate": func(t time.Time) string {
 			if t.IsZero() { return "" }
@@ -160,12 +175,16 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	for _, p := range pieces { slugTags[p.Slug] = p.Tags }
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
+	blobs, _ := h.blobStore.Load()
+	blobsBySlug := make(map[string]*content.Blob)
+	for _, b := range blobs { blobsBySlug[b.Slug] = b }
 	h.render(w, "index.html", map[string]interface{}{
-		"Author":  h.cfg.AuthorName,
-		"Bio":     h.cfg.AuthorBio,
-		"Pieces":  pieces,
-		"IsOwner": isOwner,
-		"Domain":  h.cfg.Domain,
+		"Author":      h.cfg.AuthorName,
+		"Bio":         h.cfg.AuthorBio,
+		"Pieces":      pieces,
+		"IsOwner":     isOwner,
+		"Domain":      h.cfg.Domain,
+		"BlobsBySlug": blobsBySlug,
 	})
 }
 
@@ -210,12 +229,17 @@ func (h *Handler) handlePiece(w http.ResponseWriter, r *http.Request) {
 	if p.Gate == content.GateTime && !p.UnlockAfter.IsZero() {
 		unlockDate = p.UnlockAfter.Format("2 January 2006 at 15:04 UTC")
 	}
+	var imageBlob *content.Blob
+	if p.Type == "image" {
+		if b, err := h.blobStore.Get(slug); err == nil { imageBlob = b }
+	}
 	h.render(w, "piece.html", map[string]interface{}{
 		"Author":     h.cfg.AuthorName,
 		"Piece":      p,
 		"IsLocked":   isLocked,
 		"IsOwner":    isOwner,
 		"UnlockDate": unlockDate,
+		"ImageBlob":  imageBlob,
 	})
 }
 
