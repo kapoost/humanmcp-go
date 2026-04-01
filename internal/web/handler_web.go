@@ -56,6 +56,17 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 			if len(runes) <= n { return s }
 			return string(runes[:n]) + "…"
 		},
+		"licenseLabel": func(l string) string {
+			switch l {
+			case "free":       return "free — read & share with credit"
+			case "cc-by":      return "CC BY — use freely with attribution"
+			case "cc-by-nc":   return "CC BY-NC — non-commercial only"
+			case "commercial": return "commercial — contact to license"
+			case "exclusive":  return "exclusive — contact to negotiate"
+			case "all-rights": return "all rights reserved"
+			default:           return l
+			}
+		},
 		"isoDate": func(t time.Time) string {
 			if t.IsZero() { return "" }
 			return t.Format("2006-01-02T15:04")

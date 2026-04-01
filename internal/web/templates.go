@@ -77,6 +77,13 @@ const allTemplates = `
 .gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
 .gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
 .unlock-success{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;color:#2e7d32;font-size:.85rem;}
+.piece-info{margin-top:.9rem;padding-top:.75rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.4rem;}
+.info-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.75rem;color:var(--muted);}
+.info-label{font-weight:500;color:var(--fg);min-width:4.5rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}
+.info-sig{font-family:monospace;font-size:.72rem;color:var(--muted);letter-spacing:.02em;}
+.info-btn{font-size:.7rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;}
+.info-btn:hover{border-color:var(--accent);color:var(--accent);}
+.info-actions{display:flex;gap:.5rem;margin-top:.2rem;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -88,6 +95,30 @@ const allTemplates = `
   <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}{{if .Signature}} &middot; <span style="font-size:.7rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:3px;border:1px solid #4caf50;">&#10003; signed</span>{{end}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  {{if or .Signature .License}}
+  <div class="piece-info">
+    {{if .Signature}}
+    <div class="info-row">
+      <span class="info-label">ed25519</span>
+      <span class="info-sig">{{truncate .Signature 28}}</span>
+      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy sig',1500)" data-v="{{.Signature}}">copy sig</button>
+    </div>
+    {{end}}
+    {{if .License}}
+    <div class="info-row">
+      <span class="info-label">license</span>
+      <span>{{licenseLabel .License}}</span>
+    </div>
+    {{end}}
+    <div class="info-actions">
+      <a href="/contact?regarding={{.Slug}}" class="info-btn">✉ leave a message</a>
+      {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
+      <a href="/contact?regarding={{.Slug}}" class="info-btn">⟶ request license</a>
+      {{end}}
+      <a href="/connect" class="info-btn">⊕ connect MCP</a>
+    </div>
+  </div>
+  {{end}}
 </div>
 {{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
 {{if $.IsLocked}}
