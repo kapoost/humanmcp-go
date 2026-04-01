@@ -51,7 +51,6 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 		},
 		"join": func(slice []string, sep string) string { return strings.Join(slice, sep) },
 		"truncate": func(s string, n int) string {
-			// collapse whitespace/newlines for inline preview
 			s = strings.Join(strings.Fields(s), " ")
 			runes := []rune(s)
 			if len(runes) <= n { return s }

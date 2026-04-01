@@ -34,18 +34,20 @@ const allTemplates = `
     {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
   </div>
-  {{if eq .Type "image"}}
-  {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-  {{if $img}}<a href="/p/{{.Slug}}" style="display:block;margin:.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" loading="lazy" style="max-width:100%;max-height:280px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;"></a>{{end}}
-  {{end}}
-  <div class="piece-title">
-    <a href="/p/{{.Slug}}">{{.Title}}</a>
-    {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-  </div>
-  {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-  {{if and .Body (not (eq .Type "image")) (not (eq .Type "contact"))}}<div class="piece-excerpt">{{truncate .Body 120}}</div>{{end}}
-  <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem;flex-wrap:wrap;">
-    {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  <div class="piece-row">
+    <div class="piece-left">
+      <div class="piece-title">
+        <a href="/p/{{.Slug}}">{{.Title}}</a>
+        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+      </div>
+      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
+      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+    </div>
+    {{if eq .Type "image"}}
+    {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
+    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
+    {{else if and .Body (not (eq .Type "contact"))}}<div class="piece-right"><div class="piece-excerpt-right">{{truncate .Body 90}}</div></div>
+    {{end}}
   </div>
 </li>
 {{end}}
@@ -392,6 +394,12 @@ a:hover{text-decoration:underline;}
 .btn-sm{padding:.25rem .6rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+.piece-row{display:flex;gap:1.1rem;align-items:flex-start;margin-top:.15rem;}
+.piece-left{flex:1;min-width:0;}
+.piece-right{flex-shrink:0;width:150px;}
+.piece-thumb{width:150px;height:95px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;}
+.piece-excerpt-right{font-size:.76rem;color:var(--muted);font-style:italic;line-height:1.6;text-align:right;border-right:2px solid var(--border);padding-right:.65rem;margin-top:.1rem;}
+@media(max-width:480px){.piece-right{width:110px;}.piece-thumb{width:110px;height:70px;}.piece-excerpt-right{display:none;}}
 .msg-item{padding:.75rem 0;border-bottom:1px solid var(--border);}
 .msg-item:last-child{border-bottom:none;}
 {{end}}
