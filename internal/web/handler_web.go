@@ -116,9 +116,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/p/", h.handlePiece)
 	mux.HandleFunc("/unlock/", h.handleUnlock)
 
-	// Owner API (require edit token)
-	mux.Handle("/api/content", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIList)))
-	mux.Handle("/api/content/", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIContent)))
+	// Public read API — GET is open, writes require owner token
+	mux.HandleFunc("/api/content", h.handleAPIList)
+	mux.HandleFunc("/api/content/", h.handleAPIContent)
 
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
@@ -159,8 +159,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/upload", h.auth.RequireOwner(http.HandlerFunc(h.handleUploadPage)))
 
 	// Blob upload (owner only)
-	mux.Handle("/api/blobs", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
-	mux.Handle("/api/blobs/", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
+	mux.HandleFunc("/api/blobs", h.handleAPIBlobs)
+	mux.HandleFunc("/api/blobs/", h.handleAPIBlobs)
+
+	// OpenAPI spec for ChatGPT and REST agents
+	mux.HandleFunc("/openapi.json", h.handleOpenAPI)
 
 	// llms.txt — public machine-readable agent preferences (signed)
 	mux.HandleFunc("/llms.txt", h.handleLLMSTxt)
@@ -310,25 +313,32 @@ func (h *Handler) handleAPIList(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, err.Error(), 500)
 		return
 	}
-	pieces := h.store.List(true)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	pieces := h.store.List(h.auth.IsOwner(r)) // owner=all, public=public only
 	json.NewEncoder(w).Encode(pieces)
 }
 
 func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimPrefix(r.URL.Path, "/api/content/")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	switch r.Method {
 	case http.MethodGet:
-		p, err := h.store.GetForEdit(slug)
-		if err != nil {
-			jsonError(w, "not found", 404)
-			return
+		if h.auth.IsOwner(r) {
+			p, err := h.store.GetForEdit(slug)
+			if err != nil { jsonError(w, "not found", 404); return }
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(p)
+		} else {
+			p, err := h.store.Get(slug, false)
+			if err != nil { jsonError(w, "not found", 404); return }
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(p)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(p)
 
 	case http.MethodPut, http.MethodPost:
+		if !h.auth.IsOwner(r) { jsonError(w, "unauthorized", 401); return }
 		// Use a raw map to handle flexible time fields from JS
 		var raw map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
@@ -363,6 +373,7 @@ func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"status": "saved", "slug": p.Slug})
 
 	case http.MethodDelete:
+		if !h.auth.IsOwner(r) { jsonError(w, "unauthorized", 401); return }
 		if err := h.store.Delete(slug); err != nil {
 			jsonError(w, "not found", 404)
 			return
@@ -422,6 +433,7 @@ func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(b)
 
 	case http.MethodPost, http.MethodPut:
+		if !h.auth.IsOwner(r) { jsonError(w, "unauthorized", 401); return }
 		// Multipart: supports file upload + metadata
 		r.ParseMultipartForm(50 << 20) // 50MB
 		var b content.Blob
@@ -483,6 +495,7 @@ func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"status": "saved", "slug": b.Slug})
 
 	case http.MethodDelete:
+		if !h.auth.IsOwner(r) { jsonError(w, "unauthorized", 401); return }
 		if err := h.blobStore.Delete(slug); err != nil {
 			jsonError(w, "not found", 404); return
 		}
@@ -702,6 +715,94 @@ func (h *Handler) handleImages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+
+func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	spec := map[string]interface{}{
+		"openapi": "3.1.0",
+		"info": map[string]interface{}{
+			"title":       h.cfg.AuthorName + "'s humanMCP",
+			"description": h.cfg.AuthorBio,
+			"version":     "0.2.0",
+		},
+		"servers": []map[string]interface{}{
+			{"url": "https://" + h.cfg.Domain},
+		},
+		"paths": map[string]interface{}{
+			"/api/content": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "listContent",
+					"summary":     "List all public pieces",
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Array of pieces"},
+					},
+				},
+			},
+			"/api/content/{slug}": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "readContent",
+					"summary":     "Read a piece by slug",
+					"parameters": []map[string]interface{}{
+						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Piece content"},
+						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/api/blobs": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "listBlobs",
+					"summary":     "List all public blobs (images, datasets)",
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Array of blobs"},
+					},
+				},
+			},
+			"/api/blobs/{slug}": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "readBlob",
+					"summary":     "Read a blob by slug",
+					"parameters": []map[string]interface{}{
+						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Blob data"},
+						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/contact": map[string]interface{}{
+				"post": map[string]interface{}{
+					"operationId": "leaveMessage",
+					"summary":     "Leave a message or comment",
+					"requestBody": map[string]interface{}{
+						"required": true,
+						"content": map[string]interface{}{
+							"application/x-www-form-urlencoded": map[string]interface{}{
+								"schema": map[string]interface{}{
+									"type": "object",
+									"properties": map[string]interface{}{
+										"from":      map[string]interface{}{"type": "string"},
+										"text":      map[string]interface{}{"type": "string"},
+										"regarding": map[string]interface{}{"type": "string"},
+									},
+									"required": []string{"text"},
+								},
+							},
+						},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Message sent"},
+					},
+				},
+			},
+		},
+	}
+	json.NewEncoder(w).Encode(spec)
+}
 
 func (h *Handler) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
