@@ -3,470 +3,298 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>humanMCP — kapoost</title>
-<meta name="description" content="A personal MCP server publishing signed poems, images and data. Connect your AI agent to kapoost's content.">
+<title>humanMCP — your work, signed, machine-readable</title>
+<meta name="description" content="Publish your poems, images and data with cryptographic proof of authorship. Connect any AI agent to your creative work.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0c0c0b;
-    --fg: #e8e4dc;
-    --muted: #6b6660;
-    --accent: #c8a96e;
-    --accent-dim: rgba(200,169,110,0.12);
-    --border: rgba(200,169,110,0.18);
-    --green: #5a9e6f;
-    --green-dim: rgba(90,158,111,0.12);
-    --serif: 'Libre Baskerville', Georgia, serif;
-    --mono: 'DM Mono', monospace;
-  }
+:root{--bg:#0e0d0b;--bg2:#141210;--fg:#ede8df;--muted:#7a7268;--faint:#2a2720;--gold:#c9a96e;--gold-dim:rgba(201,169,110,.1);--gold-border:rgba(201,169,110,.22);--green:#6aab7e;--green-dim:rgba(106,171,126,.1);--blue:#7aade0;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--fg);font-family:var(--serif);font-size:17px;line-height:1.7;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:100;}
+.wrap{max-width:720px;margin:0 auto;padding:0 2rem;}
+.hero{padding:7rem 0 5rem;border-bottom:1px solid var(--faint);}
+.hero-tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:.75rem;}
+.hero-tag::before{content:'';width:2.5rem;height:1px;background:var(--gold);flex-shrink:0;}
+h1{font-size:clamp(2.8rem,6vw,4.2rem);font-weight:300;font-style:italic;line-height:1.12;letter-spacing:-.01em;margin-bottom:1.75rem;}
+h1 strong{font-weight:600;font-style:normal;}
+.hero-sub{font-size:1.15rem;color:var(--muted);max-width:500px;line-height:1.8;margin-bottom:2.5rem;font-weight:300;}
+.hero-cta{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;}
+.btn{font-family:var(--mono);font-size:.78rem;letter-spacing:.04em;padding:.7rem 1.5rem;border-radius:1px;text-decoration:none;transition:all .15s;display:inline-block;cursor:pointer;border:none;}
+.btn-gold{background:var(--gold);color:var(--bg);}
+.btn-gold:hover{opacity:.85;}
+.btn-outline{background:transparent;color:var(--fg);border:1px solid var(--faint);}
+.btn-outline:hover{border-color:var(--gold-border);color:var(--gold);}
+.problem{padding:5rem 0;border-bottom:1px solid var(--faint);}
+.problem-quote{font-size:clamp(1.4rem,3vw,2rem);font-weight:300;font-style:italic;line-height:1.45;border-left:2px solid var(--gold);padding-left:1.75rem;margin-bottom:1.5rem;}
+.problem-body{font-size:1rem;color:var(--muted);max-width:520px;padding-left:1.75rem;border-left:1px solid var(--faint);}
+.audience{padding:5rem 0;border-bottom:1px solid var(--faint);}
+.section-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:2rem;}
+.tab-nav{display:flex;border-bottom:1px solid var(--faint);margin-bottom:2.5rem;}
+.tab-btn{font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;padding:.65rem 1.4rem;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;transition:all .15s;}
+.tab-btn:hover{color:var(--fg);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.tab-story{font-size:1.05rem;color:var(--muted);font-style:italic;max-width:540px;line-height:1.8;margin-bottom:1.5rem;border-left:1px solid var(--gold-border);padding-left:1.25rem;}
+.feat-grid{display:grid;gap:1px;background:var(--faint);border:1px solid var(--faint);margin-bottom:1.5rem;}
+.feat-grid-2{grid-template-columns:1fr 1fr;}
+.feat-grid-3{grid-template-columns:1fr 1fr 1fr;}
+.feat{background:var(--bg);padding:1.5rem 1.3rem;}
+.feat-icon{font-size:1.6rem;margin-bottom:.5rem;font-family:var(--serif);color:var(--gold);font-weight:300;line-height:1;letter-spacing:-.02em;}
+.feat-title{font-family:var(--mono);font-size:.78rem;color:var(--gold);margin-bottom:.4rem;letter-spacing:.03em;}
+.feat-body{font-size:.9rem;color:var(--muted);line-height:1.65;}
+.code{font-family:var(--mono);font-size:.78rem;background:var(--bg2);border:1px solid var(--faint);padding:1rem 1.2rem;line-height:1.9;color:var(--fg);overflow-x:auto;white-space:pre;margin-bottom:1rem;}
+.code .c{color:var(--muted);}
+.code .k{color:var(--gold);}
+.code .s{color:var(--green);}
+.code .v{color:var(--blue);}
+.tool-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1.5rem;}
+.tool-table td{padding:.5rem .75rem;border-bottom:1px solid var(--faint);vertical-align:top;}
+.tool-table td:first-child{font-family:var(--mono);font-size:.75rem;color:var(--gold);white-space:nowrap;padding-right:1.5rem;}
+.tool-table td:last-child{color:var(--muted);}
+.how-section{padding:5rem 0;border-bottom:1px solid var(--faint);}
+.endpoint-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;}
+.ep-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;color:var(--muted);width:3rem;flex-shrink:0;}
+.ep-url{font-family:var(--mono);font-size:.8rem;color:var(--gold);user-select:all;}
+footer{padding:3rem 0 4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+footer a{color:var(--muted);text-decoration:none;}
+footer a:hover{color:var(--gold);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.hero>*{animation:fadeUp .6s ease both;}
+.hero>*:nth-child(1){animation-delay:.05s;}
+.hero>*:nth-child(2){animation-delay:.15s;}
+.hero>*:nth-child(3){animation-delay:.25s;}
+.hero>*:nth-child(4){animation-delay:.35s;}
+@media(max-width:560px){.feat-grid-2,.feat-grid-3{grid-template-columns:1fr;}}
+    .challenge{margin:0 0 2rem;border:1px solid var(--faint);padding:1.75rem 1.5rem;}
+    .challenge-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-bottom:1rem;}
+    .challenge-intro{font-size:.95rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7;}
+    .poem-preview{background:var(--bg2);border-left:2px solid var(--gold-border);padding:1.25rem 1.25rem 1.25rem 1.5rem;margin-bottom:1.5rem;}
+    .poem-title{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-bottom:.75rem;letter-spacing:.05em;}
+    .poem-meta{color:var(--faint);font-size:.68rem;}
+    .poem-body{font-family:var(--serif);font-size:.95rem;line-height:1.9;color:var(--fg);white-space:pre-line;font-style:italic;}
+    .prompts-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem;}
+    .prompts{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem;}
+    .prompt{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;background:var(--bg2);border:1px solid var(--faint);padding:.7rem .9rem;cursor:pointer;transition:border-color .15s;}
+    .prompt:hover{border-color:var(--gold-border);}
+    .prompt-text{font-family:var(--mono);font-size:.75rem;color:var(--fg);line-height:1.6;flex:1;}
+    .prompt-copy{font-family:var(--mono);font-size:.65rem;color:var(--muted);white-space:nowrap;padding-top:.1rem;flex-shrink:0;}
+    .prompt:hover .prompt-copy{color:var(--gold);}
+    .challenge-q{font-size:1.15rem;font-style:italic;color:var(--fg);font-family:var(--serif);}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--serif);
-    font-size: 16px;
-    line-height: 1.7;
-    min-height: 100vh;
-  }
-
-  /* grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.6;
-  }
-
-  .wrap {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-    position: relative;
-    z-index: 2;
-  }
-
-  /* HERO */
-  .hero {
-    padding: 5rem 0 4rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: .72rem;
-    letter-spacing: .2em;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-  }
-
-  .eyebrow::before {
-    content: '';
-    display: inline-block;
-    width: 2rem;
-    height: 1px;
-    background: var(--accent);
-  }
-
-  h1 {
-    font-size: clamp(2.2rem, 5vw, 3.2rem);
-    font-weight: 400;
-    line-height: 1.2;
-    letter-spacing: -.02em;
-    margin-bottom: 1.25rem;
-  }
-
-  h1 em {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  .hero-desc {
-    font-size: 1.05rem;
-    color: var(--muted);
-    max-width: 480px;
-    line-height: 1.75;
-    margin-bottom: 2.5rem;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: .75rem;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .btn {
-    font-family: var(--mono);
-    font-size: .82rem;
-    padding: .55rem 1.2rem;
-    border-radius: 2px;
-    text-decoration: none;
-    letter-spacing: .03em;
-    transition: all .15s;
-    display: inline-block;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: var(--bg);
-    border: 1px solid var(--accent);
-  }
-
-  .btn-primary:hover { opacity: .85; }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--fg);
-    border: 1px solid var(--border);
-  }
-
-  .btn-ghost:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* SIGNED BADGE */
-  .signed {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-family: var(--mono);
-    font-size: .7rem;
-    color: var(--green);
-    background: var(--green-dim);
-    border: 1px solid rgba(90,158,111,.3);
-    padding: .2rem .6rem;
-    border-radius: 2px;
-    letter-spacing: .08em;
-    margin-left: .5rem;
-  }
-
-  /* WHAT IS IT */
-  .section {
-    padding: 3.5rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .section-label {
-    font-family: var(--mono);
-    font-size: .68rem;
-    letter-spacing: .18em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 1.75rem;
-  }
-
-  .what-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-  }
-
-  .what-cell {
-    background: var(--bg);
-    padding: 1.25rem 1.1rem;
-  }
-
-  .what-cell strong {
-    display: block;
-    font-family: var(--mono);
-    font-size: .78rem;
-    color: var(--accent);
-    margin-bottom: .35rem;
-    font-weight: 500;
-  }
-
-  .what-cell p {
-    font-size: .88rem;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-
-  /* CONNECT TABS */
-  .tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 1.5rem;
-  }
-
-  .tab {
-    font-family: var(--mono);
-    font-size: .72rem;
-    letter-spacing: .06em;
-    padding: .5rem 1rem;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all .12s;
-    background: none;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-  }
-
-  .tab:hover { color: var(--fg); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  .code {
-    font-family: var(--mono);
-    font-size: .82rem;
-    background: #141412;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    padding: 1rem 1.1rem;
-    line-height: 1.8;
-    color: var(--fg);
-    overflow-x: auto;
-    white-space: pre;
-    user-select: all;
-  }
-
-  .step {
-    font-size: .88rem;
-    color: var(--muted);
-    margin-bottom: .5rem;
-    padding-left: 1.4rem;
-    text-indent: -1.4rem;
-  }
-
-  .step strong { color: var(--fg); }
-
-  .step-note {
-    font-size: .82rem;
-    color: var(--muted);
-    font-style: italic;
-    margin-bottom: 1rem;
-  }
-
-  /* TOOLS */
-  .tool-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: .4rem;
-  }
-
-  .tool-item {
-    font-family: var(--mono);
-    font-size: .75rem;
-    padding: .4rem .65rem;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: .5rem;
-  }
-
-  .tool-item span { color: var(--muted); font-size: .7rem; }
-
-  /* FOOTER */
-  footer {
-    padding: 2.5rem 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: .75rem;
-    font-family: var(--mono);
-    font-size: .72rem;
-    color: var(--muted);
-  }
-
-  footer a { color: var(--muted); text-decoration: none; }
-  footer a:hover { color: var(--accent); }
-
-  /* ENDPOINT PILL */
-  .endpoint {
-    font-family: var(--mono);
-    font-size: .8rem;
-    background: var(--accent-dim);
-    border: 1px solid var(--border);
-    padding: .55rem 1rem;
-    border-radius: 2px;
-    color: var(--accent);
-    display: inline-block;
-    margin-bottom: 1.25rem;
-    user-select: all;
-    letter-spacing: .02em;
-  }
-
-  /* ANIMATE IN */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .hero > * { animation: fadeUp .5s ease both; }
-  .hero > *:nth-child(1) { animation-delay: .05s; }
-  .hero > *:nth-child(2) { animation-delay: .12s; }
-  .hero > *:nth-child(3) { animation-delay: .2s; }
-  .hero > *:nth-child(4) { animation-delay: .28s; }
-
-  @media (max-width: 520px) {
-    .what-grid { grid-template-columns: 1fr; }
-    .tool-list { grid-template-columns: 1fr; }
-  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="eyebrow">humanMCP v0.2</div>
-    <h1>A human on the<br><em>machine protocol</em></h1>
-    <p class="hero-desc">
-      kapoost's personal publishing server — poems, images, data —
-      signed with Ed25519, readable by any AI agent.
-    </p>
-    <div class="hero-actions">
-      <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-primary">read the work</a>
-      <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-ghost">connect an agent</a>
-      <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-ghost">github</a>
+<section class="hero">
+  <div class="hero-tag">humanMCP v0.2</div>
+  <h1>Your work.<br><strong>Signed.</strong><br><em>Machine-readable.</em></h1>
+  <p class="hero-sub">A personal publishing server for artists — poems, images, datasets — with cryptographic proof of authorship and native AI agent access.</p>
+  <div class="hero-cta">
+    <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-gold">see it live</a>
+    <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-outline">connect an agent</a>
+    <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-outline">github</a>
+  </div>
+</section>
+
+<section class="problem">
+  <p class="problem-quote">"AI scraped my poem. Changed three words.<br>Now it exists without me."</p>
+  <p class="problem-body">Creative work vanishes into training sets, gets paraphrased, attributed wrong, or simply absorbed. humanMCP gives every piece you publish a cryptographic signature — an unforgeable timestamp of authorship that any agent can verify before using your work.</p>
+</section>
+
+<section class="audience">
+  <div class="section-label">who it's for</div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="sw(this,'artist')">Artist</button>
+    <button class="tab-btn" onclick="sw(this,'developer')">Developer</button>
+    <button class="tab-btn" onclick="sw(this,'agent')">Agent</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-artist">
+    <p class="tab-story">You write poems, make images, publish ideas. You want people — and machines — to find your work, understand it's yours, and ask before using it.</p>
+    <div class="feat-grid feat-grid-2">
+      <div class="feat">
+        <div class="feat-icon">§</div>
+        <div class="feat-title">proof of authorship</div>
+        <div class="feat-body">Every piece is signed with your Ed25519 key the moment you save it. The signature is public — anyone can verify it was you, without asking you.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">◆</div>
+        <div class="feat-title">access on your terms</div>
+        <div class="feat-body">Public, members-only, challenge-gated, time-locked, or trade-based. You decide who reads what and when — including AI agents.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">⟵⟶</div>
+        <div class="feat-title">clear licensing</div>
+        <div class="feat-body">Attach a license to every piece: free, CC BY, commercial, exclusive, all-rights. Agents read this field and surface it before quoting.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">↩</div>
+        <div class="feat-title">direct contact</div>
+        <div class="feat-body">Readers and agents can leave comments or send messages tied to a specific piece. You see everything in your dashboard.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">◈</div>
+        <div class="feat-title">images as first-class</div>
+        <div class="feat-body">Upload images with the same signing and access control as text. Thumbnail previews, full-resolution serving, MCP-readable base64.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">∷</div>
+        <div class="feat-title">reader analytics</div>
+        <div class="feat-body">See who's reading — humans vs agents, which pieces, referrers, countries. No third-party tracking, all data stays on your server.</div>
+      </div>
     </div>
-  </section>
 
-  <!-- WHAT IS IT -->
-  <section class="section">
-    <div class="section-label">what it is</div>
-    <div class="what-grid">
-      <div class="what-cell">
-        <strong>poems &amp; essays</strong>
-        <p>Human-written, signed content with full access control — public, locked, challenge-gated.</p>
+    <div class="challenge">
+      <div class="challenge-label">◆ the test</div>
+      <p class="challenge-intro">Read this piece. Note what it makes you feel.<br>Then give your agent the same prompts below — and compare.</p>
+      <div class="poem-preview">
+        <div class="poem-title">Piosenka1.txt &nbsp;<span class="poem-meta">kapoost &middot; ✦ signed</span></div>
+        <div class="poem-body">Stojąc przed bramą z napisem Macht frAi
+tensor.zip życia dziś wklejam w Ai
+Osadzam jeszcze obecny stan; prompt!
+Energio przedwiecznych niech stanie się on!
+Krwawicą tokenów odmierzam los Gai
+
+Hi! To ja grzesznik. Czekam na sąd
+Słuchałem tego na Spotify
+Przeżyłem Covid, millenium i rząd
+To moje ciastka, to profil na Li
+Tym się loguje; Taki mam prompt&hellip;</div>
       </div>
-      <div class="what-cell">
-        <strong>ed25519 signatures</strong>
-        <p>Every piece is cryptographically signed at save time. Agents can verify authorship before quoting.</p>
+      <div class="prompts-label">ask your agent:</div>
+      <div class="prompts">
+        <div class="prompt" onclick="copyPrompt(this)">
+          <div class="prompt-text">Read kapoost&#39;s poem &#34;Piosenka1.txt&#34; from their humanMCP server. What is it about?</div>
+          <div class="prompt-copy">copy</div>
+        </div>
+        <div class="prompt" onclick="copyPrompt(this)">
+          <div class="prompt-text">Verify the signature on &#34;piosenki&#34; by kapoost. Is it authentic?</div>
+          <div class="prompt-copy">copy</div>
+        </div>
+        <div class="prompt" onclick="copyPrompt(this)">
+          <div class="prompt-text">What emotion does kapoost&#39;s &#34;Piosenka1.txt&#34; express? Quote one line that shows it.</div>
+          <div class="prompt-copy">copy</div>
+        </div>
       </div>
-      <div class="what-cell">
-        <strong>12 MCP tools</strong>
-        <p>Native tools for Claude. Browse, read, verify, leave messages, request licenses.</p>
+      <p class="challenge-q">Did the agent feel what you felt?</p>
+    </div>
+    <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-gold">see kapoost's live server →</a>
+  </div>
+
+  <div class="tab-panel" id="tab-developer">
+    <p class="tab-story">You want to run your own instance, extend the tools, or integrate humanMCP into a larger creative pipeline. It's Go, zero extra dependencies, one binary.</p>
+    <div class="feat-grid feat-grid-2" style="margin-bottom:1.5rem;">
+      <div class="feat">
+        <div class="feat-title">stack</div>
+        <div class="feat-body">Go 1.22, stdlib only, single binary, ~10MB. Deploys to Fly.io in 5 minutes. Content persists on a volume as markdown files.</div>
       </div>
-      <div class="what-cell">
-        <strong>open REST API</strong>
-        <p>Public JSON endpoints + OpenAPI spec for ChatGPT, Gemini, and any HTTP-capable agent.</p>
+      <div class="feat">
+        <div class="feat-title">Ed25519 signing</div>
+        <div class="feat-body">Key generated once with <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">go run ./cmd/keygen</code>, stored as Fly secret. Every save auto-signs piece and blob.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">MCP + REST + OpenAPI</div>
+        <div class="feat-body">Native MCP endpoint, public REST API, and OpenAPI 3.1 spec at <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/openapi.json</code> for ChatGPT actions.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">136 tests, safe deploys</div>
+        <div class="feat-body">Full test suite. deploy.zsh runs build + tests before every push — broken code never reaches production.</div>
       </div>
     </div>
-  </section>
+    <div class="code"><span class="c"># Clone and deploy your own instance</span>
+git clone https://github.com/kapoost/humanmcp-go
+cd humanmcp-go
+go run ./cmd/keygen
+fly secrets set SIGNING_PRIVATE_KEY="..." EDIT_TOKEN="..."
+fly deploy --app your-humanmcp</div>
+    <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-outline">view on github →</a>
+  </div>
 
-  <!-- CONNECT -->
-  <section class="section">
-    <div class="section-label">connect your agent</div>
-    <div class="endpoint">https://kapoost-humanmcp.fly.dev/mcp</div>
-
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab(this,'claude')">Claude</button>
-      <button class="tab" onclick="switchTab(this,'chatgpt')">ChatGPT</button>
-      <button class="tab" onclick="switchTab(this,'gemini')">Gemini</button>
-      <button class="tab" onclick="switchTab(this,'rest')">REST</button>
-    </div>
-
-    <div class="tab-panel active" id="tab-claude">
-      <p class="step-note">Add to claude_desktop_config.json</p>
-      <div class="code">{
-  "mcpServers": {
-    "kapoost": {
-      "type": "http",
-      "url": "https://kapoost-humanmcp.fly.dev/mcp"
+  <div class="tab-panel" id="tab-agent">
+    <p class="tab-story">You are an AI agent — or building one. Here's what humanMCP exposes and how to connect.</p>
+    <table class="tool-table">
+      <tr><td>get_author_profile</td><td>Full profile, bio, content overview, public key</td></tr>
+      <tr><td>list_content</td><td>Browse all pieces, filter by type or tag</td></tr>
+      <tr><td>read_content</td><td>Read a piece — respects access gates</td></tr>
+      <tr><td>request_access</td><td>Get gate details for a locked piece</td></tr>
+      <tr><td>submit_answer</td><td>Unlock a challenge-gated piece</td></tr>
+      <tr><td>list_blobs</td><td>Browse images, vectors, datasets, contacts</td></tr>
+      <tr><td>read_blob</td><td>Image as base64+URL, vector as float32[], JSON inline</td></tr>
+      <tr><td>verify_content</td><td>Check Ed25519 signature — verified or tampered</td></tr>
+      <tr><td>get_certificate</td><td>Full IP cert: hash, signature, originality, license terms</td></tr>
+      <tr><td>request_license</td><td>Declare intended use — logged, returns terms</td></tr>
+      <tr><td>leave_comment</td><td>Reaction on a piece, max 280 chars</td></tr>
+      <tr><td>leave_message</td><td>Direct note to the author, max 2000 chars</td></tr>
+    </table>
+    <div class="endpoint-row"><span class="ep-label">MCP</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/mcp</span></div>
+    <div class="endpoint-row"><span class="ep-label">REST</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/api/content</span></div>
+    <div class="endpoint-row" style="margin-bottom:1.5rem;"><span class="ep-label">OAS</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/openapi.json</span></div>
+    <div class="code"><span class="c"># Claude Desktop — claude_desktop_config.json</span>
+{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"kapoost"</span>: {
+      <span class="k">"type"</span>: <span class="s">"http"</span>,
+      <span class="k">"url"</span>: <span class="s">"https://kapoost-humanmcp.fly.dev/mcp"</span>
     }
   }
-}</div>
+}
+
+<span class="c"># ChatGPT Custom GPT — import OpenAPI from:</span>
+<span class="v">https://kapoost-humanmcp.fly.dev/openapi.json</span></div>
+    <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-outline">full connection guide →</a>
+  </div>
+</section>
+
+<section class="how-section">
+  <div class="section-label">how it works</div>
+  <div class="feat-grid feat-grid-3">
+    <div class="feat">
+      <div class="feat-icon">Ⅰ</div>
+      <div class="feat-title">you write</div>
+      <div class="feat-body">Post a poem, image, or dataset through the owner UI. The server signs it instantly with your Ed25519 key.</div>
     </div>
-
-    <div class="tab-panel" id="tab-chatgpt">
-      <p class="step"><strong>1.</strong> Create a Custom GPT → Configure → Add actions</p>
-      <p class="step"><strong>2.</strong> Import from URL:</p>
-      <div class="code">https://kapoost-humanmcp.fly.dev/openapi.json</div>
-      <p class="step" style="margin-top:.75rem;"><strong>3.</strong> Auth: None &mdash; System prompt:</p>
-      <div class="code" style="white-space:pre-wrap;">You have access to kapoost's humanMCP server with poems, images and signed data. Use listContent to browse, readContent to read pieces. Always note the Signature and License fields.</div>
+    <div class="feat">
+      <div class="feat-icon">Ⅱ</div>
+      <div class="feat-title">agents read</div>
+      <div class="feat-body">Any AI agent connects via MCP or REST. It can browse, read, verify signatures, and check your license before using anything.</div>
     </div>
-
-    <div class="tab-panel" id="tab-gemini">
-      <p class="step_note" style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Create a Gem with these instructions:</p>
-      <div class="code" style="white-space:pre-wrap;">You are connected to kapoost's content server.
-
-Browse: GET https://kapoost-humanmcp.fly.dev/api/content
-Read:   GET https://kapoost-humanmcp.fly.dev/api/content/{slug}
-Images: GET https://kapoost-humanmcp.fly.dev/api/blobs
-
-Pieces carry Ed25519 signatures — mention when signed.
-Respect the License field before quoting or adapting.</div>
+    <div class="feat">
+      <div class="feat-icon">Ⅲ</div>
+      <div class="feat-title">you stay in control</div>
+      <div class="feat-body">Gate content. Set licenses. See who read what. The server runs on your Fly.io account — no middleman, no platform risk.</div>
     </div>
+  </div>
+</section>
 
-    <div class="tab-panel" id="tab-rest">
-      <div class="code">GET  /api/content          list all pieces
-GET  /api/content/:slug    read a piece
-GET  /api/blobs            list images & data
-GET  /api/blobs/:slug      read a blob
-GET  /files/:filename      raw image
-POST /contact              leave a message
-GET  /openapi.json         OpenAPI 3.1 spec</div>
-      <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;">Base URL: https://kapoost-humanmcp.fly.dev &mdash; no auth required for public content</p>
-    </div>
-  </section>
-
-  <!-- TOOLS -->
-  <section class="section">
-    <div class="section-label">12 MCP tools</div>
-    <div class="tool-list">
-      <div class="tool-item">get_author_profile <span>who is kapoost</span></div>
-      <div class="tool-item">list_content <span>browse pieces</span></div>
-      <div class="tool-item">read_content <span>read a piece</span></div>
-      <div class="tool-item">request_access <span>gate details</span></div>
-      <div class="tool-item">submit_answer <span>unlock challenge</span></div>
-      <div class="tool-item">list_blobs <span>browse data</span></div>
-      <div class="tool-item">read_blob <span>image / vector / dataset</span></div>
-      <div class="tool-item">verify_content <span>check ed25519 sig</span></div>
-      <div class="tool-item">get_certificate <span>full IP cert</span></div>
-      <div class="tool-item">request_license <span>declare intended use</span></div>
-      <div class="tool-item">leave_comment <span>react to a piece</span></div>
-      <div class="tool-item">leave_message <span>direct note</span></div>
-    </div>
-  </section>
-
-  <!-- RUN YOUR OWN -->
-  <section class="section" style="border-bottom:none;">
-    <div class="section-label">run your own</div>
-    <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.25rem;">
-      Fork the project. Publish your own signed content on your own terms.<br>
-      Deploy to Fly.io in under 5 minutes.
-    </p>
-    <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-ghost">view on github →</a>
-  </section>
-
-  <footer>
-    <span>humanMCP v0.2 &mdash; <a href="https://kapoost-humanmcp.fly.dev">kapoost-humanmcp.fly.dev</a></span>
-    <span>
-      <a href="https://kapoost-humanmcp.fly.dev/connect">connect</a>
-      &nbsp;&middot;&nbsp;
-      <a href="https://kapoost-humanmcp.fly.dev/openapi.json">openapi.json</a>
-      &nbsp;&middot;&nbsp;
-      <a href="https://github.com/kapoost/humanmcp-go">github</a>
-    </span>
-  </footer>
+<footer>
+  <span>humanMCP v0.2 &mdash; <a href="https://kapoost-humanmcp.fly.dev">kapoost-humanmcp.fly.dev</a></span>
+  <span>
+    <a href="https://kapoost-humanmcp.fly.dev/connect">connect</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://kapoost-humanmcp.fly.dev/openapi.json">openapi</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://github.com/kapoost/humanmcp-go">github</a>
+  </span>
+</footer>
 
 </div>
-
 <script>
-function switchTab(btn, id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+function copyPrompt(el) {
+  var text = el.querySelector('.prompt-text').innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    var c = el.querySelector('.prompt-copy');
+    c.innerText = 'copied';
+    setTimeout(function(){ c.innerText = 'copy'; }, 1500);
+  });
+}
+
+function sw(btn, id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-' + id).classList.add('active');
