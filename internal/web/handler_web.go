@@ -212,11 +212,12 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
 	h.render(w, "index.html", map[string]interface{}{
-		"Author":  h.cfg.AuthorName,
-		"Bio":     h.cfg.AuthorBio,
-		"Pieces":  pieces,
-		"IsOwner": isOwner,
-		"Domain":  h.cfg.Domain,
+		"Author":       h.cfg.AuthorName,
+		"Bio":          h.cfg.AuthorBio,
+		"Pieces":       pieces,
+		"IsOwner":      isOwner,
+		"Domain":       h.cfg.Domain,
+		"BlobImageMap": h.blobImageMap(),
 	})
 }
 
@@ -262,11 +263,12 @@ func (h *Handler) handlePiece(w http.ResponseWriter, r *http.Request) {
 		unlockDate = p.UnlockAfter.Format("2 January 2006 at 15:04 UTC")
 	}
 	h.render(w, "piece.html", map[string]interface{}{
-		"Author":     h.cfg.AuthorName,
-		"Piece":      p,
-		"IsLocked":   isLocked,
-		"IsOwner":    isOwner,
-		"UnlockDate": unlockDate,
+		"Author":       h.cfg.AuthorName,
+		"Piece":        p,
+		"IsLocked":     isLocked,
+		"IsOwner":      isOwner,
+		"UnlockDate":   unlockDate,
+		"BlobImageMap": h.blobImageMap(),
 	})
 }
 
@@ -804,6 +806,22 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	json.NewEncoder(w).Encode(spec)
+}
+
+// blobImageMap returns a map of piece slug → image URL for thumbnail display on the index.
+// Keyed by slug and lowercase title to match both image pieces and their blobs.
+func (h *Handler) blobImageMap() map[string]string {
+	m := make(map[string]string)
+	blobs, err := h.blobStore.Load()
+	if err != nil { return m }
+	for _, b := range blobs {
+		if b.BlobType == content.BlobImage && b.FileRef != "" && b.Access == content.AccessPublic {
+			url := "/" + b.FileRef
+			if b.Slug != "" { m[b.Slug] = url }
+			if b.Title != "" { m[strings.ToLower(b.Title)] = url }
+		}
+	}
+	return m
 }
 
 func (h *Handler) handleRobots(w http.ResponseWriter, r *http.Request) {

@@ -16,6 +16,10 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
+  <a href="/new?type=image" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
+  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
+  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
+  <a href="/llms-edit" style="font-size:.78rem;color:var(--muted);text-decoration:none;">llms.txt</a>
   <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
@@ -23,18 +27,26 @@ const allTemplates = `
 {{if .Pieces}}
 <ul class="pieces">
 {{range .Pieces}}
+{{$img := index $.BlobImageMap .Slug}}
 <li class="piece-item">
-  <div class="piece-meta">
-    <span>{{formatDate .Published}}</span>
-    {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
-  </div>
-  <div class="piece-title">
-    <a href="/p/{{.Slug}}">{{.Title}}</a>
-    {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-  </div>
-  {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-  <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem;flex-wrap:wrap;">
-    {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  <div class="piece-row">
+    <div class="piece-left">
+      <div class="piece-meta">
+        <span>{{formatDate .Published}}</span>
+        {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
+        {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
+        {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
+        {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
+      </div>
+      <div class="piece-title">
+        <a href="/p/{{.Slug}}">{{.Title}}</a>
+        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+      </div>
+      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
+      {{if and (not $img) .Body (ne .Type "image")}}<div class="piece-excerpt">{{truncate .Body 120}}</div>{{end}}
+      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+    </div>
+    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
   </div>
 </li>
 {{end}}
@@ -443,8 +455,18 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
+.piece-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;}
+.piece-left{flex:1;min-width:0;}
+.piece-right{flex-shrink:0;}
+.piece-thumb{width:120px;height:80px;object-fit:cover;border-radius:4px;display:block;}
+.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.25rem;line-height:1.5;font-style:italic;}
 .piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
 .type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
+.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
+.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
+.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
+.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
+@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
 .signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
 .ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
 .ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
