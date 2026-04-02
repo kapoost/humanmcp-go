@@ -200,6 +200,12 @@ func pieceContentHash(p *Piece) []byte {
 	return h[:]
 }
 
+// PiecePayloadHex returns the hex-encoded SHA256 that gets sent to OTS calendar.
+// This is what gets anchored in Bitcoin — sha256(slug|title|body).
+func PiecePayloadHex(p *Piece) string {
+	return hex.EncodeToString(pieceContentHash(p))
+}
+
 // submitToOTS POSTs a 32-byte digest to the OTS calendar and returns the stub.
 func submitToOTS(digest []byte) (string, error) {
 	if len(digest) != 32 {
