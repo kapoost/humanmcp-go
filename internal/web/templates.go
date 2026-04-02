@@ -78,13 +78,22 @@ const allTemplates = `
 .gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
 .gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
 .unlock-success{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;color:#2e7d32;font-size:.85rem;}
-.piece-info{margin-top:.9rem;padding-top:.75rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:.4rem;}
-.info-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.75rem;color:var(--muted);}
-.info-label{font-weight:500;color:var(--fg);min-width:4.5rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}
-.info-sig{font-family:monospace;font-size:.72rem;color:var(--muted);letter-spacing:.02em;}
-.info-btn{font-size:.7rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;}
+.piece-info{margin-top:.9rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;}
+.status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.4rem .6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
+.status-row:last-of-type{border-bottom:none;}
+.status-icon{font-size:.85rem;line-height:1.4;text-align:center;}
+.status-key{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding-top:.15rem;font-weight:500;}
+.status-val{line-height:1.45;color:var(--fg);}
+.status-val small{display:block;font-size:.7rem;color:var(--muted);margin-top:.15rem;font-family:monospace;word-break:break-all;}
+.status-actions{display:flex;gap:.3rem;align-items:flex-start;padding-top:.1rem;flex-shrink:0;}
+.st-active{color:#2e7d32;}
+.st-anchored{color:#1a3a8a;}
+.st-pending{color:#7a5c00;}
+.st-none{color:var(--muted);}
+@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
+.info-btn{font-size:.68rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;}
 .info-btn:hover{border-color:var(--accent);color:var(--accent);}
-.info-actions{display:flex;gap:.5rem;margin-top:.2rem;flex-wrap:wrap;}
+.info-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -93,48 +102,78 @@ const allTemplates = `
 <a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; all pieces</a>
 {{with .Piece}}
 <div class="piece-header">
-  <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}{{if .Signature}} &middot; <span style="font-size:.7rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:3px;border:1px solid #4caf50;">&#10003; signed</span>{{end}}</div>
+  <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-  {{if or .Signature .License .OTSProof}}
   <div class="piece-info">
-    {{if .Signature}}
-    <div class="info-row">
-      <span class="info-label">ed25519</span>
-      <span class="info-sig">{{truncate .Signature 28}}</span>
-      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy sig',1500)" data-v="{{.Signature}}">copy sig</button>
-    </div>
-    {{end}}
-    {{if .OTSProof}}
-    <div class="info-row">
-      <span class="info-label">bitcoin</span>
-      {{if eq (otsStatus .OTSProof) "anchored"}}
-      <span class="ots-status ots-anchored">&#x20BF; anchored in Bitcoin blockchain</span>
-      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy proof',1500)" data-v="{{.OTSProof}}">copy proof</button>
+    {{/* ── Signature row ── */}}
+    <div class="status-row">
+      {{if .Signature}}
+      <span class="status-icon st-active">&#10003;</span>
+      <span class="status-key">ed25519</span>
+      <span class="status-val">
+        active — authorship signed
+        <small>{{truncate .Signature 48}}</small>
+      </span>
+      <span class="status-actions">
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.Signature}}">copy</button>
+      </span>
       {{else}}
-      <span class="ots-status ots-pending">&#x20BF; submitted — awaiting Bitcoin confirmation (~1hr)</span>
-      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy proof',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      <span class="status-icon st-none">&#8722;</span>
+      <span class="status-key">ed25519</span>
+      <span class="status-val st-none">unsigned</span>
+      <span></span>
       {{end}}
     </div>
-    <div class="ots-howto">
-      <span>verify: </span><code>echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots verify piece.ots</code>
-      <a href="/connect#bitcoin" style="font-size:.72rem;color:var(--muted);margin-left:.5rem;">how?</a>
+    {{/* ── Bitcoin timestamp row ── */}}
+    <div class="status-row">
+      {{if eq (otsStatus .OTSProof) "anchored"}}
+      <span class="status-icon st-anchored">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-anchored">
+        anchored in Bitcoin blockchain
+        <small>verify: echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots verify piece.ots</small>
+      </span>
+      <span class="status-actions">
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      </span>
+      {{else if eq (otsStatus .OTSProof) "pending"}}
+      <span class="status-icon st-pending">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-pending">
+        submitted — awaiting confirmation (~1hr)
+        <small>verify: echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots upgrade piece.ots</small>
+      </span>
+      <span class="status-actions">
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      </span>
+      {{else}}
+      <span class="status-icon st-none">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-none">not yet timestamped</span>
+      <span></span>
+      {{end}}
     </div>
-    {{end}}
-    {{if .License}}
-    <div class="info-row">
-      <span class="info-label">license</span>
-      <span>{{licenseLabel .License}}</span>
+    {{/* ── License row ── */}}
+    <div class="status-row">
+      <span class="status-icon st-active">&#9670;</span>
+      <span class="status-key">license</span>
+      <span class="status-val">
+        {{if .License}}{{licenseLabel .License}}{{else}}free — read &amp; share with credit{{end}}
+        {{if .PriceSats}}<small>{{.PriceSats}} sats for commercial use</small>{{end}}
+      </span>
+      <span class="status-actions">
+        {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
+        <a href="/contact?regarding={{.Slug}}" class="info-btn">request</a>
+        {{end}}
+      </span>
     </div>
-    {{end}}
+    {{/* ── Actions ── */}}
     <div class="info-actions">
-      <a href="/contact?regarding={{.Slug}}" class="info-btn">✉ leave a message</a>
-      {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
-      <a href="/contact?regarding={{.Slug}}" class="info-btn">⟶ request license</a>
-      {{end}}
+      <a href="/contact?regarding={{.Slug}}" class="info-btn">&#9993; leave a message</a>
+      <a href="/connect" class="info-btn" style="color:var(--muted);">how to verify &#8599;</a>
     </div>
   </div>
-  {{end}}
 </div>
 {{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
 {{if $.IsLocked}}
