@@ -750,8 +750,19 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 
 </details>
 
-<div style="display:flex;gap:.6rem;align-items:center;margin-top:.5rem;">
-  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;">{{if .Piece}}Save{{else}}Post{{end}}</button>
+<input type="hidden" name="do_sign" id="do_sign_field" value="0">
+<div style="display:flex;gap:.6rem;align-items:center;margin-top:.5rem;flex-wrap:wrap;">
+  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;" onclick="document.getElementById('do_sign_field').value='0'">
+    {{if .Piece}}Save{{else}}Post{{end}}
+  </button>
+  <button type="submit" class="btn" style="padding:.4rem 1.2rem;border-color:var(--accent);color:var(--accent);" onclick="document.getElementById('do_sign_field').value='1'" title="Save and apply Ed25519 signature">
+    {{if .Piece}}Save &amp; Sign{{else}}Post &amp; Sign{{end}} &#10003;
+  </button>
+  {{if .Piece}}{{with .Piece}}{{if .Signature}}
+  <span style="font-size:.72rem;color:var(--muted);margin-left:.2rem;">currently signed</span>
+  {{else}}
+  <span style="font-size:.72rem;color:#c0392b;margin-left:.2rem;">unsigned</span>
+  {{end}}{{end}}{{end}}
 </div>
 
 </form>

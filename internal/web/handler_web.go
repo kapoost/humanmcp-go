@@ -716,7 +716,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 					FileRef:  ref,
 					Tags:     p.Tags,
 				}
-				if h.signingKey != nil {
+				if h.signingKey != nil && r.FormValue("do_sign") == "1" {
 					if sig, err := content.SignBlob(&b, h.signingKey); err == nil {
 						b.Signature = sig
 					}
@@ -727,7 +727,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if h.signingKey != nil {
+		if h.signingKey != nil && r.FormValue("do_sign") == "1" {
 			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
 				p.Signature = sig
 			}
@@ -773,10 +773,15 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
-		if h.signingKey != nil {
+		// If content changed, clear the existing signature — it no longer matches
+		// Only re-sign if the owner explicitly clicked "Save & Sign"
+		if r.FormValue("do_sign") == "1" && h.signingKey != nil {
 			if sig, err := content.SignPiece(p, h.signingKey); err == nil {
 				p.Signature = sig
 			}
+		} else if p.Body != "" {
+			// Clear signature when saving without signing — content may have changed
+			p.Signature = ""
 		}
 		if err := h.store.Save(p); err != nil {
 			http.Error(w, err.Error(), 500); return
