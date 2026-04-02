@@ -703,22 +703,6 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 
   <div class="row2">
     <div>
-      <label class="fl">Slug <span style="opacity:.5">(URL identifier)</span></label>
-      <input type="text" name="slug" value="{{if .Piece}}{{.Piece.Slug}}{{end}}" placeholder="auto-generated">
-    </div>
-    <div>
-      <label class="fl">Tags</label>
-      <input type="text" name="tags" value="{{if .Piece}}{{join .Piece.Tags ", "}}{{end}}" placeholder="sea, love, code">
-    </div>
-  </div>
-
-  <div class="field">
-    <label class="fl">Description <span style="opacity:.5">(visible to everyone, even if locked)</span></label>
-    <input type="text" name="description" value="{{if .Piece}}{{.Piece.Description}}{{end}}" placeholder="Short teaser...">
-  </div>
-
-  <div class="row2">
-    <div>
       <label class="fl">License</label>
       <select name="license">
         <option value="free"       {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{else}}selected{{end}}>free — read &amp; share with credit</option>
