@@ -1,1004 +1,264 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>humanMCP — your work, signed, readable by AI</title>
-<meta name="description" content="Publish your art with cryptographic proof of authorship and explicit license terms. A personal server for artists in the age of AI agents.">
-<meta property="og:title" content="humanMCP — your work, signed, readable by AI">
-<meta property="og:description" content="Publish poems, songs, images, and data with cryptographic proof of authorship. A personal MCP server for artists.">
-<meta property="og:url" content="https://kapoost.github.io/humanmcp">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="humanMCP — your work, signed, readable by AI">
-<meta name="twitter:description" content="Publish your art with cryptographic proof of authorship. 12 MCP tools. Ed25519 signed. Open source.">
-<link rel="canonical" href="https://kapoost.github.io/humanmcp">
-<meta name="robots" content="index, follow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --ink: #0f0e0d;
-  --paper: #f5f2ec;
-  --cream: #ede9e0;
-  --accent: #c0392b;
-  --accent2: #1a5276;
-  --muted: #8a8278;
-  --rule: #d4cfc6;
-  --code-bg: #1c1917;
-  --code-fg: #e8e3d8;
-  --gold: #b7860b;
-  --mono: 'DM Mono', monospace;
-  --serif: 'Playfair Display', Georgia, serif;
-  --sans: 'DM Sans', sans-serif;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 16px;
-  line-height: 1.7;
-  overflow-x: hidden;
-}
-
-/* ── NOISE TEXTURE ── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.4;
-}
-
-/* ── MASTHEAD ── */
-.masthead {
-  border-bottom: 2px solid var(--ink);
-  padding: 1.2rem 2.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  position: sticky;
-  top: 0;
-  background: var(--paper);
-  z-index: 100;
-}
-
-.masthead-logo {
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.masthead-nav {
-  display: flex;
-  gap: 2rem;
-  list-style: none;
-}
-
-.masthead-nav a {
-  font-family: var(--sans);
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--muted);
-  text-decoration: none;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: color 0.15s;
-}
-.masthead-nav a:hover { color: var(--accent); }
-
-/* ── HERO ── */
-.hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 88vh;
-  border-bottom: 1px solid var(--rule);
-}
-
-.hero-left {
-  padding: 5rem 3.5rem 4rem 2.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border-right: 1px solid var(--rule);
-}
-
-.hero-issue {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 2.5rem;
-}
-
-.hero-headline {
-  font-family: var(--serif);
-  font-size: clamp(3.2rem, 5.5vw, 5rem);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin-bottom: 1.5rem;
-}
-
-.hero-headline em {
-  font-style: italic;
-  color: var(--accent);
-}
-
-.hero-deck {
-  font-family: var(--serif);
-  font-size: 1.2rem;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.5;
-  max-width: 36ch;
-  margin-bottom: 3rem;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.btn-primary {
-  background: var(--ink);
-  color: var(--paper);
-  padding: 0.75rem 1.75rem;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  border: 1.5px solid var(--ink);
-  transition: all 0.15s;
-}
-.btn-primary:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.btn-secondary {
-  color: var(--ink);
-  padding: 0.75rem 1.75rem;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  border: 1.5px solid var(--rule);
-  transition: all 0.15s;
-}
-.btn-secondary:hover { border-color: var(--ink); }
-
-.hero-footnote {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  margin-top: 3rem;
-  border-top: 1px solid var(--rule);
-  padding-top: 1rem;
-}
-
-/* ── HERO RIGHT: LIVE TERMINAL ── */
-.hero-right {
-  padding: 5rem 2.5rem 4rem 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.terminal {
-  background: var(--code-bg);
-  border: 1px solid #2a2825;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  line-height: 1.6;
-  overflow: hidden;
-}
-
-.terminal-bar {
-  background: #2a2825;
-  padding: 0.5rem 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.terminal-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-}
-.terminal-dot:nth-child(1) { background: #c0392b; }
-.terminal-dot:nth-child(2) { background: #b7860b; }
-.terminal-dot:nth-child(3) { background: #27ae60; }
-.terminal-title {
-  margin-left: 0.5rem;
-  font-size: 0.68rem;
-  color: #5a5550;
-  letter-spacing: 0.06em;
-}
-
-.terminal-body { padding: 1.1rem 1.2rem; }
-
-.t-line { display: flex; gap: 0.5rem; margin-bottom: 0.15rem; color: var(--code-fg); }
-.t-prompt { color: #5a5550; user-select: none; }
-.t-cmd { color: #c0a060; }
-.t-comment { color: #4a4540; }
-.t-key { color: #7ec8e3; }
-.t-val { color: #b5d9a0; }
-.t-gold { color: #c0a060; }
-.t-red { color: #e07060; }
-.t-dim { color: #4a4540; }
-.t-check { color: #27ae60; }
-.t-blank { height: 0.6rem; }
-
-/* ── STRIP ── */
-.strip {
-  border-bottom: 1px solid var(--rule);
-  padding: 0.85rem 2.5rem;
-  display: flex;
-  gap: 3rem;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-.strip-item {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.strip-item strong { color: var(--ink); }
-.strip-dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; display: inline-block; }
-
-/* ── SECTION ── */
-.section { padding: 5rem 2.5rem; border-bottom: 1px solid var(--rule); }
-.section-inner { max-width: 1100px; margin: 0 auto; }
-
-.section-label {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.6rem;
-}
-.section-rule { border: none; border-top: 2px solid var(--ink); margin-bottom: 2rem; width: 3rem; }
-
-.section-headline {
-  font-family: var(--serif);
-  font-size: clamp(2rem, 3.5vw, 2.8rem);
-  font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
-  max-width: 20ch;
-  margin-bottom: 1.5rem;
-}
-
-.section-body {
-  font-size: 1rem;
-  color: #3a3530;
-  max-width: 55ch;
-  line-height: 1.75;
-}
-
-/* ── 2-COL ── */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
-.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2.5rem; }
-
-/* ── CERTIFICATE BLOCK ── */
-.cert-block {
-  background: var(--code-bg);
-  color: var(--code-fg);
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  line-height: 1.65;
-  padding: 1.5rem;
-  border-left: 3px solid var(--gold);
-  position: relative;
-}
-
-.cert-block::before {
-  content: 'IP CERTIFICATE';
-  position: absolute;
-  top: -0.7rem;
-  left: 1.5rem;
-  background: var(--gold);
-  color: var(--ink);
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
-  padding: 0.15rem 0.5rem;
-  font-weight: 500;
-}
-
-.cert-line { display: flex; gap: 0.5rem; }
-.cert-k { color: #7ec8e3; min-width: 14ch; }
-.cert-v { color: #b5d9a0; }
-.cert-check { color: #27ae60; }
-.cert-gold { color: var(--gold); }
-.cert-dim { color: #4a4540; }
-.cert-blank { height: 0.5rem; }
-
-/* ── FEATURE CARDS ── */
-.feature-card {
-  border: 1px solid var(--rule);
-  padding: 2rem;
-  transition: border-color 0.2s;
-  position: relative;
-}
-.feature-card:hover { border-color: var(--ink); }
-.feature-card::before {
-  content: attr(data-num);
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  display: block;
-  margin-bottom: 1rem;
-}
-.feature-icon {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--accent);
-  background: #fdecea;
-  padding: 0.25rem 0.6rem;
-  display: inline-block;
-  margin-bottom: 1rem;
-  letter-spacing: 0.08em;
-}
-.feature-title {
-  font-family: var(--serif);
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-.feature-body {
-  font-size: 0.88rem;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-/* ── AUDIENCE GRID ── */
-.audience-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; }
-.audience-card {
-  border-top: 3px solid var(--rule);
-  padding-top: 1.2rem;
-}
-.audience-card.active { border-color: var(--accent); }
-.audience-who {
-  font-family: var(--serif);
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-.audience-list {
-  list-style: none;
-  font-size: 0.82rem;
-  color: var(--muted);
-  line-height: 1.8;
-}
-.audience-list li::before { content: '— '; }
-
-/* ── COMPARISON TABLE ── */
-.comp-table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
-.comp-table th {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 2px solid var(--ink);
-}
-.comp-table th:last-child { color: var(--accent2); }
-.comp-table td {
-  font-size: 0.88rem;
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid var(--rule);
-  vertical-align: top;
-}
-.comp-table td:first-child { font-weight: 500; color: var(--ink); }
-.comp-table td:nth-child(2) { color: var(--muted); }
-.comp-table td:last-child { color: var(--accent2); font-weight: 500; }
-.comp-table tr:hover td { background: var(--cream); }
-
-/* ── CONNECT BLOCK ── */
-.connect-block {
-  background: var(--ink);
-  color: var(--paper);
-  padding: 4rem 3rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  align-items: center;
-}
-.connect-heading {
-  font-family: var(--serif);
-  font-size: 2.4rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 1rem;
-}
-.connect-sub {
-  font-size: 0.95rem;
-  color: #a09a90;
-  line-height: 1.7;
-}
-.connect-code {
-  background: #1c1917;
-  border: 1px solid #2a2825;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  line-height: 1.7;
-  padding: 1.5rem;
-  color: var(--code-fg);
-}
-.connect-code .kw { color: #7ec8e3; }
-.connect-code .str { color: #b5d9a0; }
-.connect-code .pun { color: #5a5550; }
-.connect-btn {
-  display: inline-block;
-  margin-top: 2rem;
-  background: transparent;
-  border: 1.5px solid #5a5550;
-  color: var(--paper);
-  padding: 0.75rem 1.75rem;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  transition: all 0.15s;
-}
-.connect-btn:hover { border-color: var(--paper); }
-
-/* ── TOOLS GRID ── */
-.tools-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-  border: 1px solid var(--rule);
-  margin-top: 2rem;
-}
-.tool-item {
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  padding: 1.2rem 1.4rem;
-  transition: background 0.15s;
-}
-.tool-item:hover { background: var(--cream); }
-.tool-item:nth-child(3n) { border-right: none; }
-.tool-name {
-  font-family: var(--mono);
-  font-size: 0.74rem;
-  color: var(--accent2);
-  letter-spacing: 0.04em;
-  margin-bottom: 0.3rem;
-}
-.tool-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
-
-/* ── AUTHOR BLOCK ── */
-.author-block {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 4rem;
-  align-items: start;
-  padding: 5rem 2.5rem;
-  border-bottom: 1px solid var(--rule);
-  max-width: none;
-}
-.author-label {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.5rem;
-}
-.author-name {
-  font-family: var(--serif);
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin-bottom: 0.3rem;
-}
-.author-pubkey {
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  color: var(--gold);
-  letter-spacing: 0.04em;
-  margin-top: 1rem;
-  word-break: break-all;
-}
-.author-bio {
-  font-family: var(--serif);
-  font-size: 1.15rem;
-  font-style: italic;
-  line-height: 1.75;
-  color: #3a3530;
-  max-width: 55ch;
-  margin-bottom: 1.5rem;
-}
-.author-works {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-.work-chip {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  padding: 0.2rem 0.6rem;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  transition: all 0.15s;
-}
-.work-chip:hover { border-color: var(--ink); color: var(--ink); }
-
-/* ── FOOTER ── */
-footer {
-  padding: 2rem 2.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-  border-top: 1px solid var(--rule);
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-footer a { color: var(--muted); text-decoration: none; }
-footer a:hover { color: var(--ink); }
-
-/* ── ORIGINALITY METER ── */
-.o-meter { margin-top: 1.5rem; }
-.o-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.7rem;
-}
-.o-label {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  color: var(--muted);
-  min-width: 14ch;
-  letter-spacing: 0.04em;
-}
-.o-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--rule);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.o-fill {
-  height: 100%;
-  background: var(--accent2);
-  border-radius: 2px;
-  transform-origin: left;
-  animation: fillBar 1s ease forwards;
-  transform: scaleX(0);
-}
-@keyframes fillBar { to { transform: scaleX(1); } }
-.o-val {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  color: var(--muted);
-  min-width: 3ch;
-  text-align: right;
-}
-.o-grade {
-  font-family: var(--serif);
-  font-size: 3.5rem;
-  font-weight: 700;
-  color: var(--accent2);
-  margin-bottom: 0.3rem;
-}
-
-/* ── ANIMATIONS ── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero-headline { animation: fadeUp 0.7s ease both; }
-.hero-deck     { animation: fadeUp 0.7s 0.1s ease both; }
-.hero-actions  { animation: fadeUp 0.7s 0.2s ease both; }
-.terminal      { animation: fadeUp 0.7s 0.15s ease both; }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; }
-  .hero-left { border-right: none; border-bottom: 1px solid var(--rule); }
-  .two-col, .three-col, .audience-grid, .connect-block { grid-template-columns: 1fr; }
-  .tools-grid { grid-template-columns: 1fr 1fr; }
-  .tool-item:nth-child(3n) { border-right: 1px solid var(--rule); }
-  .tool-item:nth-child(2n) { border-right: none; }
-  .author-block { grid-template-columns: 1fr; gap: 2rem; }
-}
-</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>onAudience — Sales Intelligence Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css?v=20260325e"/>
 </head>
 <body>
-
-<!-- ── MASTHEAD ── -->
-<header class="masthead">
-  <a class="masthead-logo" href="#">human<strong>MCP</strong></a>
-  <nav><ul class="masthead-nav">
-    <li><a href="#what">What</a></li>
-    <li><a href="#certificate">Certificate</a></li>
-    <li><a href="#for-artists">For artists</a></li>
-    <li><a href="#connect">Connect</a></li>
-    <li><a href="https://github.com/kapoost/humanmcp" target="_blank">GitHub</a></li>
-  </ul></nav>
-</header>
-
-<!-- ── STRIP ── -->
-<div class="strip">
-  <span class="strip-item"><span class="strip-dot"></span> Ed25519 signed</span>
-  <span class="strip-item"><span class="strip-dot"></span> 12 MCP tools</span>
-  <span class="strip-item"><span class="strip-dot"></span> 6 license types</span>
-  <span class="strip-item"><span class="strip-dot"></span> Go · zero dependencies</span>
-  <span class="strip-item"><span class="strip-dot"></span> <strong>183</strong> tests</span>
-  <span class="strip-item"><span class="strip-dot"></span> Fly.io · ~$2/mo</span>
-  <span class="strip-item"><span class="strip-dot"></span> Open source</span>
+<div class="app">
+<nav class="nav">
+  <div class="nav-logo">oA</div>
+  <span class="nav-title">Sales Intelligence Hub <span class="nav-sub">/ onAudience</span></span>
+  <span class="nav-status" id="dbStatus">○ Loading…</span>
+  <div class="nav-right">
+    <button class="btn sm" onclick="window.oaDB&&window.oaDB.reload()">↺ Sync</button>
+    <button class="btn sm" id="apiKeyBtn" onclick="window.promptApiKey&&window.promptApiKey()" title="Set Anthropic API key">🔑</button>
+    <button class="btn sm" onclick="openComposer(null)">✉ Compose</button>
+    <button class="btn sm p" onclick="promptResearch()">+ Research</button>
+    <button class="btn sm" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <button class="btn sm" onclick="window.oaPinLock()" title="Lock hub">🔒</button>
+  </div>
+</nav>
+<div class="stats-bar">
+  <div class="sb-col active" id="sbAll" onclick="setFilter('all',this)"><div class="sb-num" id="stAll">—</div><div class="sb-lbl">All</div></div>
+  <div class="sb-col" id="sbClient" onclick="setFilter('client',this)"><div class="sb-num" id="stClient">—</div><div class="sb-lbl">Clients</div></div>
+  <div class="sb-col" id="sbPoc" onclick="setFilter('poc',this)"><div class="sb-num" id="stPoc">—</div><div class="sb-lbl">POC</div></div>
+  <div class="sb-col" id="sbPartner" onclick="setFilter('partner',this)"><div class="sb-num" id="stPartner">—</div><div class="sb-lbl">Partners</div></div>
+  <div class="sb-col" id="sbProspect" onclick="setFilter('prospect',this)"><div class="sb-num" id="stProspect">—</div><div class="sb-lbl">Prospects</div></div>
+  <div class="sb-col" id="sbNogo" onclick="setFilter('nogo',this)"><div class="sb-num" id="stNogo">—</div><div class="sb-lbl">No Outreach</div></div>
+  <div class="sb-col" id="sbFresh" onclick="setFilter('fresh',this)"><div class="sb-num" id="stFresh">—</div><div class="sb-lbl">Fresh 🥩</div></div>
+</div>
+<div class="main">
+  <div class="left">
+    <div class="left-tabs">
+      <div class="left-tab active" id="tabComp" onclick="switchTab('companies')">Companies</div>
+      <div class="left-tab" id="tabCont" onclick="switchTab('contacts')">Contacts</div>
+      <div class="left-tab" id="tab-tcf" onclick="switchTab('tcf')">TCF</div>
+    </div>
+    <div class="left-search">
+      <input type="text" id="searchInput" placeholder="Search…" oninput="onSearch()"/>
+      <button class="btn sm" id="tagBtn" onclick="toggleTagPanel()" title="Tag filter">🏷</button>
+      <button class="btn sm" onclick="promptResearch()" title="Research">↗</button>
+    </div>
+    <div class="left-filters" id="filtersRow">
+      <span class="f-chip active" data-f="all" onclick="setFilter('all',this)">All</span>
+      <span class="f-chip" data-f="client" onclick="setFilter('client',this)">Clients</span>
+      <span class="f-chip" data-f="partner" onclick="setFilter('partner',this)">Partners</span>
+      <span class="f-chip" data-f="prospect" onclick="setFilter('prospect',this)">Prospects</span>
+      <span class="f-chip" data-f="poc" onclick="setFilter('poc',this)">POC</span>
+      <span class="f-chip" data-f="nogo" onclick="setFilter('nogo',this)">Nogo</span>
+    </div>
+    <div class="tag-panel" id="tagPanel">
+      <div class="tp-head">
+        <span class="tp-title">Tag filter</span>
+        <div class="tp-logic">
+          <span class="tp-logic-btn active" id="tlOr" onclick="setTagLogic('or')">OR</span>
+          <span class="tp-logic-btn" id="tlAnd" onclick="setTagLogic('and')">AND</span>
+        </div>
+        <span class="tp-clear" id="tpClear" onclick="clearTags()">Clear all</span>
+      </div>
+      <div class="tp-body" id="tpBody"></div>
+    </div>
+    <div class="list-meta" id="listMeta">
+      <span id="metaTxt">Loading…</span>
+      <div id="metaPills" style="display:flex;gap:3px;flex-wrap:wrap;margin-left:auto"></div>
+    </div>
+    <div class="sort-bar" id="sortBar">
+      <label>Sort</label>
+      <select class="sort-sel" id="sortSel" onchange="setSort(this.value)">
+        <option value="recent" selected>Recently updated</option>
+        <option value="name">Name A→Z</option>
+        <option value="icp">ICP score ↓</option>
+      </select>
+    </div>
+    <div id="tcf-sel-bar" style="display:none;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--rule2);background:var(--surf2);flex-shrink:0;min-height:32px"></div>
+    <div class="list-scroll" id="listScroll"></div>
+    <div class="ai-bar" id="aiBar">
+      <div class="ai-bar-row">
+        <span class="ai-badge">AI</span>
+        <input class="ai-inp" id="aiInp" placeholder="e.g. EU DSPs with cookieless…" onkeydown="if(event.key==='Enter')runAI()"/>
+        <button class="btn sm p" onclick="runAI()" id="aiBtn">→</button>
+      </div>
+      <div class="ai-stat" id="aiStat">
+        <div class="ai-dot" id="aiDot"></div>
+        <span id="aiTxt"></span>
+        <span class="ai-clr" onclick="clearAI()">✕ clear</span>
+      </div>
+      <div class="ai-quick">
+        <span class="ai-qchip" onclick="aiQuick('EU DSPs not yet contacted')">EU DSPs</span>
+        <span class="ai-qchip" onclick="aiQuick('companies with CTV capabilities')">CTV</span>
+        <span class="ai-qchip" onclick="aiQuick('cookieless identity partners')">Cookieless</span>
+        <span class="ai-qchip" onclick="aiQuick('high ICP prospects missing outreach angle')">No angle</span>
+        <span class="ai-qchip" onclick="aiQuick('marketplace or curation platforms')">Marketplace</span>
+      </div>
+    </div>
+    <!-- Console -->
+    <div class="console-panel" id="consolePanel">
+      <div class="console-head" onclick="toggleConsole()">
+        <span class="console-head-lbl">⚡ Console</span>
+        <span class="console-cnt" id="consoleCnt">0</span>
+        <span class="console-clear" onclick="event.stopPropagation();clearConsole()">clear</span>
+      </div>
+      <div class="console-scroll" id="consoleScroll"></div>
+    </div>
+  </div>
+  <div class="center">
+    <div class="center-scroll" id="centerScroll">
+      <div class="empty-wrap" id="emptyState">
+        <svg id="hub-spoke" viewBox="0 0 420 380" width="420" height="380" style="overflow:visible">
+          <defs><marker id="sp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--g)" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <g id="sp-spokes"></g>
+          <circle cx="210" cy="190" r="30" fill="var(--g)" stroke="var(--gd)" stroke-width="1.5"/>
+          <text x="210" y="186" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#fff">oA</text>
+          <text x="210" y="200" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7" fill="rgba(255,255,255,.7)">Hub</text>
+        </svg>
+        <script>
+(function(){
+  var actions=[
+    {label:'Research',sub:'contact report',angle:-90,fn:'promptResearch()'},
+    {label:'Prospects',sub:'find by criteria',angle:-30,fn:"openClaude('Find new DSP, SSP prospects for onAudience in EMEA — ranked by ICP fit')"},
+    {label:'Top picks',sub:'this week',angle:30,fn:"openClaude('Top 5 highest-priority prospects to contact this week?')"},
+    {label:'Draft email',sub:'AI composer',angle:90,fn:'openComposer(null)'},
+    {label:'Re-engage',sub:'warm cold leads',angle:150,fn:"openClaude('Companies not contacted in 30+ days worth re-engaging?')"},
+    {label:'Find similar',sub:'lookalikes',angle:210,fn:'promptSimilar()'},
+  ];
+  var cx=210,cy=190,r=105,nr=8;var g=document.getElementById('sp-spokes');
+  actions.forEach(function(a){var rad=a.angle*Math.PI/180;var x=cx+r*Math.cos(rad),y=cy+r*Math.sin(rad);var lx=cx+(r+38)*Math.cos(rad),ly=cy+(r+38)*Math.sin(rad);var anchor=Math.cos(rad)>0.15?'start':Math.cos(rad)<-0.15?'end':'middle';var line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',cx+31*Math.cos(rad));line.setAttribute('y1',cy+31*Math.sin(rad));line.setAttribute('x2',x-nr*Math.cos(rad));line.setAttribute('y2',y-nr*Math.sin(rad));line.setAttribute('stroke','var(--rule)');line.setAttribute('stroke-width','1');line.setAttribute('marker-end','url(#sp-a)');var node=document.createElementNS('http://www.w3.org/2000/svg','g');node.setAttribute('cursor','pointer');node.setAttribute('onclick',a.fn);var circ=document.createElementNS('http://www.w3.org/2000/svg','circle');circ.setAttribute('cx',x);circ.setAttribute('cy',y);circ.setAttribute('r',nr);circ.setAttribute('fill','var(--surf)');circ.setAttribute('stroke','var(--rule)');circ.setAttribute('stroke-width','1');circ.style.transition='all .15s';var t1=document.createElementNS('http://www.w3.org/2000/svg','text');t1.setAttribute('x',lx);t1.setAttribute('y',ly-5);t1.setAttribute('text-anchor',anchor);t1.setAttribute('font-family',"IBM Plex Mono,monospace");t1.setAttribute('font-size','10');t1.setAttribute('font-weight','500');t1.setAttribute('fill','var(--t1)');t1.textContent=a.label;var t2=document.createElementNS('http://www.w3.org/2000/svg','text');t2.setAttribute('x',lx);t2.setAttribute('y',ly+8);t2.setAttribute('text-anchor',anchor);t2.setAttribute('font-family',"IBM Plex Mono,monospace");t2.setAttribute('font-size','8');t2.setAttribute('fill','var(--t3)');t2.textContent=a.sub;node.addEventListener('mouseenter',function(){circ.setAttribute('fill','var(--gb)');circ.setAttribute('stroke','var(--g)');t1.setAttribute('fill','var(--g)');});node.addEventListener('mouseleave',function(){circ.setAttribute('fill','var(--surf)');circ.setAttribute('stroke','var(--rule)');t1.setAttribute('fill','var(--t1)');});node.appendChild(circ);node.appendChild(t1);node.appendChild(t2);g.appendChild(line);g.appendChild(node);});
+})();
+        </script>
+      </div>
+      <div id="coPanel" style="display:none"></div>
+      <div id="tcf-center" style="display:none"></div>
+    </div>
+  </div>
+</div>
 </div>
 
-<!-- ── HERO ── -->
-<section class="hero">
-  <div class="hero-left">
-    <div>
-      <div class="hero-issue">humanMCP · v0.1 · personal content server</div>
-      <h1 class="hero-headline">Your art.<br><em>Signed.</em><br>Readable<br>by AI.</h1>
-      <p class="hero-deck">Publish poems, songs, images, and data with cryptographic proof of authorship and explicit license terms. A personal server built for artists in the age of AI agents.</p>
-      <div class="hero-actions">
-        <a class="btn-primary" href="https://github.com/kapoost/humanmcp" target="_blank">Fork on GitHub</a>
-        <a class="btn-secondary" href="https://kapoost-humanmcp.fly.dev" target="_blank">Live example</a>
-      </div>
-    </div>
-    <div class="hero-footnote">
-      kapoost-humanmcp.fly.dev &nbsp;·&nbsp; MCP/JSON-RPC 2.0 &nbsp;·&nbsp; Ed25519 &nbsp;·&nbsp; SHA-256
+<div id="ctxMenu" class="ctx-menu"></div>
+<div id="ctDrawerOverlay" onclick="closeDrawer()"></div>
+<div id="ctDrawer">
+  <div class="dr-head"><div class="dr-av" id="drAv">?</div><div><div class="dr-name" id="drName">—</div><div class="dr-sub" id="drSub">—</div></div><div class="dr-close" onclick="closeDrawer()">✕</div></div>
+  <div class="dr-body" id="drBody"></div>
+  <div class="dr-actions"><button class="btn sm full" onclick="drEmail()">✉ Draft Email</button><button class="btn sm full" onclick="drLinkedIn()">LinkedIn ↗</button><button class="btn sm full" onclick="drGmail()">Gmail History</button><button class="btn sm full p" onclick="drResearch()">Full Research ↗</button></div>
+</div>
+
+<div id="overlay">
+  <div class="modal-box">
+    <h2 id="modalTitle">Research a Company</h2>
+    <p id="modalDesc">Enter a company name to generate a full contact report with decision makers, outreach angle, and ICP fit.</p>
+    <input type="text" id="modalInput" placeholder="Company name…"/>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn p" onclick="submitModal()">Open in Claude ↗</button></div>
+  </div>
+</div>
+
+<div id="mcOverlay"></div>
+<div id="mcDrawer">
+  <div class="mc-nav">
+    <div class="mc-logo">oA</div>
+    <span class="mc-title">Meeseeks <span class="mc-sub">/ Composer</span></span>
+    <span class="mc-persona-badge" id="mcNavBadge">STEVE</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <button class="mc-close" onclick="closeComposer()">✕</button>
     </div>
   </div>
-
-  <div class="hero-right">
-    <div class="terminal" role="img" aria-label="Terminal showing humanMCP get_certificate output for deka-log poem by kapoost, showing verified Ed25519 signature and originality index of 0.44">
-      <div class="terminal-bar">
-        <div class="terminal-dot"></div><div class="terminal-dot"></div><div class="terminal-dot"></div>
-        <span class="terminal-title">mcp · kapoost-humanmcp.fly.dev</span>
+  <div class="mc-shell">
+    <div class="mc-left">
+      <div class="mc-scroll">
+        <div class="mc-lbl">Pick Meeseeks</div>
+        <div class="mc-pgrid" id="mcPersonaGrid"></div>
+        <div class="mc-lbl">Company</div>
+        <div class="mc-co" id="mcCoBlock"><div class="mc-co-top"><div class="mc-co-av" id="mcCoAv">?</div><div style="flex:1;min-width:0"><div class="mc-co-empty" id="mcCoEmpty">No company selected</div><div class="mc-co-name" id="mcCoName" style="display:none"></div><div class="mc-co-note" id="mcCoNote" style="display:none"></div></div></div><div class="mc-co-tags" id="mcCoTags" style="display:none"></div></div>
+        <div class="mc-lbl">Contact</div>
+        <div class="mc-ctlist" id="mcCtList"><div class="mc-ctempty">Open a company from the hub to load contacts</div></div>
+        <div class="mc-lbl" style="margin-top:12px">Context — signals, news, what they do</div>
+        <textarea class="mc-tf" id="mcCtx" rows="4" placeholder="e.g. EU DSP expanding into CTV, exploring cookieless, raised Series B…" oninput="mcHint(this,'mcCtxHint')"></textarea>
+        <div class="mc-tf-hint" id="mcCtxHint">0 chars</div>
+        <div class="mc-lbl">Outreach angle</div>
+        <textarea class="mc-tf" id="mcAngle" rows="3" placeholder="e.g. EU audience data + cookieless complement for their DSP inventory…" oninput="mcHint(this,'mcAngleHint')"></textarea>
+        <div class="mc-tf-hint" id="mcAngleHint">0 chars</div>
       </div>
-      <div class="terminal-body">
-        <div class="t-line"><span class="t-prompt">→</span><span class="t-cmd">tools/call get_certificate</span></div>
-        <div class="t-line"><span class="t-comment">&nbsp; &nbsp;slug: "deka-log"</span></div>
-        <div class="t-blank"></div>
-        <div class="t-line"><span class="t-gold">INTELLECTUAL PROPERTY CERTIFICATE</span></div>
-        <div class="t-line"><span class="t-dim">────────────────────────────────────</span></div>
-        <div class="t-line"><span class="t-key">title: &nbsp; &nbsp; &nbsp; &nbsp;</span><span class="t-val">deka-log</span></div>
-        <div class="t-line"><span class="t-key">author: &nbsp; &nbsp; &nbsp;</span><span class="t-val">kapoost</span></div>
-        <div class="t-line"><span class="t-key">license: &nbsp; &nbsp;</span><span class="t-val">cc-by</span></div>
-        <div class="t-blank"></div>
-        <div class="t-line"><span class="t-gold">AUTHENTICITY</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">content_hash:</span><span class="t-val"> d3199ac27f7ee315…</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">signature: &nbsp;</span><span class="t-val"> 4NR1rBl9TELxp3… </span><span class="t-check">✓ VERIFIED</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">public_key: </span><span class="t-val"> 9ae93723ae68e4…</span></div>
-        <div class="t-blank"></div>
-        <div class="t-line"><span class="t-gold">ORIGINALITY INDEX &nbsp;C &nbsp;(0.44 / 1.00)</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">burstiness: &nbsp;</span><span class="t-val"> 0.06</span><span class="t-dim"> &nbsp;sentence rhythm</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">lexical dens:</span><span class="t-val"> 0.54</span><span class="t-dim"> &nbsp;vocabulary richness</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">entropy: &nbsp; &nbsp;</span><span class="t-val"> 0.76</span><span class="t-dim"> &nbsp;character entropy</span></div>
-        <div class="t-line">&nbsp; <span class="t-key">structure: &nbsp;</span><span class="t-val"> 0.46</span><span class="t-dim"> &nbsp;line signature</span></div>
-      </div>
+      <div class="mc-footer"><button class="mc-gen" id="mcGenBtn" onclick="mcGenerate()"><span id="mcGenIcon">✉</span><span id="mcGenLabel">Generate Email</span></button></div>
     </div>
-  </div>
-</section>
-
-<!-- ── WHAT IS IT ── -->
-<section class="section" id="what">
-  <div class="section-inner">
-    <div class="two-col">
-      <div>
-        <div class="section-label">The problem</div>
-        <hr class="section-rule">
-        <h2 class="section-headline">You create. The web forgets.</h2>
-        <p class="section-body">You post a poem. It disappears into a feed. AI models train on it. Someone quotes it without credit. You have no proof you made it, no record of when, no way to set terms.</p>
-        <p class="section-body" style="margin-top:1rem;">humanMCP is a small personal server that publishes your work with a cryptographic signature, explicit license, and structured access gates — in a format that AI agents understand natively.</p>
-      </div>
-      <div>
-        <div class="section-label">What you get</div>
-        <hr class="section-rule">
-        <div class="three-col" style="gap:1.5rem;">
-          <div class="feature-card" data-num="01">
-            <div class="feature-icon">SIG</div>
-            <div class="feature-title">Signed</div>
-            <div class="feature-body">Ed25519 key proves authorship. Anyone can verify. Nothing can be altered undetected.</div>
-          </div>
-          <div class="feature-card" data-num="02">
-            <div class="feature-icon">LIC</div>
-            <div class="feature-title">Licensed</div>
-            <div class="feature-body">CC BY, CC BY-NC, commercial, exclusive, all-rights. License travels with the work.</div>
-          </div>
-          <div class="feature-card" data-num="03">
-            <div class="feature-icon">IDX</div>
-            <div class="feature-title">Indexed</div>
-            <div class="feature-body">Originality score measuring vocabulary, rhythm, entropy, structure. Your style, quantified.</div>
-          </div>
-          <div class="feature-card" data-num="04">
-            <div class="feature-icon">KEY</div>
-            <div class="feature-title">Gated</div>
-            <div class="feature-body">Public, locked, time-gated, challenge question. Per piece. You decide every time.</div>
-          </div>
-          <div class="feature-card" data-num="05">
-            <div class="feature-icon">BOT</div>
-            <div class="feature-title">AI-native</div>
-            <div class="feature-body">12 MCP tools. Agents read, verify, license, and comment — on your terms.</div>
-          </div>
-          <div class="feature-card" data-num="06">
-            <div class="feature-icon">SAT</div>
-            <div class="feature-title">Sellable</div>
-            <div class="feature-body">Set a price in sats for commercial use. Lightning Network integration planned.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── CERTIFICATE ── -->
-<section class="section" id="certificate" style="background:var(--cream);">
-  <div class="section-inner">
-    <div class="two-col">
-      <div>
-        <div class="section-label">Intellectual property</div>
-        <hr class="section-rule">
-        <h2 class="section-headline">Proof that travels with the work.</h2>
-        <p class="section-body">Every piece gets a certificate: a SHA-256 hash of the content, an Ed25519 signature, your public key, license terms, and an originality breakdown.</p>
-        <p class="section-body" style="margin-top:1rem;">This is not a watermark or a PDF. It is cryptographic proof, verifiable by any computer on the planet, without contacting you.</p>
-        <div class="section-label" style="margin-top:2.5rem;">Originality index</div>
-        <hr class="section-rule">
-        <div class="o-grade">C</div>
-        <p class="section-body" style="font-size:0.88rem;">deka-log · 0.44 / 1.00</p>
-        <div class="o-meter">
-          <div class="o-row">
-            <span class="o-label">burstiness</span>
-            <div class="o-bar"><div class="o-fill" style="width:6%;animation-delay:0.1s"></div></div>
-            <span class="o-val">0.06</span>
-          </div>
-          <div class="o-row">
-            <span class="o-label">lexical density</span>
-            <div class="o-bar"><div class="o-fill" style="width:54%;animation-delay:0.2s"></div></div>
-            <span class="o-val">0.54</span>
-          </div>
-          <div class="o-row">
-            <span class="o-label">entropy</span>
-            <div class="o-bar"><div class="o-fill" style="width:76%;animation-delay:0.3s"></div></div>
-            <span class="o-val">0.76</span>
-          </div>
-          <div class="o-row">
-            <span class="o-label">structure</span>
-            <div class="o-bar"><div class="o-fill" style="width:46%;animation-delay:0.4s"></div></div>
-            <span class="o-val">0.46</span>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="cert-block">
-          <div class="cert-line"><span class="cert-gold">INTELLECTUAL PROPERTY CERTIFICATE</span></div>
-          <div class="cert-line"><span class="cert-dim">────────────────────────────────────────────</span></div>
-          <div class="cert-blank"></div>
-          <div class="cert-line"><span class="cert-k">title:</span><span class="cert-v">Niby miłość a nie miłość</span></div>
-          <div class="cert-line"><span class="cert-k">author:</span><span class="cert-v">kapoost</span></div>
-          <div class="cert-line"><span class="cert-k">created:</span><span class="cert-v">31 March 2026</span></div>
-          <div class="cert-line"><span class="cert-k">license:</span><span class="cert-v">cc-by</span></div>
-          <div class="cert-line"><span class="cert-k">price:</span><span class="cert-v">free</span></div>
-          <div class="cert-blank"></div>
-          <div class="cert-line"><span class="cert-gold">AUTHENTICITY</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">content_hash:</span><span class="cert-v"> d3199ac27f7ee315…</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">signature: &nbsp;</span><span class="cert-v"> 4NR1rBl9TELxp3…</span> <span class="cert-check">✓ VERIFIED</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">public_key: </span><span class="cert-v"> 9ae93723ae68e4b9…</span></div>
-          <div class="cert-blank"></div>
-          <div class="cert-line"><span class="cert-gold">ORIGINALITY INDEX &nbsp;C &nbsp;(0.44 / 1.00)</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">burstiness: &nbsp;</span><span class="cert-v"> 0.06</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">lexical dens:</span><span class="cert-v"> 0.54</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">entropy: &nbsp; &nbsp;</span><span class="cert-v"> 0.76</span></div>
-          <div class="cert-line">&nbsp; <span class="cert-k">structure: &nbsp;</span><span class="cert-v"> 0.46</span></div>
-          <div class="cert-blank"></div>
-          <div class="cert-line"><span class="cert-gold">TERMS</span></div>
-          <div class="cert-line"><span class="cert-v">&nbsp; Creative Commons Attribution 4.0.</span></div>
-          <div class="cert-line"><span class="cert-v">&nbsp; Free to use with credit to kapoost.</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FOR ARTISTS ── -->
-<section class="section" id="for-artists">
-  <div class="section-inner">
-    <div class="section-label">Who it's for</div>
-    <hr class="section-rule">
-    <h2 class="section-headline">Built for makers, not developers.</h2>
-    <div class="audience-grid" style="margin-top:2.5rem;">
-      <div class="audience-card active">
-        <div class="audience-who">Poets &amp; writers</div>
-        <ul class="audience-list">
-          <li>Publish with CC BY</li>
-          <li>Lock drafts with a challenge</li>
-          <li>Time-lock for release dates</li>
-          <li>Sell exclusive rights for sats</li>
-        </ul>
-      </div>
-      <div class="audience-card">
-        <div class="audience-who">Musicians</div>
-        <ul class="audience-list">
-          <li>License lyrics commercially</li>
-          <li>Share stems with audience gates</li>
-          <li>Timestamp melody priority</li>
-          <li>Prove composition date</li>
-        </ul>
-      </div>
-      <div class="audience-card">
-        <div class="audience-who">Visual artists</div>
-        <ul class="audience-list">
-          <li>Upload as locked image blobs</li>
-          <li>Agents see metadata only</li>
-          <li>Signature on every file</li>
-          <li>Set all-rights license</li>
-        </ul>
-      </div>
-      <div class="audience-card">
-        <div class="audience-who">Makers &amp; researchers</div>
-        <ul class="audience-list">
-          <li>Publish datasets with schema</li>
-          <li>Share contact as locked blob</li>
-          <li>Capsule blobs for agents</li>
-          <li>Vector blobs for embeddings</li>
-        </ul>
-      </div>
-    </div>
-
-    <div style="margin-top:4rem;">
-      <div class="section-label">vs. social media &amp; portfolio sites</div>
-      <hr class="section-rule">
-      <table class="comp-table">
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th>Social media / website</th>
-            <th>humanMCP</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Proof of authorship</td><td>None (screenshots)</td><td>Ed25519 cryptographic signature</td></tr>
-          <tr><td>License</td><td>Hidden in footer, ignored</td><td>Machine-readable, travels with the work</td></tr>
-          <tr><td>AI training consent</td><td>Automatic, no control</td><td>You decide per piece</td></tr>
-          <tr><td>Access control</td><td>Public or private only</td><td>Public, locked, members, time-gated, trade</td></tr>
-          <tr><td>AI agent readability</td><td>Screen-scraped, lossy</td><td>Native MCP protocol, structured</td></tr>
-          <tr><td>IP for sale</td><td>Email negotiation</td><td>Built-in price in sats, audit trail</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<!-- ── TOOLS ── -->
-<section class="section" style="background:var(--cream);">
-  <div class="section-inner">
-    <div class="section-label">MCP tools</div>
-    <hr class="section-rule">
-    <h2 class="section-headline">12 tools. Every agent speaks them.</h2>
-    <div class="tools-grid">
-      <div class="tool-item"><div class="tool-name">get_author_profile</div><div class="tool-desc">Who you are, where you sail from, what you build</div></div>
-      <div class="tool-item"><div class="tool-name">list_content</div><div class="tool-desc">Browse all pieces with metadata</div></div>
-      <div class="tool-item"><div class="tool-name">read_content</div><div class="tool-desc">Read a piece — respects all access gates</div></div>
-      <div class="tool-item"><div class="tool-name">get_certificate</div><div class="tool-desc">Full IP certificate: hash, signature, originality</div></div>
-      <div class="tool-item"><div class="tool-name">request_license</div><div class="tool-desc">Declare intended use, get terms, logged for audit</div></div>
-      <div class="tool-item"><div class="tool-name">verify_content</div><div class="tool-desc">Cryptographically verify nothing was modified</div></div>
-      <div class="tool-item"><div class="tool-name">list_blobs</div><div class="tool-desc">Browse typed data: images, contacts, datasets</div></div>
-      <div class="tool-item"><div class="tool-name">read_blob</div><div class="tool-desc">Read a blob — respects audience access list</div></div>
-      <div class="tool-item"><div class="tool-name">request_access</div><div class="tool-desc">Get gate details for locked pieces</div></div>
-      <div class="tool-item"><div class="tool-name">submit_answer</div><div class="tool-desc">Unlock a challenge-gated piece</div></div>
-      <div class="tool-item"><div class="tool-name">leave_comment</div><div class="tool-desc">Leave a reaction — visible in your dashboard</div></div>
-      <div class="tool-item"><div class="tool-name">leave_message</div><div class="tool-desc">Send a direct note up to 2000 characters</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ── AUTHOR ── -->
-<div class="author-block" id="author">
-  <div>
-    <div class="author-label">Built by</div>
-    <div class="author-name">kapoost</div>
-    <div style="font-family:var(--sans);font-size:.85rem;color:var(--muted);margin-top:.3rem;">Łukasz Kapuśniak &middot; Warsaw / Malta</div>
-    <div style="display:flex;gap:.6rem;margin-top:.75rem;flex-wrap:wrap;">
-      <a href="https://www.instagram.com/kapoost/" target="_blank" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);padding:2px 8px;">instagram</a>
-      <a href="https://www.facebook.com/lukasz.kapusniak" target="_blank" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);padding:2px 8px;">facebook</a>
-      <a href="https://github.com/kapoost" target="_blank" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-decoration:none;border:1px solid var(--rule);padding:2px 8px;">github</a>
-    </div>
-    <div class="author-pubkey" style="margin-top:.75rem;">pubkey: 9ae93723ae68e4b9fc301523cf3f3ac2a0cec2bdb5a29ded2bba56976a77bfc8</div>
-  </div>
-  <div>
-    <p class="author-bio">I am a poet and a builder. I grew up in Zamość, studied in Wrocław, and ended up in Warsaw &mdash; though I spend as much time as I can at sea. I write because something in me has to. I sail because something in me must. I build software because the world needs more people who understand both code and silence.</p><p class="author-bio" style="margin-top:0.75rem;">I am a CTO by trade, a sailor by temperament, and a poet by necessity. I started writing late. The poems are short. The sea is long.</p>
-    <p class="section-body" style="font-size:0.88rem;">humanMCP started as a personal tool to publish poems with proper IP protection. It became something other artists might want. Contact available via the server &mdash; public links at <code style="font-size:.8rem;">kapoost-contact</code>, private email behind a gate.</p>
-    <div class="author-works">
-      <a class="work-chip" href="https://kapoost-humanmcp.fly.dev/p/love" target="_blank" aria-label="Read poem: Niby miłość a nie miłość">Niby miłość a nie miłość</a>
-      <a class="work-chip" href="https://kapoost-humanmcp.fly.dev/p/private-parts" target="_blank" aria-label="Read poem: deka-log">deka-log</a>
-      <a class="work-chip" href="https://kapoost-humanmcp.fly.dev/p/piosenki" target="_blank" aria-label="Read poem: Piosenka1.txt">Piosenka1.txt</a>
-      <a class="work-chip" href="https://kapoost-humanmcp.fly.dev/p/prompty-o-ludziach" target="_blank" aria-label="Read poem: O ludziach">O ludziach</a>
+    <div class="mc-right">
+      <div class="mc-rbar"><span class="mc-rlbl" id="mcOutLabel">Output</span><div class="mc-racts" id="mcOutActs" style="display:none"><button class="mc-obtn" onclick="mcCopy()">Copy</button><button class="mc-obtn" onclick="mcGenerate()">↺ Regen</button><button class="mc-obtn p" onclick="closeComposer()">Done ✓</button></div></div>
+      <div class="mc-rscroll" id="mcRScroll"><div class="mc-empty" id="mcEmpty"><div class="mc-earrow">←</div><div class="mc-ehint">Pick persona · select contact · generate</div></div><div id="mcOutContent" style="display:none"></div></div>
     </div>
   </div>
 </div>
 
-<!-- ── CONNECT ── -->
-<div class="connect-block" id="connect">
-  <div>
-    <h2 class="connect-heading">Connect any AI agent in 30 seconds.</h2>
-    <p class="connect-sub">Add the live example to Claude Desktop, or fork the repo and run your own. Zero external dependencies. One config line.</p>
-    <a class="connect-btn" href="https://kapoost-humanmcp.fly.dev/connect" target="_blank">Connection guide →</a>
-  </div>
-  <div>
-    <div class="connect-code">
-<span class="pun">{</span>
-  <span class="kw">"mcpServers"</span><span class="pun">: {</span>
-    <span class="kw">"kapoost"</span><span class="pun">: {</span>
-      <span class="kw">"type"</span><span class="pun">:</span> <span class="str">"http"</span><span class="pun">,</span>
-      <span class="kw">"url"</span><span class="pun">:</span>  <span class="str">"https://kapoost-humanmcp.fly.dev/mcp"</span>
-    <span class="pun">}</span>
-  <span class="pun">}</span>
-<span class="pun">}</span>
-    </div>
-    <div style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;">
-      <a class="connect-btn" href="https://github.com/kapoost/humanmcp" target="_blank">Fork on GitHub →</a>
-      <a class="connect-btn" href="https://kapoost-humanmcp.fly.dev" target="_blank">Live demo →</a>
+<!-- GVL CONFIRM MODAL -->
+<div id="gvl-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2100;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--surf);border:1px solid var(--rule);border-radius:4px;padding:20px;max-width:440px;width:90%;box-shadow:var(--sh)">
+    <div id="gvl-confirm-body"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn" onclick="closeGVLConfirm()">Cancel</button>
+      <button class="btn p" id="gvl-confirm-btn" onclick="executeGVLConfirm()">&#10003; Confirm Match</button>
     </div>
   </div>
 </div>
 
-<!-- ── FOOTER ── -->
-<footer>
-  <span>humanMCP v0.1 &nbsp;·&nbsp; kapoost &nbsp;·&nbsp; 2026</span>
-  <span>
-    <a href="https://kapoost-humanmcp.fly.dev" target="_blank">live server</a> &nbsp;·&nbsp;
-    <a href="https://github.com/kapoost/humanmcp" target="_blank">github</a> &nbsp;·&nbsp;
-    <a href="https://kapoost-humanmcp.fly.dev/connect" target="_blank">connect</a>
-  </span>
-  <span>Go · Ed25519 · MCP/JSON-RPC 2.0 · Fly.io</span>
-  <span><a href="https://kapoost-humanmcp.fly.dev/sitemap.xml" target="_blank">sitemap</a> · <a href="https://kapoost-humanmcp.fly.dev/robots.txt" target="_blank">robots.txt</a></span>
-</footer>
+<!-- PIN Lock -->
+<div id="pinLock" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column">
+  <div style="text-align:center;max-width:320px">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">onAudience</div>
+    <div style="font-family:'IBM Plex Sans',sans-serif;font-size:18px;font-weight:500;color:var(--t1);margin-bottom:24px">Enter passphrase</div>
+    <input type="password" id="pinInput" placeholder="Passphrase…" autocomplete="off" style="width:100%;height:42px;padding:0 14px;border:1px solid var(--rule);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--surf2);color:var(--t1);outline:none;text-align:center;letter-spacing:.05em"/>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:#F87171;margin-top:8px;min-height:14px" id="pinErr"></div>
+  </div>
+</div>
+
+<style>
+#pinInput:focus{border-color:var(--g)}
+#pinInput::placeholder{color:var(--t4);letter-spacing:0}
+</style>
 
 <script>
-// Animate originality bars when visible
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.querySelectorAll('.o-fill').forEach(bar => {
-        bar.style.animationPlayState = 'running';
-      });
-    }
-  });
-}, { threshold: 0.2 });
+(function(){
+  /* hardcoded passphrase hash */
+  function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return'ph_'+Math.abs(h).toString(36);}
+  const PASS_HASH=hash('Polskagurom2026');
 
-document.querySelectorAll('.o-meter').forEach(m => {
-  m.querySelectorAll('.o-fill').forEach(b => b.style.animationPlayState = 'paused');
-  observer.observe(m);
-});
+  const lock=document.getElementById('pinLock');
+  const app=document.querySelector('.app');
+  const inp=document.getElementById('pinInput');
+  const err=document.getElementById('pinErr');
+
+  function unlock(){lock.style.display='none';app.style.display='';sessionStorage.setItem('oaUnlocked','1');}
+
+  /* skip if already unlocked this session */
+  if(sessionStorage.getItem('oaUnlocked')==='1'){
+    /* don't hide app, don't show lock */
+  }else{
+    app.style.display='none';
+    lock.style.display='flex';
+    setTimeout(()=>inp.focus(),100);
+  }
+
+  inp.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    err.textContent='';
+    const val=inp.value;
+    if(!val){err.textContent='Enter passphrase';return;}
+    if(hash(val)===PASS_HASH){unlock();return;}
+    err.textContent='Wrong passphrase';
+    inp.value='';
+    inp.style.borderColor='#F87171';
+    setTimeout(()=>{inp.style.borderColor='';inp.focus();},600);
+  });
+
+  window.oaPinLock=function(){
+    sessionStorage.removeItem('oaUnlocked');
+    app.style.display='none';
+    lock.style.display='flex';
+    inp.value='';err.textContent='';
+    setTimeout(()=>inp.focus(),100);
+  };
+})();
 </script>
 
+<script type="module" src="app.js?v=20260325e"></script>
 </body>
 </html>
