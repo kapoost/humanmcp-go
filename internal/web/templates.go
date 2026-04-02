@@ -28,6 +28,7 @@ const allTemplates = `
 <ul class="pieces">
 {{range .Pieces}}
 {{$img := index $.BlobImageMap .Slug}}
+{{if or $.IsOwner (and (ne .Type "document") (ne .Type "capsule"))}}
 <li class="piece-item">
   <div class="piece-row">
     <div class="piece-left">
@@ -35,6 +36,7 @@ const allTemplates = `
         <span>{{formatDate .Published}}</span>
         {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
         {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
+        {{if and (or (eq .Type "document") (eq .Type "capsule")) $.IsOwner}}<span class="hidden-badge">&#128268; agents only</span>{{end}}
         {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
         {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
       </div>
@@ -49,6 +51,7 @@ const allTemplates = `
     {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
   </div>
 </li>
+{{end}}
 {{end}}
 </ul>
 {{else}}
@@ -468,6 +471,8 @@ a:hover{text-decoration:underline;}
 .type-badge.contact{background:#fef0e8;color:#7a3a1a;}
 @media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
 .signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
+.hidden-badge{font-size:.65rem;background:#f0f0f0;color:#666;padding:1px 5px;border-radius:3px;border:1px solid #ccc;}
+@media(prefers-color-scheme:dark){.hidden-badge{background:#222;color:#888;border-color:#444;}}
 .ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
 .ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
 .ots-pending{background:#fef9e8;color:#7a5c00;border:1px solid #c9a96e;}
