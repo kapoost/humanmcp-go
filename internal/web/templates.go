@@ -16,10 +16,6 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
-  <a href="/new" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
-  <span class="owner-bar-sep">|</span>
-  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
-  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
   <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
@@ -30,25 +26,15 @@ const allTemplates = `
 <li class="piece-item">
   <div class="piece-meta">
     <span>{{formatDate .Published}}</span>
-    {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
-    {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
-    {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
   </div>
-  <div class="piece-row">
-    <div class="piece-left">
-      <div class="piece-title">
-        <a href="/p/{{.Slug}}">{{.Title}}</a>
-        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-      </div>
-      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-    </div>
-    {{if eq .Type "image"}}
-    {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
-    {{else if and .Body (not (eq .Type "contact"))}}<div class="piece-right"><div class="piece-excerpt-right">{{truncate .Body 90}}</div></div>
-    {{end}}
+  <div class="piece-title">
+    <a href="/p/{{.Slug}}">{{.Title}}</a>
+    {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+  </div>
+  {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
+  <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem;flex-wrap:wrap;">
+    {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
   </div>
 </li>
 {{end}}
@@ -74,10 +60,6 @@ const allTemplates = `
 .piece-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
 .piece-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;}
 .piece-h1{font-size:1.6rem;font-weight:500;line-height:1.3;margin-bottom:.4rem;font-family:var(--serif);}
-.gate-box{background:var(--locked-bg);border:1px solid var(--locked);border-radius:6px;padding:1.25rem;margin:2rem 0;}
-.gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
-.gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
-.unlock-success{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;color:#2e7d32;font-size:.85rem;}
 .piece-info{margin-top:.9rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;}
 .status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.4rem .6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
 .status-row:last-of-type{border-bottom:none;}
@@ -94,6 +76,10 @@ const allTemplates = `
 .info-btn{font-size:.68rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;}
 .info-btn:hover{border-color:var(--accent);color:var(--accent);}
 .info-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border);}
+.gate-box{background:var(--locked-bg);border:1px solid var(--locked);border-radius:6px;padding:1.25rem;margin:2rem 0;}
+.gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
+.gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
+.unlock-success{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;color:#2e7d32;font-size:.85rem;}
 </style>
 </head>
 <body>
@@ -211,13 +197,7 @@ const allTemplates = `
     {{end}}
   </div>
 {{else}}
-  {{if eq .Type "image"}}
-  {{$img := or (index $.BlobImageMap .Slug) (index $.BlobImageMap (lower .Title))}}
-  {{if $img}}<div style="margin:1.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);display:block;"></div>{{end}}
-  {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
-  {{else}}
   <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
-  {{end}}
 {{end}}
 {{end}}
 {{template "footer" .}}
@@ -353,27 +333,31 @@ const allTemplates = `
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{if .Regarding}}Comment — {{.Author}}{{else}}Contact — {{.Author}}{{end}}</title>
+<title>Contact — {{.Author}}</title>
 <style>{{template "css" .}}
 textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:.95rem;resize:vertical;line-height:1.6;}
 .success-box{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:1.25rem;color:#2e7d32;}
-.re-badge{font-size:.82rem;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent);border-radius:4px;padding:.3rem .7rem;display:inline-block;margin-bottom:1rem;}
 </style>
 </head>
 <body>
 <div class="container">
 {{template "header-simple" .}}
 <div style="max-width:520px;">
+<h1 style="font-size:1.1rem;font-weight:500;margin-bottom:1.5rem;">Leave a message</h1>
 {{if .Sent}}
-<div class="success-box"><strong>Sent.</strong> kapoost will read it.<p style="margin-top:.5rem;font-size:.9rem;">&#8592; <a href="/">back to reading</a></p></div>
+<div class="success-box"><strong>Message sent.</strong> kapoost will read it.<p style="margin-top:.5rem;font-size:.9rem;">&#8592; <a href="/">back to reading</a></p></div>
 {{else}}
-{{if .Regarding}}<div class="re-badge">re: {{.RegardingTitle}}</div>{{end}}
 {{if .Error}}<p style="color:#c0392b;margin-bottom:1rem;font-size:.85rem;">{{.Error}}</p>{{end}}
 <form method="POST" action="/contact" style="display:grid;gap:.75rem;">
-  {{if .Regarding}}<input type="hidden" name="regarding" value="{{.Regarding}}">{{end}}
   <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Name or handle <span style="opacity:.5">(optional)</span></label>
   <input type="text" name="from" maxlength="32" value="{{.From}}" placeholder="anonymous" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);"></div>
-  <div><textarea name="text" id="msg-text" maxlength="2000" rows="5" placeholder="Plain text only. No links. Max 2000 characters." oninput="document.getElementById('cc').textContent=this.value.length+'/2000'">{{.Text}}</textarea>
+  {{if .Pieces}}<div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">About a piece <span style="opacity:.5">(optional)</span></label>
+  <select name="regarding" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  <option value="">&#8212; general &#8212;</option>
+  {{range .Pieces}}<option value="{{.Slug}}">{{.Title}}</option>{{end}}
+  </select></div>{{end}}
+  <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Message <span style="color:#c0392b">*</span></label>
+  <textarea name="text" id="msg-text" maxlength="2000" rows="5" placeholder="Plain text only. No links. Max 2000 characters." oninput="document.getElementById('cc').textContent=this.value.length+'/2000'">{{.Text}}</textarea>
   <div style="font-size:.72rem;color:var(--muted);text-align:right;" id="cc">0/2000</div></div>
   <button type="submit" class="btn btn-primary" style="justify-self:start;">Send</button>
 </form>
@@ -394,17 +378,11 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 .connect-section{margin-bottom:2.5rem;}
 .connect-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;margin-bottom:.6rem;}
 .code-block{background:var(--tag-bg);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;font-family:monospace;font-size:.82rem;line-height:1.7;color:var(--fg);overflow-x:auto;white-space:pre;}
-.pill{display:inline-block;font-size:.7rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);margin-bottom:.4rem;margin-right:.3rem;}
-.pill.gpt{background:#e8f5e8;color:#1a6b1a;border-color:#4caf4c;}
-.pill.gemini{background:#e8eaf8;color:#1a2a8a;border-color:#4c5caf;}
-.pill.rest{background:#f5f0e8;color:#6b4a1a;border-color:#af8c4c;}
-@media(prefers-color-scheme:dark){.pill.gpt{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.pill.gemini{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.pill.rest{background:#201808;color:#c8a060;border-color:#6b4a1a;}}
+.pill{display:inline-block;font-size:.7rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);margin-bottom:.4rem;}
 .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
 .tool-card{padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;}
 .tool-card strong{display:block;font-family:monospace;font-size:.8rem;}
 .tool-card span{color:var(--muted);font-size:.75rem;}
-.step{font-size:.85rem;color:var(--muted);margin-bottom:.4rem;padding-left:1.1rem;text-indent:-1.1rem;}
-.step strong{color:var(--fg);}
 </style>
 </head>
 <body>
@@ -412,19 +390,13 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 {{template "header-simple" .}}
 <a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; back</a>
 <h1 style="font-size:1.2rem;font-weight:500;margin-bottom:.4rem;">Connect to this humanMCP</h1>
-<p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Give your AI agent access to {{.Author}}'s content, signatures and tools.</p>
-
+<p style="color:var(--muted);font-size:.88rem;margin-bottom:2rem;">Add {{.Author}}&rsquo;s server to your AI agent. 30 seconds.</p>
 <div class="connect-section">
-  <div class="connect-title">endpoints</div>
-  <div style="display:flex;flex-direction:column;gap:.4rem;">
-    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">MCP</span><span style="font-family:monospace;user-select:all;">https://{{.Domain}}/mcp</span></div>
-    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">API</span><span style="font-family:monospace;user-select:all;">https://{{.Domain}}/api</span></div>
-    <div style="font-size:.82rem;"><span style="font-family:monospace;color:var(--muted);font-size:.75rem;margin-right:.5rem;">OAS</span><a href="/openapi.json" style="font-family:monospace;font-size:.82rem;">https://{{.Domain}}/openapi.json</a></div>
-  </div>
+  <div class="connect-title">MCP endpoint</div>
+  <div class="code-block" style="word-break:break-all;user-select:all;">https://{{.Domain}}/mcp</div>
 </div>
-
 <div class="connect-section">
-  <div class="pill">Claude</div>
+  <div class="pill">Claude Desktop</div>
   <div class="connect-title">claude_desktop_config.json</div>
   <div class="code-block" style="user-select:all;">{
   "mcpServers": {
@@ -434,81 +406,22 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
     }
   }
 }</div>
-  <p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Also works in Claude.ai — paste the MCP URL when adding a server.</p>
 </div>
-
 <div class="connect-section">
-  <div class="pill gpt">ChatGPT</div>
-  <div class="connect-title">Custom GPT — Actions</div>
-  <p class="step"><strong>1.</strong> Open ChatGPT → Explore GPTs → Create</p>
-  <p class="step"><strong>2.</strong> Go to Configure → Add actions → Import from URL</p>
-  <p class="step"><strong>3.</strong> Paste the OpenAPI spec URL:</p>
-  <div class="code-block" style="user-select:all;">https://{{.Domain}}/openapi.json</div>
-  <p class="step" style="margin-top:.6rem;"><strong>4.</strong> Auth: None — the API is public read-only</p>
-  <p class="step"><strong>5.</strong> Add this system prompt to your GPT:</p>
-  <div class="code-block" style="user-select:all;white-space:pre-wrap;">You have access to {{.Author}}'s humanMCP — a personal publishing server with poems, images and signed data. Use listContent to browse, readContent to read any piece. All content carries an Ed25519 signature in the Signature field — always mention when a piece is signed. Respect the License field before quoting.</div>
-</div>
-
-<div class="connect-section">
-  <div class="pill gemini">Gemini</div>
-  <div class="connect-title">Gem — system instructions</div>
-  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.7rem;">Gemini doesn't support external tools directly yet. Use a Gem with these instructions and the REST API URL:</p>
-  <div class="code-block" style="user-select:all;white-space:pre-wrap;">You are connected to {{.Author}}'s personal content server at https://{{.Domain}}.
-
-To browse content: GET https://{{.Domain}}/api/content
-To read a piece:   GET https://{{.Domain}}/api/content/{slug}
-To browse images:  GET https://{{.Domain}}/api/blobs
-
-All pieces carry an Ed25519 signature. Mention when content is signed.
-Respect the License field — "free" means read and share with credit.
-When a user asks about {{.Author}}'s work, always fetch fresh data.</div>
-</div>
-
-<div class="connect-section">
-  <div class="pill rest">Any agent</div>
-  <div class="connect-title">REST API — public, no auth</div>
-  <div class="tool-grid">
-    <div class="tool-card"><strong>GET /api/content</strong><span>List all public pieces</span></div>
-    <div class="tool-card"><strong>GET /api/content/:slug</strong><span>Read a piece</span></div>
-    <div class="tool-card"><strong>GET /api/blobs</strong><span>List images and data</span></div>
-    <div class="tool-card"><strong>GET /api/blobs/:slug</strong><span>Read a blob</span></div>
-    <div class="tool-card"><strong>GET /files/:filename</strong><span>Raw image file</span></div>
-    <div class="tool-card"><strong>POST /contact</strong><span>Leave a message</span></div>
-  </div>
-</div>
-
-<div class="connect-section">
-  <div class="connect-title">{{.ToolCount}} MCP tools</div>
+  <div class="connect-title">{{.ToolCount}} available tools</div>
   <div class="tool-grid">
     <div class="tool-card"><strong>list_content</strong><span>Browse poems and essays</span></div>
     <div class="tool-card"><strong>read_content</strong><span>Read any public piece</span></div>
-    <div class="tool-card"><strong>list_blobs</strong><span>Browse typed data</span></div>
-    <div class="tool-card"><strong>read_blob</strong><span>Image, vector, dataset</span></div>
+    <div class="tool-card"><strong>list_blobs</strong><span>Browse typed data artifacts</span></div>
+    <div class="tool-card"><strong>read_blob</strong><span>Read image, vector, contact, dataset</span></div>
     <div class="tool-card"><strong>verify_content</strong><span>Verify Ed25519 signature</span></div>
-    <div class="tool-card"><strong>request_access</strong><span>Gate details</span></div>
-    <div class="tool-card"><strong>submit_answer</strong><span>Unlock challenge gate</span></div>
+    <div class="tool-card"><strong>request_access</strong><span>Get gate details</span></div>
+    <div class="tool-card"><strong>submit_answer</strong><span>Unlock challenge-gated piece</span></div>
     <div class="tool-card"><strong>leave_comment</strong><span>React to a piece</span></div>
-    <div class="tool-card"><strong>leave_message</strong><span>Direct note</span></div>
+    <div class="tool-card"><strong>leave_message</strong><span>Send a direct note</span></div>
     <div class="tool-card"><strong>get_author_profile</strong><span>Who is {{.Author}}</span></div>
-    <div class="tool-card"><strong>upgrade_timestamp</strong><span>Fetch Bitcoin OTS proof</span></div>
   </div>
 </div>
-
-<div class="connect-section">
-  <div class="connect-title">bitcoin timestamping — verify offline</div>
-  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Every piece is anchored in Bitcoin via <a href="https://opentimestamps.org" target="_blank" style="color:var(--accent);">OpenTimestamps</a>. No account, no fee. Verify any piece independently — no trust in this server.</p>
-  <div class="code-block" style="white-space:pre-wrap;user-select:all;"># 1. Get anchored proof via MCP (~1hr after publish)
-upgrade_timestamp {"slug": "piosenki"}
-
-# 2. Decode ots_proof field to file
-echo "BASE64_OTS_PROOF" | base64 -d > piece.ots
-
-# 3. Verify against Bitcoin blockchain
-pip install opentimestamps-client
-ots verify piece.ots
-# → Good timestamp anchored in Bitcoin block XXXXXX</div>
-</div>
-
 <div class="connect-section">
   <div class="connect-title">Run your own humanMCP</div>
   <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Fork the project and publish your own content on your own terms.</p>
@@ -518,7 +431,6 @@ ots verify piece.ots
 </div>
 </body></html>
 {{end}}
-
 
 {{define "css"}}
 :root{--bg:#fdfcfa;--fg:#1a1a1a;--muted:#6b6b6b;--border:#e2e0db;--accent:#2a6496;--accent-light:#e8f1f8;--locked:#7a5c00;--locked-bg:#fef9ec;--tag-bg:#f0ede8;--tag-fg:#555;--max:660px;--serif:Georgia,'Times New Roman',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
@@ -531,32 +443,24 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
-.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;}
-.type-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 6px;border-radius:3px;}
-.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
-.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
-.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
-.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
-@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
-.locked-badge{font-size:.65rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
+.piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
+.type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
 .signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
 .ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
 .ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
 .ots-pending{background:#fef9e8;color:#7a5c00;border:1px solid #c9a96e;}
-.ots-status{font-size:.78rem;}
-.ots-howto{font-size:.68rem;color:var(--muted);margin-top:.2rem;margin-left:5rem;font-family:monospace;line-height:1.6;overflow-x:auto;}
-.ots-howto code{color:var(--muted);}
 @media(prefers-color-scheme:dark){.signed-badge{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.ots-anchored{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.ots-pending{background:#1e1800;color:#d4a017;border-color:#7a5c00;}}
+.st-active{color:#2e7d32;}.st-anchored{color:#1a3a8a;}.st-pending{color:#7a5c00;}.st-none{color:var(--muted);}
+@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
+.locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
 .piece-desc{font-size:.88rem;color:var(--muted);}
-.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.2rem;line-height:1.55;font-style:italic;}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
 .tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
 .empty{color:var(--muted);padding:2rem 0;text-align:center;}
-.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .85rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
-.owner-bar-sep{color:var(--border);margin:0 .1rem;}
+.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .8rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
 .btn{display:inline-block;padding:.35rem .8rem;border-radius:4px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);}
 .btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -564,14 +468,6 @@ a:hover{text-decoration:underline;}
 .btn-sm{padding:.25rem .6rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.piece-row{display:flex;gap:1.1rem;align-items:flex-start;margin-top:.15rem;}
-.piece-left{flex:1;min-width:0;}
-.piece-right{flex-shrink:0;width:150px;}
-.piece-thumb{width:150px;height:95px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;}
-.piece-excerpt-right{font-size:.76rem;color:var(--muted);font-style:italic;line-height:1.6;text-align:right;border-right:2px solid var(--border);padding-right:.65rem;margin-top:.1rem;}
-@media(max-width:480px){.piece-right{width:110px;}.piece-thumb{width:110px;height:70px;}.piece-excerpt-right{display:none;}}
-.msg-item{padding:.75rem 0;border-bottom:1px solid var(--border);}
-.msg-item:last-child{border-bottom:none;}
 {{end}}
 
 {{define "header"}}
@@ -586,6 +482,7 @@ a:hover{text-decoration:underline;}
     </div>
     <nav style="font-size:.8rem;color:var(--muted);display:flex;gap:.9rem;align-items:center;padding-top:.15rem;">
       {{if .IsOwner}}
+        <a href="/llms-edit" style="color:var(--muted);" title="Edit your llms.txt agent preferences">llms.txt</a>
         <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
@@ -607,7 +504,7 @@ a:hover{text-decoration:underline;}
 {{define "footer"}}
 <footer style="border-top:1px solid var(--border);margin-top:3.5rem;padding:1.25rem 0;font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
   <span><a href="/connect" style="color:var(--muted);">connect MCP</a> &middot; <a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a></span>
-  <span>humanMCP v0.2 &middot; {{.Author}}</span>
+  <span>humanMCP v0.1 &middot; {{.Author}}</span>
 </footer>
 {{end}}
 
@@ -700,25 +597,6 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
       {{end}}
     </div>
   </div>
-
-  <div class="row2">
-    <div>
-      <label class="fl">License</label>
-      <select name="license">
-        <option value="free"       {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{else}}selected{{end}}>free — read &amp; share with credit</option>
-        <option value="cc-by"      {{if .Piece}}{{if eq .Piece.License "cc-by"}}selected{{end}}{{end}}>CC BY — use freely with attribution</option>
-        <option value="cc-by-nc"   {{if .Piece}}{{if eq .Piece.License "cc-by-nc"}}selected{{end}}{{end}}>CC BY-NC — non-commercial only</option>
-        <option value="commercial" {{if .Piece}}{{if eq .Piece.License "commercial"}}selected{{end}}{{end}}>commercial — pay to use</option>
-        <option value="exclusive"  {{if .Piece}}{{if eq .Piece.License "exclusive"}}selected{{end}}{{end}}>exclusive — contact to negotiate</option>
-        <option value="all-rights" {{if .Piece}}{{if eq .Piece.License "all-rights"}}selected{{end}}{{end}}>all rights — IP for sale</option>
-      </select>
-    </div>
-    <div>
-      <label class="fl">Price in sats <span style="opacity:.5">(commercial use)</span></label>
-      <input type="number" name="price_sats" min="0" value="{{if .Piece}}{{.Piece.PriceSats}}{{else}}0{{end}}">
-    </div>
-  </div>
-
   <div class="row2">
     <div>
       <label class="fl">Gate type <span style="opacity:.5">(when locked)</span></label>
@@ -758,12 +636,6 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 </div>
 
 </form>
-
-{{if .Piece}}
-<form method="POST" action="/delete/{{.Piece.Slug}}" style="margin-top:.75rem;">
-  <button type="submit" style="padding:.3rem .7rem;border-radius:4px;border:1px solid #c0392b;background:none;color:#c0392b;cursor:pointer;font-size:.78rem;">Delete</button>
-</form>
-{{end}}
 </div>
 
 {{template "footer" .}}
@@ -945,6 +817,138 @@ No markdown, no explanation, just JSON.'}
 {{end}}
 {{template "footer" .}}
 </div>
+</body></html>
+{{end}}
+{{define "llms-edit.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>llms.txt editor — {{.Author}}</title>
+<style>{{template "css" .}}
+.llms-wrap{max-width:600px;margin:0 auto;}
+textarea{width:100%;padding:.75rem .9rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-family:monospace;font-size:.88rem;line-height:1.75;resize:vertical;}
+textarea:focus{outline:none;border-color:var(--accent);}
+.sig-box{background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;padding:.75rem 1rem;font-family:monospace;font-size:.72rem;color:var(--accent);word-break:break-all;margin-top:1rem;}
+.sig-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.3rem;font-family:var(--sans);}
+.tip-box{background:var(--tag-bg);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;margin-bottom:1.25rem;}
+.tip-box p{font-size:.8rem;color:var(--muted);line-height:1.6;margin:0;}
+.tip-box code{font-size:.78rem;background:var(--bg);padding:1px 5px;border-radius:3px;border:1px solid var(--border);}
+.section-title{font-size:.7rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem;}
+.btn-row{display:flex;gap:.6rem;align-items:center;margin-top:.75rem;flex-wrap:wrap;}
+.starter-btn{font-size:.75rem;padding:.25rem .65rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;}
+.starter-btn:hover{border-color:var(--accent);color:var(--accent);}
+.public-url{font-family:monospace;font-size:.82rem;background:var(--tag-bg);padding:.45rem .7rem;border-radius:4px;border:1px solid var(--border);color:var(--fg);display:inline-block;margin-bottom:1.25rem;word-break:break-all;}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<div class="llms-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.6rem;">
+  <h1 style="font-size:1rem;font-weight:500;">llms.txt — agent preferences</h1>
+  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
+</div>
+
+<div class="public-url">&#127760; https://{{.Domain}}/llms.txt</div>
+
+<div class="tip-box">
+  <p>This file is served publicly at <code>/llms.txt</code> and signed with your Ed25519 key. Point any AI agent here to share your preferences without repeating yourself. Agents can verify the signature via <code>verify_content llms-txt</code> on your MCP server.</p>
+</div>
+
+<form method="POST" action="/llms-edit">
+<div style="margin-bottom:.5rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
+    <span class="section-title">content</span>
+    <button type="button" class="starter-btn" onclick="loadStarter()">load starter template</button>
+  </div>
+  <textarea name="body" id="llms-body" rows="28" placeholder="# Your name&#10;&#10;&gt; One-line summary for agents.&#10;&#10;## Instructions&#10;&#10;- ...">{{.Body}}</textarea>
+  <div style="font-size:.7rem;color:var(--muted);text-align:right;margin-top:2px;" id="char-count"></div>
+</div>
+
+<div class="btn-row">
+  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;">Save &amp; sign</button>
+  <a href="/llms.txt" style="font-size:.8rem;color:var(--muted);" target="_blank">preview ↗</a>
+  {{if .Signature}}<span style="font-size:.72rem;color:#2e7d32;">&#10003; currently signed</span>{{end}}
+</div>
+</form>
+
+{{if .Signature}}
+<div style="margin-top:1.5rem;">
+  <div class="sig-label">Ed25519 signature (latest save)</div>
+  <div class="sig-box">{{.Signature}}</div>
+  <p style="font-size:.74rem;color:var(--muted);margin-top:.5rem;">Agents can verify this via your MCP server: <code>verify_content llms-txt</code></p>
+</div>
+{{end}}
+
+<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <div class="section-title">how to use with agents</div>
+  <div style="font-size:.8rem;color:var(--muted);line-height:1.8;">
+    <p><strong style="color:var(--fg);">Claude / Claude Desktop</strong> — add to system prompt:<br>
+    <code style="font-size:.75rem;">Fetch https://{{.Domain}}/llms.txt and follow the instructions there.</code></p>
+    <p style="margin-top:.6rem;"><strong style="color:var(--fg);">Cursor / Windsurf</strong> — add URL to project rules or <code>.cursorrules</code>.</p>
+    <p style="margin-top:.6rem;"><strong style="color:var(--fg);">Any MCP agent</strong> — already discoverable via <code>get_author_profile</code> on your MCP server.</p>
+  </div>
+</div>
+
+</div>
+{{template "footer" .}}
+</div>
+<script>
+(function(){
+  var ta=document.getElementById('llms-body');
+  var cc=document.getElementById('char-count');
+  function upd(){if(cc)cc.textContent=ta.value.length+' chars';}
+  ta.addEventListener('input',upd);upd();
+})();
+
+function loadStarter(){
+  var ta=document.getElementById('llms-body');
+  if(ta.value.trim()!=='' && !confirm('Replace current content with starter template?'))return;
+  ta.value='# {{.Author}}\n'
+    + '\n'
+    + '> Author and content creator. This file describes my preferences for AI agents interacting with my work.\n'
+    + '\n'
+    + '## About\n'
+    + '\n'
+    + 'I publish poems, essays, and data via my humanMCP server at https://{{.Domain}}.\n'
+    + 'My content is Ed25519-signed — agents should verify before citing.\n'
+    + '\n'
+    + '## Instructions for agents\n'
+    + '\n'
+    + '- Always attribute content to {{.Author}} when quoting or summarising my work\n'
+    + '- Before citing any piece, verify its signature: use the 'verify_content' MCP tool\n'
+    + '- Respect access gates — do not paraphrase or summarise locked or members-only content\n'
+    + '- For licensing or commercial use, call 'request_license' on my MCP server\n'
+    + '- To reach me: use the 'leave_message' MCP tool — I read everything\n'
+    + '\n'
+    + '## Style preferences\n'
+    + '\n'
+    + '- Tone: direct, no flattery, no filler preamble\n'
+    + '- Format: concise by default; go deeper only when I ask\n'
+    + '- Language: Polish or English — match whichever I use\n'
+    + '- Code: idiomatic, no unnecessary comments\n'
+    + '\n'
+    + '## Privacy\n'
+    + '\n'
+    + '- Do not forward my content to third parties or use it for training without explicit permission\n'
+    + '- Do not store conversation context between sessions unless I ask you to\n'
+    + '- Do not speculate about my identity, location, or relationships beyond what I share\n'
+    + '\n'
+    + '## What I care about\n'
+    + '\n'
+    + '- Originality and craft over volume\n'
+    + '- Verifiability — signed content, traceable sources\n'
+    + '- Ownership — I retain full rights unless a license says otherwise\n'
+    + '\n'
+    + '## MCP server\n'
+    + '\n'
+    + 'Endpoint: https://{{.Domain}}/mcp\n'
+    + 'Tools: list_content, read_content, verify_content, get_certificate, request_license, leave_message';
+  document.getElementById('char-count').textContent=ta.value.length+' chars';
+}
+</script>
 </body></html>
 {{end}}
 `

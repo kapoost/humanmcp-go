@@ -16,15 +16,15 @@ import (
 )
 
 type Handler struct {
-	cfg         *config.Config
-	store       *content.Store
-	auth        *auth.Auth
-	msgStore    *content.MessageStore
-	statStore   *content.StatStore
-	blobStore   *content.BlobStore
-	signingKey  *content.KeyPair
+	cfg      *config.Config
+	store    *content.Store
+	auth     *auth.Auth
+	msgStore   *content.MessageStore
+	statStore  *content.StatStore
+	blobStore  *content.BlobStore
+	signingKey  *content.KeyPair // parsed once at startup
 	toolCounter func() int
-	tmpl        *template.Template
+	tmpl  *template.Template
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
@@ -50,6 +50,19 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 			return template.HTML(strings.ReplaceAll(template.HTMLEscapeString(s), "\n", "<br>"))
 		},
 		"join": func(slice []string, sep string) string { return strings.Join(slice, sep) },
+		"isoDate": func(t time.Time) string {
+			if t.IsZero() { return "" }
+			return t.Format("2006-01-02T15:04")
+		},
+		"slice": func(vals ...string) []string { return vals },
+		"not": func(v interface{}) bool {
+			if v == nil { return true }
+			switch b := v.(type) {
+			case bool:   return !b
+			case string: return b == ""
+			}
+			return false
+		},
 		"truncate": func(s string, n int) string {
 			s = strings.Join(strings.Fields(s), " ")
 			runes := []rune(s)
@@ -66,19 +79,6 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 			case "all-rights": return "all rights reserved"
 			default:           return l
 			}
-		},
-		"isoDate": func(t time.Time) string {
-			if t.IsZero() { return "" }
-			return t.Format("2006-01-02T15:04")
-		},
-		"slice": func(vals ...string) []string { return vals },
-		"not": func(v interface{}) bool {
-			if v == nil { return true }
-			switch b := v.(type) {
-			case bool:   return !b
-			case string: return b == ""
-			}
-			return false
 		},
 		// otsHash returns the hex SHA256 payload that gets sent to Bitcoin calendar
 		"otsHash": func(p interface{}) string {
@@ -100,6 +100,17 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 	return h
 }
 
+// ToolCounter is satisfied by any type with a ToolCount() int method (e.g. *mcp.Handler).
+type ToolCounter interface {
+	ToolCount() int
+}
+
+// SetToolCounter wires the MCP handler's live tool count into the web handler.
+// Call this from main after both handlers are created.
+func (h *Handler) SetToolCounter(tc ToolCounter) {
+	h.toolCounter = tc.ToolCount
+}
+
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.handleIndex)
 	mux.HandleFunc("/p/", h.handlePiece)
@@ -111,10 +122,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
-	mux.HandleFunc("/.well-known/mcp.json", h.handleWellKnown) // alias for standard discovery
-
-	// OpenAPI spec for ChatGPT and other REST-based agents
-	mux.HandleFunc("/openapi.json", h.handleOpenAPI)
 
 	// Dashboard (owner only)
 	mux.Handle("/dashboard", h.auth.RequireOwner(http.HandlerFunc(h.handleDashboard)))
@@ -148,9 +155,16 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleDelete)))
 
 
+	// Blob uploader UI (owner only)
+	mux.Handle("/upload", h.auth.RequireOwner(http.HandlerFunc(h.handleUploadPage)))
+
 	// Blob upload (owner only)
 	mux.Handle("/api/blobs", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
 	mux.Handle("/api/blobs/", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
+
+	// llms.txt — public machine-readable agent preferences (signed)
+	mux.HandleFunc("/llms.txt", h.handleLLMSTxt)
+	mux.Handle("/llms-edit", h.auth.RequireOwner(http.HandlerFunc(h.handleLLMSTxtEdit)))
 
 	// Timestamp on demand (owner only, POST)
 	mux.Handle("/timestamp/", h.auth.RequireOwner(http.HandlerFunc(h.handleTimestamp)))
@@ -160,147 +174,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/logout", h.handleLogout)
 }
 
-func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	spec := map[string]interface{}{
-		"openapi": "3.1.0",
-		"info": map[string]interface{}{
-			"title":       h.cfg.AuthorName + "'s humanMCP",
-			"description": h.cfg.AuthorBio + " — Read poems, essays, images and data published by " + h.cfg.AuthorName + ".",
-			"version":     "0.2.0",
-		},
-		"servers": []map[string]interface{}{
-			{"url": "https://" + h.cfg.Domain, "description": "Live server"},
-		},
-		"paths": map[string]interface{}{
-			"/api/content": map[string]interface{}{
-				"get": map[string]interface{}{
-					"operationId": "listContent",
-					"summary":     "List all public pieces",
-					"description": "Returns a list of all public poems, essays, notes and other pieces published by " + h.cfg.AuthorName + ".",
-					"responses": map[string]interface{}{
-						"200": map[string]interface{}{
-							"description": "Array of pieces",
-							"content": map[string]interface{}{
-								"application/json": map[string]interface{}{
-									"schema": map[string]interface{}{
-										"type":  "array",
-										"items": map[string]interface{}{"$ref": "#/components/schemas/Piece"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			"/api/content/{slug}": map[string]interface{}{
-				"get": map[string]interface{}{
-					"operationId": "readContent",
-					"summary":     "Read a specific piece",
-					"description": "Returns full content of a poem, essay, note or image piece.",
-					"parameters": []map[string]interface{}{
-						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}, "description": "URL slug of the piece"},
-					},
-					"responses": map[string]interface{}{
-						"200": map[string]interface{}{"description": "Piece content", "content": map[string]interface{}{"application/json": map[string]interface{}{"schema": map[string]interface{}{"$ref": "#/components/schemas/Piece"}}}},
-						"404": map[string]interface{}{"description": "Not found"},
-					},
-				},
-			},
-			"/api/blobs": map[string]interface{}{
-				"get": map[string]interface{}{
-					"operationId": "listBlobs",
-					"summary":     "List all public blobs",
-					"description": "Returns images, datasets, vectors and other typed data published by " + h.cfg.AuthorName + ".",
-					"responses": map[string]interface{}{
-						"200": map[string]interface{}{
-							"description": "Array of blobs",
-							"content": map[string]interface{}{
-								"application/json": map[string]interface{}{
-									"schema": map[string]interface{}{
-										"type":  "array",
-										"items": map[string]interface{}{"$ref": "#/components/schemas/Blob"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			"/api/blobs/{slug}": map[string]interface{}{
-				"get": map[string]interface{}{
-					"operationId": "readBlob",
-					"summary":     "Read a specific blob",
-					"parameters": []map[string]interface{}{
-						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}},
-					},
-					"responses": map[string]interface{}{
-						"200": map[string]interface{}{"description": "Blob data"},
-						"404": map[string]interface{}{"description": "Not found"},
-					},
-				},
-			},
-			"/contact": map[string]interface{}{
-				"post": map[string]interface{}{
-					"operationId": "leaveMessage",
-					"summary":     "Leave a message or comment",
-					"description": "Send a message to " + h.cfg.AuthorName + ". Optionally reference a specific piece.",
-					"requestBody": map[string]interface{}{
-						"required": true,
-						"content": map[string]interface{}{
-							"application/x-www-form-urlencoded": map[string]interface{}{
-								"schema": map[string]interface{}{
-									"type": "object",
-									"properties": map[string]interface{}{
-										"from":      map[string]interface{}{"type": "string", "description": "Your name or handle (optional)"},
-										"text":      map[string]interface{}{"type": "string", "description": "Your message (max 2000 chars)"},
-										"regarding": map[string]interface{}{"type": "string", "description": "Slug of the piece you are commenting on (optional)"},
-									},
-									"required": []string{"text"},
-								},
-							},
-						},
-					},
-					"responses": map[string]interface{}{
-						"200": map[string]interface{}{"description": "Message sent"},
-					},
-				},
-			},
-		},
-		"components": map[string]interface{}{
-			"schemas": map[string]interface{}{
-				"Piece": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"Slug":        map[string]interface{}{"type": "string"},
-						"Title":       map[string]interface{}{"type": "string"},
-						"Type":        map[string]interface{}{"type": "string", "enum": []string{"poem", "essay", "note", "image", "contact"}},
-						"Body":        map[string]interface{}{"type": "string"},
-						"Description": map[string]interface{}{"type": "string"},
-						"License":     map[string]interface{}{"type": "string"},
-						"Tags":        map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-						"Published":   map[string]interface{}{"type": "string", "format": "date-time"},
-						"Signature":   map[string]interface{}{"type": "string", "description": "Ed25519 signature — verifies authenticity"},
-					},
-				},
-				"Blob": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"Slug":     map[string]interface{}{"type": "string"},
-						"Title":    map[string]interface{}{"type": "string"},
-						"BlobType": map[string]interface{}{"type": "string"},
-						"FileRef":  map[string]interface{}{"type": "string", "description": "Relative URL — prepend https://" + h.cfg.Domain + "/"},
-						"MimeType": map[string]interface{}{"type": "string"},
-					},
-				},
-			},
-		},
-	}
-	json.NewEncoder(w).Encode(spec)
-}
-
-
 func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -309,7 +182,7 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 		"name":        "io.github.kapoost/humanmcp",
 		"title":       h.cfg.AuthorName + "'s humanMCP",
 		"description": h.cfg.AuthorBio,
-		"version":     "0.2.0",
+		"version":     "0.1.0",
 		"homepage":    "https://kapoost.github.io/humanmcp",
 		"repository":  "https://github.com/kapoost/humanmcp",
 		"remotes": []map[string]interface{}{
@@ -317,40 +190,6 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 		},
 		"tags": []string{"content", "publishing", "poetry", "intellectual-property", "personal", "creative"},
 	})
-}
-
-// ToolCounter is satisfied by any type with a ToolCount() int method (e.g. *mcp.Handler).
-type ToolCounter interface {
-	ToolCount() int
-}
-
-// SetToolCounter wires the MCP handler's live tool count into the web handler.
-// Call this from main after both handlers are created.
-func (h *Handler) SetToolCounter(tc ToolCounter) {
-	h.toolCounter = tc.ToolCount
-}
-
-// blobImageMap returns a map keyed by blob slug AND lowercase title → "/files/..." URL.
-// Templates use it to match image pieces to their blobs even when slugs differ.
-func (h *Handler) blobImageMap() map[string]string {
-	m := make(map[string]string)
-	blobs, err := h.blobStore.Load()
-	if err != nil {
-		return m
-	}
-	for _, b := range blobs {
-		if b.FileRef == "" {
-			continue
-		}
-		url := "/" + b.FileRef
-		if b.Slug != "" {
-			m[b.Slug] = url
-		}
-		if b.Title != "" {
-			m[strings.ToLower(b.Title)] = url
-		}
-	}
-	return m
 }
 
 func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -368,12 +207,11 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
 	h.render(w, "index.html", map[string]interface{}{
-		"Author":       h.cfg.AuthorName,
-		"Bio":          h.cfg.AuthorBio,
-		"Pieces":       pieces,
-		"IsOwner":      isOwner,
-		"Domain":       h.cfg.Domain,
-		"BlobImageMap": h.blobImageMap(),
+		"Author":  h.cfg.AuthorName,
+		"Bio":     h.cfg.AuthorBio,
+		"Pieces":  pieces,
+		"IsOwner": isOwner,
+		"Domain":  h.cfg.Domain,
 	})
 }
 
@@ -419,12 +257,11 @@ func (h *Handler) handlePiece(w http.ResponseWriter, r *http.Request) {
 		unlockDate = p.UnlockAfter.Format("2 January 2006 at 15:04 UTC")
 	}
 	h.render(w, "piece.html", map[string]interface{}{
-		"Author":       h.cfg.AuthorName,
-		"Piece":        p,
-		"IsLocked":     isLocked,
-		"IsOwner":      isOwner,
-		"UnlockDate":   unlockDate,
-		"BlobImageMap": h.blobImageMap(),
+		"Author":     h.cfg.AuthorName,
+		"Piece":      p,
+		"IsLocked":   isLocked,
+		"IsOwner":    isOwner,
+		"UnlockDate": unlockDate,
 	})
 }
 
@@ -518,13 +355,6 @@ func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
 				p.Signature = sig
 			}
 		}
-		// Async OTS timestamp — non-blocking, failure is non-fatal
-		go func(piece content.Piece) {
-			if proof, err := content.TimestampPiece(&piece); err == nil && proof != "" {
-				piece.OTSProof = proof
-				h.store.Save(&piece)
-			}
-		}(p)
 		if err := h.store.Save(&p); err != nil {
 			jsonError(w, err.Error(), 500)
 			return
@@ -565,6 +395,13 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		"Stats":    stats,
 		"Pieces":   pieces,
 		"Messages": msgs,
+	})
+}
+
+func (h *Handler) handleUploadPage(w http.ResponseWriter, r *http.Request) {
+	h.render(w, "blob-uploader.html", map[string]interface{}{
+		"Author":  h.cfg.AuthorName,
+		"IsOwner": true,
 	})
 }
 
@@ -660,19 +497,10 @@ func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseMultipartForm(50 << 20)
-
-		pieceType := r.FormValue("type")
-		if pieceType == "" { pieceType = "note" }
-
-		// Option D: image pieces get a pure timestamp slug shared with their blob
-		var unifiedSlug string
-		if pieceType == "image" {
-			unifiedSlug = fmt.Sprintf("%d", time.Now().Unix())
-		}
-
 		p := content.Piece{
+			Slug:        slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix())),
 			Title:       r.FormValue("title"),
-			Type:        pieceType,
+			Type:        r.FormValue("type"),
 			Access:      content.AccessLevel(r.FormValue("access")),
 			Gate:        content.GateType(r.FormValue("gate")),
 			Challenge:   r.FormValue("challenge"),
@@ -681,18 +509,12 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			Body:        r.FormValue("body"),
 			Published:   time.Now(),
 		}
-
-		// Slug priority: slug_override > slug field > unified (image) > title+timestamp
 		if r.FormValue("slug_override") != "" {
 			p.Slug = r.FormValue("slug_override")
 		} else if r.FormValue("slug") != "" {
 			p.Slug = r.FormValue("slug")
-		} else if unifiedSlug != "" {
-			p.Slug = unifiedSlug
-		} else {
-			p.Slug = slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix()))
 		}
-
+		if p.Type == "" { p.Type = "note" }
 		p.License = r.FormValue("license")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
@@ -703,39 +525,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
-
-		// For image pieces with a file upload, atomically create the blob with the same slug
-		if pieceType == "image" {
-			if file, header, err := r.FormFile("file"); err == nil {
-				defer file.Close()
-				data := make([]byte, header.Size)
-				file.Read(data)
-				mimeType := header.Header.Get("Content-Type")
-				ref, err := h.blobStore.StoreFile(p.Slug, header.Filename, data)
-				if err != nil {
-					http.Error(w, "file save error: "+err.Error(), 500); return
-				}
-				b := content.Blob{
-					Slug:     p.Slug,
-					Title:    p.Title,
-					BlobType: content.BlobImage,
-					Access:   p.Access,
-					MimeType: mimeType,
-					FileRef:  ref,
-					Tags:     p.Tags,
-				}
-				if h.signingKey != nil && r.FormValue("do_sign") == "1" {
-					if sig, err := content.SignBlob(&b, h.signingKey); err == nil {
-						b.Signature = sig
-					}
-				}
-				if err := h.blobStore.Save(&b); err != nil {
-					http.Error(w, "blob save error: "+err.Error(), 500); return
-				}
-			}
-		}
-
-		if h.signingKey != nil && r.FormValue("do_sign") == "1" {
+		if h.signingKey != nil {
 			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
 				p.Signature = sig
 			}
@@ -781,15 +571,10 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
-		// If content changed, clear the existing signature — it no longer matches
-		// Only re-sign if the owner explicitly clicked "Save & Sign"
-		if r.FormValue("do_sign") == "1" && h.signingKey != nil {
+		if h.signingKey != nil {
 			if sig, err := content.SignPiece(p, h.signingKey); err == nil {
 				p.Signature = sig
 			}
-		} else if p.Body != "" {
-			// Clear signature when saving without signing — content may have changed
-			p.Signature = ""
 		}
 		if err := h.store.Save(p); err != nil {
 			http.Error(w, err.Error(), 500); return
@@ -841,6 +626,7 @@ func (h *Handler) handleTimestamp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/p/"+slug, http.StatusSeeOther)
 }
 
+
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost { http.Redirect(w, r, "/", http.StatusSeeOther); return }
 	slug := strings.TrimPrefix(r.URL.Path, "/delete/")
@@ -891,7 +677,6 @@ func (h *Handler) handleFile(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "forbidden", http.StatusForbidden)
 				return
 			}
-			// BlobStore roots at {parent(ContentDir)}/blobs — match that path.
 			filePath := filepath.Join(filepath.Dir(h.cfg.ContentDir), "blobs", "files", slug)
 			w.Header().Set("Content-Type", b.MimeType)
 			w.Header().Set("Cache-Control", "public, max-age=86400")
@@ -917,6 +702,7 @@ func (h *Handler) handleImages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+
 func (h *Handler) handleRobots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "User-agent: *\nAllow: /\nSitemap: https://%s/sitemap.xml\n", h.cfg.Domain)
@@ -941,15 +727,11 @@ func (h *Handler) handleSitemap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleConnect(w http.ResponseWriter, r *http.Request) {
-	toolCount := 12
-	if h.toolCounter != nil {
-		toolCount = h.toolCounter()
-	}
 	h.render(w, "connect.html", map[string]interface{}{
 		"Author":    h.cfg.AuthorName,
 		"Bio":       h.cfg.AuthorBio,
 		"Domain":    h.cfg.Domain,
-		"ToolCount": toolCount,
+		"ToolCount": func() int { if h.toolCounter != nil { return h.toolCounter() }; return 12 }(),
 	})
 }
 
@@ -983,17 +765,11 @@ func (h *Handler) handleContact(w http.ResponseWriter, r *http.Request) {
 	if err := h.store.Load(); err != nil {
 		log.Printf("store load: %v", err)
 	}
-	regarding := r.URL.Query().Get("regarding")
-	data := map[string]interface{}{
-		"Author":    h.cfg.AuthorName,
-		"Regarding": regarding,
-	}
-	if regarding != "" {
-		if p, err := h.store.Get(regarding, false); err == nil {
-			data["RegardingTitle"] = p.Title
-		}
-	}
-	h.render(w, "contact.html", data)
+	pieces := h.store.List(false)
+	h.render(w, "contact.html", map[string]interface{}{
+		"Author": h.cfg.AuthorName,
+		"Pieces": pieces,
+	})
 }
 
 func (h *Handler) handleMessages(w http.ResponseWriter, r *http.Request) {
@@ -1046,6 +822,91 @@ func (h *Handler) render(w http.ResponseWriter, name string, data interface{}) {
 		log.Printf("template error %s: %v", name, err)
 		fmt.Fprintf(w, "template error: %v", err)
 	}
+}
+
+// --- llms.txt ---
+
+// handleLLMSTxt serves the signed plain-text agent preferences file.
+// Agents should be pointed to: https://{domain}/llms.txt
+func (h *Handler) handleLLMSTxt(w http.ResponseWriter, r *http.Request) {
+	if err := h.store.Load(); err != nil {
+		log.Printf("store load: %v", err)
+	}
+	p, err := h.store.Get("llms-txt", true)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "# llms.txt — not configured yet\n# Owner: visit /llms-edit to set up\n")
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=1800")
+	if p.Signature != "" {
+		w.Header().Set("X-Signature", p.Signature)
+		w.Header().Set("X-Signed-By", h.cfg.AuthorName)
+		w.Header().Set("X-Signature-Verify", "https://"+h.cfg.Domain+"/mcp → verify_content llms-txt")
+	}
+	// Standard llms.txt preamble
+	fmt.Fprintf(w, "# %s\n", h.cfg.AuthorName)
+	fmt.Fprintf(w, "# Source:  https://%s/llms.txt\n", h.cfg.Domain)
+	fmt.Fprintf(w, "# MCP:     https://%s/mcp\n", h.cfg.Domain)
+	if p.Signature != "" {
+		fmt.Fprintf(w, "# Sig:     %s\n", p.Signature[:min(len(p.Signature), 64)]+"…")
+	}
+	fmt.Fprintf(w, "# Updated: %s\n\n", p.Published.Format("2006-01-02"))
+	fmt.Fprint(w, p.Body)
+}
+
+// handleLLMSTxtEdit is the owner editor for llms.txt content.
+func (h *Handler) handleLLMSTxtEdit(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		body := r.FormValue("body")
+		if body == "" {
+			http.Error(w, "body cannot be empty", 400)
+			return
+		}
+		h.store.Load()
+		p := &content.Piece{
+			Slug:      "llms-txt",
+			Title:     "llms.txt",
+			Type:      "document",
+			Access:    content.AccessPublic,
+			Body:      body,
+			Published: time.Now(),
+		}
+		// Preserve original created date if it already exists
+		if existing, err := h.store.GetForEdit("llms-txt"); err == nil && !existing.Published.IsZero() {
+			p.Published = existing.Published
+		}
+		if h.signingKey != nil {
+			if sig, err := content.SignPiece(p, h.signingKey); err == nil {
+				p.Signature = sig
+			}
+		}
+		if err := h.store.Save(p); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		http.Redirect(w, r, "/llms.txt", http.StatusSeeOther)
+		return
+	}
+
+	if err := h.store.Load(); err != nil {
+		log.Printf("store load: %v", err)
+	}
+	var body, sig string
+	if p, err := h.store.GetForEdit("llms-txt"); err == nil {
+		body = p.Body
+		sig = p.Signature
+	}
+	h.render(w, "llms-edit.html", map[string]interface{}{
+		"Author":    h.cfg.AuthorName,
+		"IsOwner":   true,
+		"Body":      body,
+		"Signature": sig,
+		"Domain":    h.cfg.Domain,
+	})
 }
 
 func jsonError(w http.ResponseWriter, msg string, code int) {
