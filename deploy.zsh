@@ -1,38 +1,49 @@
 #!/usr/bin/env zsh
-# deploy.zsh — safe deploy for humanmcp
-# Run from: ~/humanmcp/humanmcp/
-# Usage:    zsh deploy.zsh "commit message"
+# deploy.zsh — safe deploy for humanmcp-go
+# Usage: zsh deploy.zsh "commit message"
+# Repo:  https://github.com/kapoost/humanmcp-go
 
-set -e  # stop on any error
+set -e
 
 MSG=${1:-"chore: update"}
 WEB=internal/web
 
-# ── 1. Remove stale handler.go if it crept back in ────────────────────────────
+# ── 1. Remove stale handler.go if it crept back ───────────────────────────────
 if [[ -f "$WEB/handler.go" ]]; then
   echo "⚠️  Removing stale $WEB/handler.go"
   rm "$WEB/handler.go"
   git rm --cached "$WEB/handler.go" 2>/dev/null || true
 fi
 
-# ── 2. Build ───────────────────────────────────────────────────────────────────
+# ── 2. Remove .DS_Store files from git tracking ───────────────────────────────
+git ls-files --error-unmatch .DS_Store 2>/dev/null && git rm --cached .DS_Store 2>/dev/null || true
+git ls-files --error-unmatch internal/.DS_Store 2>/dev/null && git rm --cached internal/.DS_Store 2>/dev/null || true
+
+# ── 3. Ensure .gitignore has .DS_Store ────────────────────────────────────────
+if ! grep -q "^\.DS_Store" .gitignore 2>/dev/null; then
+  echo ".DS_Store" >> .gitignore
+fi
+
+# ── 4. Build ──────────────────────────────────────────────────────────────────
 echo "🔨 Building..."
 go build ./...
 echo "   ✓ build clean"
 
-# ── 3. Test ───────────────────────────────────────────────────────────────────
+# ── 5. Test ───────────────────────────────────────────────────────────────────
 echo "🧪 Testing..."
 go test ./...
 echo "   ✓ all tests pass"
 
-# ── 4. Commit & push ──────────────────────────────────────────────────────────
+# ── 6. Commit & push ──────────────────────────────────────────────────────────
 echo "📦 Committing..."
 git add -A
 git commit -m "$MSG"
 git push
 
-# ── 5. Deploy ─────────────────────────────────────────────────────────────────
+# ── 7. Deploy ─────────────────────────────────────────────────────────────────
 echo "🚀 Deploying..."
 fly deploy --build-arg CACHEBUST=$(date +%s) --app kapoost-humanmcp
 
-echo "✅ Done — https://kapoost-humanmcp.fly.dev"
+echo "✅ Done"
+echo "   App:   https://kapoost-humanmcp.fly.dev"
+echo "   Pages: https://kapoost.github.io/humanmcp-go"

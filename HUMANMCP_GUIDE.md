@@ -1,29 +1,33 @@
 # humanMCP — Project Guide
-## Version 0.2
+## Version 0.2 — April 2026
 
 **Live:** https://kapoost-humanmcp.fly.dev
-**Repo:** https://github.com/kapoost/humanmcp-go
-**MCP registry:** `io.github.kapoost/humanmcp`
+**Repo:** https://github.com/kapoost/humanmcp-go (single active repo)
+**Pages:** https://kapoost.github.io/humanmcp-go
+**MCP:** `io.github.kapoost/humanmcp`
+**Old repo:** `kapoost/humanmcp` — archived, ignore
 
 ---
 
 ## What it is
 
-A personal Go server publishing poems, images, and data with:
+A personal Go server that publishes poems, images, and data with:
 - Ed25519 cryptographic signatures (proof of authorship)
 - 12 MCP tools so AI agents can read, verify, and license your work
+- Public REST API + OpenAPI 3.1 spec for ChatGPT/Gemini
 - Web UI for humans at `kapoost-humanmcp.fly.dev`
-- Owner-only editor at `/new` and `/edit/:slug`
 
 ---
 
 ## Project structure
 
 ```
-humanmcp/
+humanmcp-go/
 ├── cmd/
-│   ├── server/main.go          — entry point, wires MCP + web + middleware
-│   └── keygen/main.go          — generate Ed25519 signing keys (run once)
+│   ├── server/main.go          — entry point
+│   └── keygen/main.go          — generate Ed25519 keys (run once)
+├── docs/
+│   └── index.html              — GitHub Pages landing (Artist/Dev/Agent tabs)
 ├── internal/
 │   ├── auth/auth.go
 │   ├── config/config.go
@@ -36,38 +40,55 @@ humanmcp/
 │   │   ├── copyright.go
 │   │   ├── frontmatter.go
 │   │   └── cache.go
-│   ├── mcp/handler.go          — MCP/JSON-RPC 2.0 endpoint (dynamic tool count)
+│   ├── mcp/handler.go          — 12 MCP tools, dynamic count
 │   └── web/
 │       ├── handler_web.go      ← THE REAL FILE (not handler.go)
-│       └── templates.go        — all HTML templates (one Go string constant)
-├── deploy.zsh                  — safe deploy script (always use this)
+│       └── templates.go        — all HTML as one Go string constant
+├── deploy.zsh                  — safe deploy (always use this)
+├── HUMANMCP_GUIDE.md           — this file
 ├── Dockerfile
 ├── fly.toml
-└── go.mod
+└── go.mod                      — module: github.com/kapoost/humanmcp-go
 ```
 
-**Critical:** handler is `handler_web.go` not `handler.go`. `deploy.zsh` auto-deletes stale `handler.go` if it reappears.
+**Critical:** Web handler is `handler_web.go` not `handler.go`.
+`deploy.zsh` auto-deletes stale `handler.go` if it reappears.
 
 ---
 
 ## How to deploy
 
 ```zsh
-# 1. Copy downloaded files into repo
+# 1. Copy files from Claude into repo
 cp ~/Downloads/handler_web.go ~/humanmcp/humanmcp/internal/web/handler_web.go
 cp ~/Downloads/templates.go   ~/humanmcp/humanmcp/internal/web/templates.go
+# For pages changes:
+cp ~/Downloads/index.html     ~/humanmcp/humanmcp/docs/index.html
 
-# 2. Deploy
+# 2. Deploy everything
 cd ~/humanmcp/humanmcp
-zsh deploy.zsh "your commit message"
+zsh deploy.zsh "your message"
 ```
 
-deploy.zsh: removes stale handler.go → build → test → commit → push → fly deploy with CACHEBUST.
+deploy.zsh: removes stale handler.go → build → test → commit → push → fly deploy.
 
-**Never:** `go build ./... # comment` — Go treats comment as package args.
+**Never:** `go build ./... # inline comment` — Go treats it as package args.
 
 ```zsh
 fly logs --app kapoost-humanmcp   # check logs
+```
+
+---
+
+## Git setup
+
+**Remote:** `https://kapoost@github.com/kapoost/humanmcp-go.git`
+(must use kapoost account, not lukaszkapusniak-sudo)
+
+If push is rejected:
+```zsh
+git remote set-url origin https://kapoost@github.com/kapoost/humanmcp-go.git
+git push --force   # if conflict after force-merge
 ```
 
 ---
@@ -80,51 +101,81 @@ fly logs --app kapoost-humanmcp   # check logs
 
 | Secret | Purpose |
 |---|---|
-| EDIT_TOKEN | Owner login password |
+| EDIT_TOKEN | Owner login |
 | SIGNING_PRIVATE_KEY | Ed25519 private key (base64) |
 | SIGNING_PUBLIC_KEY | Ed25519 public key (hex) |
 | SECRET_KEY | Server secret |
-| AUTHOR_BIO | Bio (update: `fly secrets set AUTHOR_BIO="..."`) |
+| AUTHOR_BIO | Bio (`fly secrets set AUTHOR_BIO="..."`) |
 | AUTHOR_NAME | kapoost |
 | DOMAIN | kapoost-humanmcp.fly.dev |
 
 ### fly.toml env
 
-PORT=8080, CONTENT_DIR=/data/content, AUTHOR_NAME=kapoost, DOMAIN=kapoost-humanmcp.fly.dev, AI_METADATA=true
+PORT=8080, CONTENT_DIR=/data/content, AI_METADATA=true
+
+---
+
+## GitHub Pages
+
+**URL:** https://kapoost.github.io/humanmcp-go
+**Source:** branch `main`, folder `/docs`
+**File:** `docs/index.html`
+
+Page has three audience tabs: Artist, Developer, Agent.
+Artist tab includes a human-vs-agent challenge using "Piosenka1.txt".
+
+To update: edit `docs/index.html`, run `deploy.zsh`.
 
 ---
 
 ## AI-assisted development workflow
 
-1. Zip and upload to Claude: `cd ~/humanmcp && zip -r humanmcp.zip humanmcp/ --exclude "*.git*"`
+1. **Zip and upload** before asking for changes:
+   ```zsh
+   cd ~/humanmcp && zip -r humanmcp.zip humanmcp/ --exclude "*.git*" --exclude "*.DS_Store*"
+   ```
 2. Describe what needs changing
-3. Claude generates files, verified with `go test ./...` against your zip
+3. Claude generates files, tests against your zip
 4. Download → copy → `zsh deploy.zsh "message"`
 
-**Why zip:** GitHub repo is often out of sync with local. Claude needs real files.
-
-**Live data patch** (browser console, logged in):
+**Live data patch** (browser console, logged in, PascalCase keys):
 ```javascript
 fetch('/api/blobs/OLD_SLUG', {
   method: 'PUT',
   headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({ Slug: 'NEW_SLUG', BlobType: 'image', Access: 'public',
-    MimeType: 'image/jpeg', FileRef: 'files/file.jpg', Title: 'Title' })
+  body: JSON.stringify({ Slug: 'NEW_SLUG', BlobType: 'image',
+    Access: 'public', MimeType: 'image/jpeg', FileRef: 'files/file.jpg', Title: 'Title' })
 }).then(r=>r.json()).then(d=>{window._r=d})
 ```
-Keys must be **PascalCase** (no JSON struct tags in Go).
+
+---
+
+## Bugs fixed (cumulative)
+
+| Bug | Fix |
+|---|---|
+| `images.html` missing | Added to `allTemplates` |
+| `handleDelete` swallowed errors | Returns 404/500 |
+| `handleFile` wrong path | `{parent(ContentDir)}/blobs/files/slug` |
+| Hardcoded `ToolCount: 12` | Dynamic via `SetToolCounter` interface |
+| Image thumbnails missing | `blobImageMap()` keyed by slug + lowercase title |
+| Stale `handler.go` conflicts | `deploy.zsh` auto-deletes it |
+| `/upload` broken (blob-uploader.html undefined) | Route removed |
+| Image slug mismatch | Option D: unified timestamp slug on creation |
+| Delete form nested inside edit form | Standalone form, one-click delete |
+| Git remote pointing to archived `humanmcp` | Fixed to `humanmcp-go` |
 
 ---
 
 ## Option D — unified slugs for images
 
 When you post type=`image` with a file at `/new`:
-- One timestamp slug generated: `fmt.Sprintf("%d", time.Now().Unix())`
-- Piece saved with that slug
-- Blob created with the **same slug**, title, access, tags, signed
-- Thumbnail appears on index immediately — no manual patching needed
+1. Timestamp slug generated: `fmt.Sprintf("%d", time.Now().Unix())`
+2. Piece saved with that slug
+3. Blob created with same slug, title, access, tags — signed
+4. Thumbnail appears on index immediately, no patching needed
 
-Text pieces (poem, essay, note): human-readable slug from title, unchanged.
+For existing images with slug mismatch → patch via browser console (see above).
 
 ---
 
@@ -132,11 +183,11 @@ Text pieces (poem, essay, note): human-readable slug from title, unchanged.
 
 Auto-signed on every save. Payload: `sha256(slug | title | body)`.
 
-**✓ SIGNED badge** = signature exists. **Real verification** via MCP:
+**Verify via MCP:**
 - `verify_content {slug}` → verified or tamper detected
-- `get_certificate {slug}` → full IP cert: hash, sig, originality, license
+- `get_certificate {slug}` → hash, sig, originality, license
 
-Public key in `/.well-known/mcp-server.json`. Private key only in Fly secret.
+Public key in `/.well-known/mcp-server.json`. Private key in Fly secret only.
 
 ---
 
@@ -144,21 +195,22 @@ Public key in `/.well-known/mcp-server.json`. Private key only in Fly secret.
 
 | Route | Access | Description |
 |---|---|---|
-| `/` | public | Post list — type badges, thumbnails, excerpts |
-| `/p/:slug` | public | Read piece — signing block, license, leave a message |
+| `/` | public | Index — type badges, thumbnails, excerpts |
+| `/p/:slug` | public | Piece — signing block, license, leave a message |
 | `/images` | public | Image gallery |
 | `/files/:filename` | public | Raw file serving |
-| `/connect` | public | MCP connection guide |
-| `/contact` | public | Comment/contact — "re: Title" badge, no dropdown |
+| `/connect` | public | Claude/ChatGPT/Gemini/REST connection guide |
+| `/contact` | public | Comment — "re: Title" badge, no dropdown |
+| `/openapi.json` | public | OpenAPI 3.1 spec for ChatGPT actions |
+| `/.well-known/mcp-server.json` | public | MCP agent discovery |
 | `/new` | owner | Create post or upload image (Option D) |
-| `/edit/:slug` | owner | Edit existing post |
-| `/delete/:slug` | owner | Delete (POST only) |
+| `/edit/:slug` | owner | Edit post |
+| `/delete/:slug` | owner | Delete (POST, standalone form) |
 | `/dashboard` | owner | Stats + messages |
 | `/messages` | owner | Messages list |
 | `/login` `/logout` | public | Auth |
-| `/.well-known/mcp-server.json` | public | MCP agent discovery |
 
-**Removed:** `/upload` (broken, covered by `/new`)
+**Removed:** `/upload` (was broken, covered by `/new`)
 
 ---
 
@@ -176,37 +228,44 @@ Endpoint: `https://kapoost-humanmcp.fly.dev/mcp`
 
 All in `templates.go` as `allTemplates`.
 
-| Template | Purpose |
+| Template | Notes |
 |---|---|
-| `index.html` | Two-column list: title left, thumbnail/excerpt right |
+| `index.html` | Two-column: title left, thumbnail/excerpt right |
 | `piece.html` | Signing block, license, leave a message |
 | `new.html` | Create/edit + Option D image upload |
 | `images.html` | Image gallery |
-| `dashboard.html` | Stats, hourly chart, funnel |
-| `contact.html` | "re: Title" badge, no dropdown |
-| `connect.html` | MCP guide, live tool count |
+| `dashboard.html` | Stats, hourly chart |
+| `contact.html` | "re: Title" badge, no dropdown, hidden `regarding` |
+| `connect.html` | Claude/ChatGPT/Gemini/REST + OpenAPI |
 | `login.html` | Owner login |
 | `messages.html` | Messages list |
-| `css` | Dark mode, colored badges, two-column layout |
+| `css` | Dark mode, colored type badges, two-column layout |
 | `header` | Owner bar: + post, + image, gallery, messages, stats |
 | `footer` | Connect MCP · GitHub · v0.2 |
 
-**Funcs:** `formatDate`, `lower`, `truncate`, `nl2br`, `join`, `isoDate`, `slice`, `not`, `filenameFromRef`, `licenseLabel`
+**Funcs:** `formatDate`, `lower`, `truncate`, `nl2br`, `join`, `isoDate`,
+`slice`, `not`, `filenameFromRef`, `licenseLabel`
 
 ---
 
 ## Changelog
 
 ### v0.2 (April 2026)
-- **Option D** — unified timestamp slug: piece + blob created atomically, thumbnail instant
-- **Two-column index** — title/tags left, thumbnail or italic excerpt right
-- **Signing info block** on piece pages — ED25519 + copy sig, license label, leave a message
-- **Simplified contact** — no dropdown, hidden `regarding`, "re: Title" badge
-- **Removed `/upload`** — broken route gone, `+ image` goes to `/new`
-- **`handleFile` path fix** — correct `{parent(ContentDir)}/blobs/files/` path
-- **Dynamic tool count** via `SetToolCounter` interface
-- **Colored type badges** with dark mode
-- **`truncate` and `licenseLabel`** template funcs
+- Option D unified slug — image piece + blob created atomically
+- Two-column index — title left, thumbnail/excerpt right
+- Signing info block on piece pages — ED25519, copy sig, license, leave a message
+- Simplified contact — no dropdown, "re: Title" badge
+- `/openapi.json` endpoint — OpenAPI 3.1 for ChatGPT Custom GPT Actions
+- `/connect` updated — Claude, ChatGPT, Gemini, REST sections
+- GitHub Pages at `docs/index.html` — Artist/Developer/Agent tabs, challenge with Piosenka1.txt
+- Removed `/upload` (broken)
+- `handleFile` path fix
+- Dynamic tool count via `SetToolCounter`
+- Colored type badges + dark mode variants
+- `truncate` and `licenseLabel` template funcs
+- Standalone delete form (was nested inside edit form)
+- Single repo (`humanmcp-go`), old `humanmcp` archived
+- Git remote fixed to kapoost account
 
 ### v0.1
 - Ed25519 signing, 12 MCP tools, dashboard, image gallery, gates, AI metadata assist
