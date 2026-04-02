@@ -48,6 +48,7 @@ type Copyright struct {
 	Created      time.Time       `json:"created"`
 	ContentHash  string          `json:"content_hash"`  // sha256(body)
 	Signature    string          `json:"signature"`      // ed25519
+	OTSProof     string          `json:"ots_proof"`      // OpenTimestamps base64 stub
 	License      LicenseType     `json:"license"`
 	PriceSats    int             `json:"price_sats"`    // 0 = free
 	Originality  OriginalityIndex `json:"originality"`
@@ -205,6 +206,7 @@ func BuildCopyright(p *Piece, authorName, publicKeyHex string) *Copyright {
 		Created:     p.Published,
 		ContentHash: ContentHash(p.Body),
 		Signature:   p.Signature,
+		OTSProof:    p.OTSProof,
 		License:     LicenseType(p.License),
 		PriceSats:   p.PriceSats,
 		Originality: ComputeOriginality(p.Body),
@@ -232,6 +234,20 @@ func FormatCertificate(c *Copyright) string {
 	}
 	if c.PublicKey != "" {
 		sb.WriteString(fmt.Sprintf("  public_key:   %.16s...\n", c.PublicKey))
+	}
+	if c.OTSProof != "" {
+		proofLen := len(c.OTSProof)
+		preview := c.OTSProof
+		if proofLen > 16 { preview = c.OTSProof[:16] }
+		// Base64-encoded stub >266 chars ≈ >200 decoded bytes = upgraded proof
+		if proofLen > 266 {
+			sb.WriteString("  timestamp:    ✓ bitcoin-anchored — run: ots verify\n")
+		} else {
+			sb.WriteString("  timestamp:    pending (~1hr) — run: ots upgrade\n")
+		}
+		sb.WriteString(fmt.Sprintf("  ots_proof:    %s...\n", preview))
+	} else {
+		sb.WriteString("  timestamp:    not yet timestamped\n")
 	}
 	sb.WriteString("\n")
 
@@ -355,3 +371,4 @@ func variance(vals []float64, m float64) float64 {
 func round2(f float64) float64 {
 	return math.Round(f*100) / 100
 }
+
