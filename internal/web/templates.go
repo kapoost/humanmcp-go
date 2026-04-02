@@ -132,6 +132,7 @@ const allTemplates = `
       <span class="status-key">bitcoin</span>
       <span class="status-val st-anchored">
         anchored in Bitcoin blockchain
+        <small>hash sent: {{otsHash .}}</small>
         <small>verify: echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots verify piece.ots</small>
       </span>
       <span class="status-actions">
@@ -141,17 +142,24 @@ const allTemplates = `
       <span class="status-icon st-pending">&#x20BF;</span>
       <span class="status-key">bitcoin</span>
       <span class="status-val st-pending">
-        submitted — awaiting confirmation (~1hr)
-        <small>verify: echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots upgrade piece.ots</small>
+        submitted to calendar — awaiting Bitcoin confirmation (~1hr)
+        <small>hash sent: {{otsHash .}}</small>
+        <small>proof received: {{otsShort .OTSProof}}…</small>
       </span>
       <span class="status-actions">
+        {{if $.IsOwner}}<form method="POST" action="/timestamp/{{.Slug}}" style="display:inline;"><button type="submit" class="info-btn">upgrade</button></form>{{end}}
         <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.OTSProof}}">copy proof</button>
       </span>
       {{else}}
       <span class="status-icon st-none">&#x20BF;</span>
       <span class="status-key">bitcoin</span>
-      <span class="status-val st-none">not yet timestamped</span>
-      <span></span>
+      <span class="status-val st-none">
+        not yet timestamped
+        <small>hash to send: {{otsHash .}}</small>
+      </span>
+      <span class="status-actions">
+        {{if $.IsOwner}}<form method="POST" action="/timestamp/{{.Slug}}" style="display:inline;"><button type="submit" class="info-btn" style="border-color:var(--accent);color:var(--accent);">submit &#x20BF;</button></form>{{end}}
+      </span>
       {{end}}
     </div>
     {{/* ── License row ── */}}

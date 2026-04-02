@@ -80,8 +80,13 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 			}
 			return false
 		},
-		// otsStatus returns "" (no proof), "pending" (stub only), or "anchored" (full Bitcoin proof)
-		"otsStatus": func(proof string) string {
+		// otsHash returns the hex SHA256 payload that gets sent to Bitcoin calendar
+		"otsHash": func(p interface{}) string {
+			if piece, ok := p.(*content.Piece); ok && piece != nil {
+				return content.PiecePayloadHex(piece)
+			}
+			return ""
+		},		"otsStatus": func(proof string) string {
 			if proof == "" { return "" }
 			// Base64-encoded stub ≈ 200 bytes → ~267 chars; full proof is much longer
 			if len(proof) > 300 { return "anchored" }
@@ -146,6 +151,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Blob upload (owner only)
 	mux.Handle("/api/blobs", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
 	mux.Handle("/api/blobs/", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIBlobs)))
+
+	// Timestamp on demand (owner only, POST)
+	mux.Handle("/timestamp/", h.auth.RequireOwner(http.HandlerFunc(h.handleTimestamp)))
 
 	// Login/logout for web UI
 	mux.HandleFunc("/login", h.handleLogin)
@@ -799,6 +807,38 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		"IsOwner": true,
 		"Piece":   p,
 	})
+}
+
+func (h *Handler) handleTimestamp(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	slug := strings.TrimPrefix(r.URL.Path, "/timestamp/")
+	if err := h.store.Load(); err != nil {
+		http.Error(w, "store error", 500)
+		return
+	}
+	p, err := h.store.GetForEdit(slug)
+	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+
+	// Try to upgrade existing proof first, else create new one
+	if p.OTSProof != "" {
+		upgraded, err := content.UpgradeTimestamp(p.OTSProof)
+		if err == nil && upgraded != "" {
+			p.OTSProof = upgraded
+		}
+	} else {
+		if proof, err := content.TimestampPiece(p); err == nil && proof != "" {
+			p.OTSProof = proof
+		}
+	}
+
+	h.store.Save(p)
+	http.Redirect(w, r, "/p/"+slug, http.StatusSeeOther)
 }
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
