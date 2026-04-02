@@ -45,6 +45,7 @@ type Piece struct {
 	Description string      `json:"Description"`
 	Body        string      `json:"Body"`
 	Signature   string      `json:"Signature"`  // Ed25519 signature (base64)
+	OTSProof    string      `json:"OTSProof"`   // OpenTimestamps proof (base64) — Bitcoin-anchored timestamp
 	FilePath    string      `json:"-"`
 }
 

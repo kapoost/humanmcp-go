@@ -290,7 +290,17 @@ func (h *Handler) buildTools() []Tool {
 		},
 		{
 			Name:        "get_certificate",
-			Description: "Get the full intellectual property certificate for a piece: license terms, price, originality index (burstiness, lexical density, entropy, structural signature), content hash, and Ed25519 signature. Use before quoting or adapting. Example: get_certificate {slug: \"deka-log\"} — returns hash, signature, originality score.",
+			Description: "Get the full intellectual property certificate for a piece: license, originality index, content hash, Ed25519 signature, and OpenTimestamps Bitcoin proof. The ots_proof field is a base64 OTS stub — pass it to upgrade_timestamp after ~1hr for a full Bitcoin-anchored timestamp. Use before quoting or adapting.",
+			InputSchema: map[string]interface{}{
+				"type": "object", "required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string", "description": "Piece slug"},
+				},
+			},
+		},
+		{
+			Name:        "upgrade_timestamp",
+			Description: "Upgrade an OpenTimestamps proof to a full Bitcoin-anchored timestamp. Call ~1hr after a piece is saved. Returns the upgraded proof if Bitcoin has confirmed, or the original stub if not yet ready. Example: upgrade_timestamp {slug: \"deka-log\"}",
 			InputSchema: map[string]interface{}{
 				"type": "object", "required": []string{"slug"},
 				"properties": map[string]interface{}{
@@ -381,6 +391,8 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolVerifyContent(w, req, params.Arguments)
 	case "get_certificate":
 		h.toolGetCertificate(w, req, params.Arguments)
+	case "upgrade_timestamp":
+		h.toolUpgradeTimestamp(w, req, params.Arguments)
 	case "request_license":
 		h.toolRequestLicense(w, req, params.Arguments)
 	case "leave_comment":
@@ -876,6 +888,55 @@ func (h *Handler) toolGetCertificate(w http.ResponseWriter, req *Request, args j
 	c := content.BuildCopyright(p, h.cfg.AuthorName, h.cfg.SigningPublicKey)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: content.FormatCertificate(c)}}})
 }
+
+func (h *Handler) toolUpgradeTimestamp(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct { Slug string `json:"slug"` }
+	json.Unmarshal(args, &a)
+	if a.Slug == "" { writeError(w, req.ID, -32602, "slug required"); return }
+
+	p, err := h.store.GetForEdit(a.Slug)
+	if err != nil { writeError(w, req.ID, -32602, "not found: "+a.Slug); return }
+
+	if p.OTSProof == "" {
+		// No proof yet — try to create one now
+		if proof, err := content.TimestampPiece(p); err == nil && proof != "" {
+			p.OTSProof = proof
+			h.store.Save(p)
+			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+				Text: "Timestamp submitted to Bitcoin calendar. Run upgrade_timestamp again in ~1hr for full anchor.\n" +
+					content.OTSProofInfo(p.OTSProof),
+			}}})
+		} else {
+			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+				Text: "OTS calendar unreachable — try again later.",
+			}}})
+		}
+		return
+	}
+
+	// Try to upgrade existing proof
+	upgraded, err := content.UpgradeTimestamp(p.OTSProof)
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: fmt.Sprintf("Upgrade failed: %v\n%s", err, content.OTSProofInfo(p.OTSProof)),
+		}}})
+		return
+	}
+
+	status := "Proof upgraded — "
+	if upgraded != p.OTSProof {
+		p.OTSProof = upgraded
+		h.store.Save(p)
+		status = "✓ Bitcoin-anchored — "
+	} else {
+		status = "Not yet confirmed — "
+	}
+
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+		Text: status + content.OTSProofInfo(upgraded),
+	}}})
+}
+
 
 func (h *Handler) toolRequestLicense(w http.ResponseWriter, req *Request, args json.RawMessage) {
 	var a struct {

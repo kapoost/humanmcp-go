@@ -499,6 +499,13 @@ func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
 				p.Signature = sig
 			}
 		}
+		// Async OTS timestamp — non-blocking, failure is non-fatal
+		go func(piece content.Piece) {
+			if proof, err := content.TimestampPiece(&piece); err == nil && proof != "" {
+				piece.OTSProof = proof
+				h.store.Save(&piece)
+			}
+		}(p)
 		if err := h.store.Save(&p); err != nil {
 			jsonError(w, err.Error(), 500)
 			return
