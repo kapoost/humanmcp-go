@@ -100,14 +100,32 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
+	// Echo client's requested protocol version (cap at latest we support)
+	const maxVersion = "2025-03-26"
+	supported := []string{"2025-03-26", "2024-11-05"}
+	clientVersion := ""
+	if req.Params != nil {
+		var p struct {
+			ProtocolVersion string `json:"protocolVersion"`
+		}
+		json.Unmarshal(req.Params, &p)
+		clientVersion = p.ProtocolVersion
+	}
+	negotiated := maxVersion
+	for _, v := range supported {
+		if v == clientVersion {
+			negotiated = v
+			break
+		}
+	}
 	writeResult(w, req.ID, map[string]interface{}{
-		"protocolVersion": "2024-11-05",
+		"protocolVersion": negotiated,
 		"capabilities": map[string]interface{}{
 			"tools": map[string]bool{"listChanged": false},
 		},
 		"serverInfo": map[string]string{
 			"name":    "humanMCP — kapoost",
-			"version": "0.1.0",
+			"version": "0.2.0",
 		},
 		"instructions": `You are connected to the personal humanMCP server of kapoost.
 
