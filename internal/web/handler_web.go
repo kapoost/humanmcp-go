@@ -95,6 +95,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
+	mux.HandleFunc("/.well-known/mcp.json", h.handleWellKnown) // alias for standard discovery
 
 	// OpenAPI spec for ChatGPT and other REST-based agents
 	mux.HandleFunc("/openapi.json", h.handleOpenAPI)

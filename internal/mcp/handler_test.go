@@ -104,14 +104,28 @@ func toolErr(t *testing.T, h *Handler, name string, args map[string]interface{})
 
 func TestInitialize(t *testing.T) {
 	h, _ := newTestHandler(t)
+
+	// No version requested — should return max supported
 	resp := post(t, h, "initialize", map[string]interface{}{})
 	result := resp["result"].(map[string]interface{})
-	if result["protocolVersion"] != "2024-11-05" { t.Errorf("protocol: %v", result["protocolVersion"]) }
+	if result["protocolVersion"] != "2025-03-26" { t.Errorf("default protocol: %v", result["protocolVersion"]) }
 	if result["serverInfo"] == nil { t.Error("serverInfo missing") }
+	info := result["serverInfo"].(map[string]interface{})
+	if info["version"] != "0.2.0" { t.Errorf("serverVersion: %v", info["version"]) }
 	instructions := result["instructions"].(string)
 	if len(instructions) < 100 { t.Error("instructions too short") }
 	if bytes.Contains([]byte(instructions), []byte("LUKASZ")) { t.Error("real name leaked in instructions") }
 	if bytes.Contains([]byte(instructions), []byte("Kapus")) { t.Error("surname leaked in instructions") }
+
+	// Known version requested — should echo it
+	resp2 := post(t, h, "initialize", map[string]interface{}{"protocolVersion": "2024-11-05"})
+	result2 := resp2["result"].(map[string]interface{})
+	if result2["protocolVersion"] != "2024-11-05" { t.Errorf("negotiated protocol: %v", result2["protocolVersion"]) }
+
+	// Unknown version requested — should return max
+	resp3 := post(t, h, "initialize", map[string]interface{}{"protocolVersion": "2099-01-01"})
+	result3 := resp3["result"].(map[string]interface{})
+	if result3["protocolVersion"] != "2025-03-26" { t.Errorf("unknown protocol fallback: %v", result3["protocolVersion"]) }
 }
 
 // --- tools/list ---
