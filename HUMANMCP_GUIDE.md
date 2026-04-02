@@ -269,3 +269,64 @@ All in `templates.go` as `allTemplates`.
 
 ### v0.1
 - Ed25519 signing, 12 MCP tools, dashboard, image gallery, gates, AI metadata assist
+
+---
+
+## OpenTimestamps — Bitcoin anchoring
+
+Every piece gets a Bitcoin-anchored timestamp via [OpenTimestamps](https://opentimestamps.org), independent of this server.
+
+### How it works
+
+1. On save → `sha256(slug|title|body)` is submitted async to `alice.btc.calendar.opentimestamps.org`
+2. The OTS stub is stored in the piece's `OTSProof` frontmatter field
+3. After ~1hr, Bitcoin confirms → the stub upgrades to a full anchored proof
+4. `get_certificate` shows OTS status; `upgrade_timestamp` fetches the upgraded proof
+
+### MCP tools
+
+| Tool | What it does |
+|---|---|
+| `get_certificate {slug}` | Returns cert including `ots_proof` base64 field |
+| `upgrade_timestamp {slug}` | Fetches upgraded Bitcoin-anchored proof from calendar |
+
+### Verify independently (anyone, no account)
+
+```zsh
+# 1. Get the proof from an agent
+# Call: get_certificate {slug} → copy ots_proof field
+
+# 2. Decode to file
+echo "BASE64_OTS_PROOF" | base64 -d > piece.ots
+
+# 3. Verify
+pip install opentimestamps-client
+ots verify piece.ots
+# Returns: Good timestamp anchored in Bitcoin block XXXXXX (YYYY-MM-DD)
+```
+
+### Signing vs timestamping
+
+| | Ed25519 signature | OpenTimestamps |
+|---|---|---|
+| What it proves | You authored it | It existed at this time |
+| Verification needs | Your public key | Bitcoin blockchain |
+| Independent of server | ✅ | ✅ |
+| Tamper-evident | ✅ | ✅ |
+| Timestamp trusted by | Anyone with the key | Anyone with Bitcoin |
+
+### Where the proof is stored
+
+In the markdown frontmatter of each piece file on the Fly.io volume:
+```yaml
+---
+Slug: piosenki
+Signature: nmP3foSeP67...
+OTSProof: AE9wZW5UaW1lc3...   ← base64 OTS bytes
+---
+```
+
+The `signing.go` functions involved:
+- `TimestampPiece(p)` — submits to OTS calendar, returns stub
+- `UpgradeTimestamp(proof)` — fetches upgraded proof
+- `OTSProofInfo(proof)` — human-readable status string

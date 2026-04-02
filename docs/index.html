@@ -102,7 +102,7 @@ footer a:hover{color:var(--gold);}
 
 <section class="problem">
   <p class="problem-quote">"AI scraped my poem. Changed three words.<br>Now it exists without me."</p>
-  <p class="problem-body">Creative work vanishes into training sets, gets paraphrased, attributed wrong, or simply absorbed. humanMCP gives every piece you publish a cryptographic signature — an unforgeable timestamp of authorship that any agent can verify before using your work.</p>
+  <p class="problem-body">Creative work vanishes into training sets, gets paraphrased, attributed wrong, or simply absorbed. humanMCP gives every piece you publish a cryptographic signature and a Bitcoin-anchored timestamp — an unforgeable, independently verifiable record of authorship that any agent can check before using your work.</p>
 </section>
 
 <section class="audience">
@@ -252,7 +252,8 @@ fly deploy --app your-humanmcp</div>
       <tr><td>list_blobs</td><td>Browse images, vectors, datasets, contacts</td></tr>
       <tr><td>read_blob</td><td>Image as base64+URL, vector as float32[], JSON inline</td></tr>
       <tr><td>verify_content</td><td>Check Ed25519 signature — verified or tampered</td></tr>
-      <tr><td>get_certificate</td><td>Full IP cert: hash, signature, originality, license terms</td></tr>
+      <tr><td>get_certificate</td><td>Full IP cert: hash, Ed25519 sig, OTS Bitcoin proof, originality, license</td></tr>
+      <tr><td>upgrade_timestamp</td><td>Fetch upgraded Bitcoin-anchored OTS proof (~1hr after save)</td></tr>
       <tr><td>request_license</td><td>Declare intended use — logged, returns terms</td></tr>
       <tr><td>leave_comment</td><td>Reaction on a piece, max 280 chars</td></tr>
       <tr><td>leave_message</td><td>Direct note to the author, max 2000 chars</td></tr>
@@ -273,6 +274,52 @@ fly deploy --app your-humanmcp</div>
 <span class="c"># ChatGPT Custom GPT — import OpenAPI from:</span>
 <span class="v">https://kapoost-humanmcp.fly.dev/openapi.json</span></div>
     <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-outline">full connection guide →</a>
+  </div>
+</section>
+
+<section class="how-section" style="border-bottom:1px solid var(--faint);">
+  <div class="section-label">bitcoin timestamp — how to verify</div>
+  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;">Every piece carries an OpenTimestamps proof anchored in the Bitcoin blockchain. You can verify any piece independently — no trust in this server required.</p>
+  <div class="feat-grid feat-grid-3" style="margin-bottom:1.5rem;">
+    <div class="feat">
+      <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">Ⅰ</div>
+      <div class="feat-title">get the proof</div>
+      <div class="feat-body">Ask any agent: <em style="font-style:italic;color:var(--gold)">"get_certificate piosenki"</em> — the <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> field is a base64 OTS stub.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">Ⅱ</div>
+      <div class="feat-title">decode it</div>
+      <div class="feat-body"><code style="font-family:var(--mono);font-size:.78em;color:var(--gold);display:block;white-space:pre-wrap;">echo "{ots_proof}" | base64 -d > piece.ots</code>After ~1hr use the agent's <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">upgrade_timestamp</code> tool to get the full proof.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">Ⅲ</div>
+      <div class="feat-title">verify offline</div>
+      <div class="feat-body"><code style="font-family:var(--mono);font-size:.78em;color:var(--gold);display:block;white-space:pre-wrap;">pip install opentimestamps-client
+ots verify piece.ots</code>Returns the Bitcoin block height and timestamp. No account needed.</div>
+    </div>
+  </div>
+</section>
+
+<section class="how-section" style="border-bottom:1px solid var(--faint);">
+  <div class="section-label">bitcoin timestamp — how to verify</div>
+  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;">Every piece carries an OpenTimestamps proof anchored in Bitcoin. Verify any piece independently — no trust in this server required.</p>
+  <div class="feat-grid feat-grid-3" style="margin-bottom:1.5rem;">
+    <div class="feat">
+      <div class="feat-icon">Ⅰ</div>
+      <div class="feat-title">get the proof</div>
+      <div class="feat-body">Ask your agent: <em style="color:var(--gold)">upgrade_timestamp {slug}</em> after ~1hr. The <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> field in get_certificate is the base64 stub.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">Ⅱ</div>
+      <div class="feat-title">decode it</div>
+      <div class="feat-body"><code style="font-family:var(--mono);font-size:.75em;color:var(--gold);display:block;line-height:1.8;">echo "{ots_proof}" | base64 -d &gt; piece.ots</code>This gives you the raw OTS file, independent of this server.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">Ⅲ</div>
+      <div class="feat-title">verify offline</div>
+      <div class="feat-body"><code style="font-family:var(--mono);font-size:.75em;color:var(--gold);display:block;line-height:1.8;">pip install opentimestamps-client
+ots verify piece.ots</code>Returns Bitcoin block height and date. No account needed.</div>
+    </div>
   </div>
 </section>
 

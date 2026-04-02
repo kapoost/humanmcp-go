@@ -425,7 +425,23 @@ When a user asks about {{.Author}}'s work, always fetch fresh data.</div>
     <div class="tool-card"><strong>leave_comment</strong><span>React to a piece</span></div>
     <div class="tool-card"><strong>leave_message</strong><span>Direct note</span></div>
     <div class="tool-card"><strong>get_author_profile</strong><span>Who is {{.Author}}</span></div>
+    <div class="tool-card"><strong>upgrade_timestamp</strong><span>Fetch Bitcoin OTS proof</span></div>
   </div>
+</div>
+
+<div class="connect-section">
+  <div class="connect-title">bitcoin timestamping — verify offline</div>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Every piece is anchored in Bitcoin via <a href="https://opentimestamps.org" target="_blank" style="color:var(--accent);">OpenTimestamps</a>. No account, no fee. Verify any piece independently — no trust in this server.</p>
+  <div class="code-block" style="white-space:pre-wrap;user-select:all;"># 1. Get anchored proof via MCP (~1hr after publish)
+upgrade_timestamp {"slug": "piosenki"}
+
+# 2. Decode ots_proof field to file
+echo "BASE64_OTS_PROOF" | base64 -d > piece.ots
+
+# 3. Verify against Bitcoin blockchain
+pip install opentimestamps-client
+ots verify piece.ots
+# → Good timestamp anchored in Bitcoin block XXXXXX</div>
 </div>
 
 <div class="connect-section">
