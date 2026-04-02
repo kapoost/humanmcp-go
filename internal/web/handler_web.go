@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kapoost/humanmcp-go/internal/auth"
@@ -25,10 +26,11 @@ type Handler struct {
 	signingKey  *content.KeyPair // parsed once at startup
 	toolCounter func() int
 	tmpl  *template.Template
+	loginLimiter *loginRateLimiter
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
-	h := &Handler{cfg: cfg, store: store, auth: a, msgStore: content.NewMessageStore(cfg.ContentDir), statStore: content.NewStatStore(cfg.ContentDir), blobStore: content.NewBlobStore(cfg.ContentDir)}
+	h := &Handler{cfg: cfg, store: store, auth: a, msgStore: content.NewMessageStore(cfg.ContentDir), statStore: content.NewStatStore(cfg.ContentDir), blobStore: content.NewBlobStore(cfg.ContentDir), loginLimiter: newLoginRateLimiter()}
 	if cfg.SigningPrivateKey != "" {
 		if kp, err := content.KeyPairFromBase64(cfg.SigningPrivateKey); err == nil {
 			h.signingKey = kp
@@ -888,9 +890,20 @@ func (h *Handler) handleMessages(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
+		ip := r.Header.Get("Fly-Client-IP")
+		if ip == "" { ip = strings.Split(r.RemoteAddr, ":")[0] }
+
+		if locked, remaining := h.loginLimiter.isLocked(ip); locked {
+			h.render(w, "login.html", map[string]interface{}{
+				"Error": fmt.Sprintf("Too many failed attempts. Try again in %d minutes.", int(remaining.Minutes())+1),
+			})
+			return
+		}
+
 		r.ParseForm()
 		token := r.FormValue("token")
 		if token == h.cfg.EditToken && token != "" {
+			h.loginLimiter.reset(ip)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "edit_token",
 				Value:    token,
@@ -901,7 +914,18 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		h.render(w, "login.html", map[string]interface{}{"Error": "Invalid token"})
+
+		attempts, max := h.loginLimiter.recordFail(ip)
+		remaining := max - attempts
+		if remaining <= 0 {
+			h.render(w, "login.html", map[string]interface{}{
+				"Error": "Too many failed attempts. Locked for 15 minutes.",
+			})
+		} else {
+			h.render(w, "login.html", map[string]interface{}{
+				"Error": fmt.Sprintf("Invalid token. %d attempts remaining.", remaining),
+			})
+		}
 		return
 	}
 	h.render(w, "login.html", nil)
@@ -1014,4 +1038,77 @@ func jsonError(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+// --- Login rate limiter ---
+// 5 failed attempts per IP → 15 minute lockout. In-memory, resets on server restart.
+
+const (
+	loginMaxAttempts = 5
+	loginLockout     = 15 * time.Minute
+)
+
+type loginEntry struct {
+	attempts  int
+	lockedAt  time.Time
+}
+
+type loginRateLimiter struct {
+	mu      sync.Mutex
+	entries map[string]*loginEntry
+}
+
+func newLoginRateLimiter() *loginRateLimiter {
+	l := &loginRateLimiter{entries: make(map[string]*loginEntry)}
+	// Periodic cleanup
+	go func() {
+		for range time.Tick(10 * time.Minute) {
+			l.mu.Lock()
+			for ip, e := range l.entries {
+				if time.Since(e.lockedAt) > loginLockout*2 {
+					delete(l.entries, ip)
+				}
+			}
+			l.mu.Unlock()
+		}
+	}()
+	return l
+}
+
+// isLocked returns true if IP is currently locked out, plus remaining lockout time.
+func (l *loginRateLimiter) isLocked(ip string) (bool, time.Duration) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	e, ok := l.entries[ip]
+	if !ok || e.attempts < loginMaxAttempts { return false, 0 }
+	remaining := loginLockout - time.Since(e.lockedAt)
+	if remaining <= 0 {
+		// Lockout expired — reset
+		delete(l.entries, ip)
+		return false, 0
+	}
+	return true, remaining
+}
+
+// recordFail increments failure count and returns (current attempts, max attempts).
+func (l *loginRateLimiter) recordFail(ip string) (int, int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	e, ok := l.entries[ip]
+	if !ok {
+		e = &loginEntry{}
+		l.entries[ip] = e
+	}
+	e.attempts++
+	if e.attempts >= loginMaxAttempts {
+		e.lockedAt = time.Now()
+	}
+	return e.attempts, loginMaxAttempts
+}
+
+// reset clears the failure count on successful login.
+func (l *loginRateLimiter) reset(ip string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.entries, ip)
 }
