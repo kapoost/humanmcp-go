@@ -34,13 +34,17 @@ echo "🧪 Testing..."
 go test ./...
 echo "   ✓ all tests pass"
 
-# ── 6. Commit & push ──────────────────────────────────────────────────────────
+# ── 6. Commit & push (skip gracefully if nothing changed) ─────────────────────
 echo "📦 Committing..."
 git add -A
-git commit -m "$MSG"
-git push
+if git diff --cached --quiet; then
+  echo "   (nothing to commit — skipping)"
+else
+  git commit -m "$MSG"
+  git push
+fi
 
-# ── 7. Deploy ─────────────────────────────────────────────────────────────────
+# ── 7. Deploy (always runs) ───────────────────────────────────────────────────
 echo "🚀 Deploying..."
 fly deploy --build-arg CACHEBUST=$(date +%s) --app kapoost-humanmcp
 
