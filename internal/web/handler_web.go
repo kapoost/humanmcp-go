@@ -80,6 +80,17 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 			}
 			return false
 		},
+		// otsStatus returns "" (no proof), "pending" (stub only), or "anchored" (full Bitcoin proof)
+		"otsStatus": func(proof string) string {
+			if proof == "" { return "" }
+			// Base64-encoded stub ≈ 200 bytes → ~267 chars; full proof is much longer
+			if len(proof) > 300 { return "anchored" }
+			return "pending"
+		},
+		"otsShort": func(proof string) string {
+			if len(proof) > 16 { return proof[:16] }
+			return proof
+		},
 	}).Parse(allTemplates))
 	return h
 }

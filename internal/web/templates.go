@@ -32,6 +32,8 @@ const allTemplates = `
     <span>{{formatDate .Published}}</span>
     {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
     {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
+    {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
+    {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
   </div>
   <div class="piece-row">
     <div class="piece-left">
@@ -94,13 +96,29 @@ const allTemplates = `
   <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}{{if .Signature}} &middot; <span style="font-size:.7rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:3px;border:1px solid #4caf50;">&#10003; signed</span>{{end}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-  {{if or .Signature .License}}
+  {{if or .Signature .License .OTSProof}}
   <div class="piece-info">
     {{if .Signature}}
     <div class="info-row">
       <span class="info-label">ed25519</span>
       <span class="info-sig">{{truncate .Signature 28}}</span>
       <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy sig',1500)" data-v="{{.Signature}}">copy sig</button>
+    </div>
+    {{end}}
+    {{if .OTSProof}}
+    <div class="info-row">
+      <span class="info-label">bitcoin</span>
+      {{if eq (otsStatus .OTSProof) "anchored"}}
+      <span class="ots-status ots-anchored">&#x20BF; anchored in Bitcoin blockchain</span>
+      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy proof',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      {{else}}
+      <span class="ots-status ots-pending">&#x20BF; submitted — awaiting Bitcoin confirmation (~1hr)</span>
+      <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy proof',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      {{end}}
+    </div>
+    <div class="ots-howto">
+      <span>verify: </span><code>echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots verify piece.ots</code>
+      <a href="/connect#bitcoin" style="font-size:.72rem;color:var(--muted);margin-left:.5rem;">how?</a>
     </div>
     {{end}}
     {{if .License}}
@@ -474,6 +492,14 @@ a:hover{text-decoration:underline;}
 .type-badge.contact{background:#fef0e8;color:#7a3a1a;}
 @media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
 .locked-badge{font-size:.65rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
+.signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
+.ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
+.ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
+.ots-pending{background:#fef9e8;color:#7a5c00;border:1px solid #c9a96e;}
+.ots-status{font-size:.78rem;}
+.ots-howto{font-size:.68rem;color:var(--muted);margin-top:.2rem;margin-left:5rem;font-family:monospace;line-height:1.6;overflow-x:auto;}
+.ots-howto code{color:var(--muted);}
+@media(prefers-color-scheme:dark){.signed-badge{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.ots-anchored{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.ots-pending{background:#1e1800;color:#d4a017;border-color:#7a5c00;}}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
 .piece-title a:hover{color:var(--accent);text-decoration:none;}
