@@ -1,264 +1,476 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>onAudience — Sales Intelligence Hub</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="style.css?v=20260325e"/>
-</head>
-<body>
-<div class="app">
-<nav class="nav">
-  <div class="nav-logo">oA</div>
-  <span class="nav-title">Sales Intelligence Hub <span class="nav-sub">/ onAudience</span></span>
-  <span class="nav-status" id="dbStatus">○ Loading…</span>
-  <div class="nav-right">
-    <button class="btn sm" onclick="window.oaDB&&window.oaDB.reload()">↺ Sync</button>
-    <button class="btn sm" id="apiKeyBtn" onclick="window.promptApiKey&&window.promptApiKey()" title="Set Anthropic API key">🔑</button>
-    <button class="btn sm" onclick="openComposer(null)">✉ Compose</button>
-    <button class="btn sm p" onclick="promptResearch()">+ Research</button>
-    <button class="btn sm" onclick="toggleTheme()" id="themeBtn">🌙</button>
-    <button class="btn sm" onclick="window.oaPinLock()" title="Lock hub">🔒</button>
-  </div>
-</nav>
-<div class="stats-bar">
-  <div class="sb-col active" id="sbAll" onclick="setFilter('all',this)"><div class="sb-num" id="stAll">—</div><div class="sb-lbl">All</div></div>
-  <div class="sb-col" id="sbClient" onclick="setFilter('client',this)"><div class="sb-num" id="stClient">—</div><div class="sb-lbl">Clients</div></div>
-  <div class="sb-col" id="sbPoc" onclick="setFilter('poc',this)"><div class="sb-num" id="stPoc">—</div><div class="sb-lbl">POC</div></div>
-  <div class="sb-col" id="sbPartner" onclick="setFilter('partner',this)"><div class="sb-num" id="stPartner">—</div><div class="sb-lbl">Partners</div></div>
-  <div class="sb-col" id="sbProspect" onclick="setFilter('prospect',this)"><div class="sb-num" id="stProspect">—</div><div class="sb-lbl">Prospects</div></div>
-  <div class="sb-col" id="sbNogo" onclick="setFilter('nogo',this)"><div class="sb-num" id="stNogo">—</div><div class="sb-lbl">No Outreach</div></div>
-  <div class="sb-col" id="sbFresh" onclick="setFilter('fresh',this)"><div class="sb-num" id="stFresh">—</div><div class="sb-lbl">Fresh 🥩</div></div>
-</div>
-<div class="main">
-  <div class="left">
-    <div class="left-tabs">
-      <div class="left-tab active" id="tabComp" onclick="switchTab('companies')">Companies</div>
-      <div class="left-tab" id="tabCont" onclick="switchTab('contacts')">Contacts</div>
-      <div class="left-tab" id="tab-tcf" onclick="switchTab('tcf')">TCF</div>
-    </div>
-    <div class="left-search">
-      <input type="text" id="searchInput" placeholder="Search…" oninput="onSearch()"/>
-      <button class="btn sm" id="tagBtn" onclick="toggleTagPanel()" title="Tag filter">🏷</button>
-      <button class="btn sm" onclick="promptResearch()" title="Research">↗</button>
-    </div>
-    <div class="left-filters" id="filtersRow">
-      <span class="f-chip active" data-f="all" onclick="setFilter('all',this)">All</span>
-      <span class="f-chip" data-f="client" onclick="setFilter('client',this)">Clients</span>
-      <span class="f-chip" data-f="partner" onclick="setFilter('partner',this)">Partners</span>
-      <span class="f-chip" data-f="prospect" onclick="setFilter('prospect',this)">Prospects</span>
-      <span class="f-chip" data-f="poc" onclick="setFilter('poc',this)">POC</span>
-      <span class="f-chip" data-f="nogo" onclick="setFilter('nogo',this)">Nogo</span>
-    </div>
-    <div class="tag-panel" id="tagPanel">
-      <div class="tp-head">
-        <span class="tp-title">Tag filter</span>
-        <div class="tp-logic">
-          <span class="tp-logic-btn active" id="tlOr" onclick="setTagLogic('or')">OR</span>
-          <span class="tp-logic-btn" id="tlAnd" onclick="setTagLogic('and')">AND</span>
-        </div>
-        <span class="tp-clear" id="tpClear" onclick="clearTags()">Clear all</span>
-      </div>
-      <div class="tp-body" id="tpBody"></div>
-    </div>
-    <div class="list-meta" id="listMeta">
-      <span id="metaTxt">Loading…</span>
-      <div id="metaPills" style="display:flex;gap:3px;flex-wrap:wrap;margin-left:auto"></div>
-    </div>
-    <div class="sort-bar" id="sortBar">
-      <label>Sort</label>
-      <select class="sort-sel" id="sortSel" onchange="setSort(this.value)">
-        <option value="recent" selected>Recently updated</option>
-        <option value="name">Name A→Z</option>
-        <option value="icp">ICP score ↓</option>
-      </select>
-    </div>
-    <div id="tcf-sel-bar" style="display:none;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--rule2);background:var(--surf2);flex-shrink:0;min-height:32px"></div>
-    <div class="list-scroll" id="listScroll"></div>
-    <div class="ai-bar" id="aiBar">
-      <div class="ai-bar-row">
-        <span class="ai-badge">AI</span>
-        <input class="ai-inp" id="aiInp" placeholder="e.g. EU DSPs with cookieless…" onkeydown="if(event.key==='Enter')runAI()"/>
-        <button class="btn sm p" onclick="runAI()" id="aiBtn">→</button>
-      </div>
-      <div class="ai-stat" id="aiStat">
-        <div class="ai-dot" id="aiDot"></div>
-        <span id="aiTxt"></span>
-        <span class="ai-clr" onclick="clearAI()">✕ clear</span>
-      </div>
-      <div class="ai-quick">
-        <span class="ai-qchip" onclick="aiQuick('EU DSPs not yet contacted')">EU DSPs</span>
-        <span class="ai-qchip" onclick="aiQuick('companies with CTV capabilities')">CTV</span>
-        <span class="ai-qchip" onclick="aiQuick('cookieless identity partners')">Cookieless</span>
-        <span class="ai-qchip" onclick="aiQuick('high ICP prospects missing outreach angle')">No angle</span>
-        <span class="ai-qchip" onclick="aiQuick('marketplace or curation platforms')">Marketplace</span>
-      </div>
-    </div>
-    <!-- Console -->
-    <div class="console-panel" id="consolePanel">
-      <div class="console-head" onclick="toggleConsole()">
-        <span class="console-head-lbl">⚡ Console</span>
-        <span class="console-cnt" id="consoleCnt">0</span>
-        <span class="console-clear" onclick="event.stopPropagation();clearConsole()">clear</span>
-      </div>
-      <div class="console-scroll" id="consoleScroll"></div>
-    </div>
-  </div>
-  <div class="center">
-    <div class="center-scroll" id="centerScroll">
-      <div class="empty-wrap" id="emptyState">
-        <svg id="hub-spoke" viewBox="0 0 420 380" width="420" height="380" style="overflow:visible">
-          <defs><marker id="sp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--g)" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
-          <g id="sp-spokes"></g>
-          <circle cx="210" cy="190" r="30" fill="var(--g)" stroke="var(--gd)" stroke-width="1.5"/>
-          <text x="210" y="186" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#fff">oA</text>
-          <text x="210" y="200" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7" fill="rgba(255,255,255,.7)">Hub</text>
-        </svg>
-        <script>
-(function(){
-  var actions=[
-    {label:'Research',sub:'contact report',angle:-90,fn:'promptResearch()'},
-    {label:'Prospects',sub:'find by criteria',angle:-30,fn:"openClaude('Find new DSP, SSP prospects for onAudience in EMEA — ranked by ICP fit')"},
-    {label:'Top picks',sub:'this week',angle:30,fn:"openClaude('Top 5 highest-priority prospects to contact this week?')"},
-    {label:'Draft email',sub:'AI composer',angle:90,fn:'openComposer(null)'},
-    {label:'Re-engage',sub:'warm cold leads',angle:150,fn:"openClaude('Companies not contacted in 30+ days worth re-engaging?')"},
-    {label:'Find similar',sub:'lookalikes',angle:210,fn:'promptSimilar()'},
-  ];
-  var cx=210,cy=190,r=105,nr=8;var g=document.getElementById('sp-spokes');
-  actions.forEach(function(a){var rad=a.angle*Math.PI/180;var x=cx+r*Math.cos(rad),y=cy+r*Math.sin(rad);var lx=cx+(r+38)*Math.cos(rad),ly=cy+(r+38)*Math.sin(rad);var anchor=Math.cos(rad)>0.15?'start':Math.cos(rad)<-0.15?'end':'middle';var line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',cx+31*Math.cos(rad));line.setAttribute('y1',cy+31*Math.sin(rad));line.setAttribute('x2',x-nr*Math.cos(rad));line.setAttribute('y2',y-nr*Math.sin(rad));line.setAttribute('stroke','var(--rule)');line.setAttribute('stroke-width','1');line.setAttribute('marker-end','url(#sp-a)');var node=document.createElementNS('http://www.w3.org/2000/svg','g');node.setAttribute('cursor','pointer');node.setAttribute('onclick',a.fn);var circ=document.createElementNS('http://www.w3.org/2000/svg','circle');circ.setAttribute('cx',x);circ.setAttribute('cy',y);circ.setAttribute('r',nr);circ.setAttribute('fill','var(--surf)');circ.setAttribute('stroke','var(--rule)');circ.setAttribute('stroke-width','1');circ.style.transition='all .15s';var t1=document.createElementNS('http://www.w3.org/2000/svg','text');t1.setAttribute('x',lx);t1.setAttribute('y',ly-5);t1.setAttribute('text-anchor',anchor);t1.setAttribute('font-family',"IBM Plex Mono,monospace");t1.setAttribute('font-size','10');t1.setAttribute('font-weight','500');t1.setAttribute('fill','var(--t1)');t1.textContent=a.label;var t2=document.createElementNS('http://www.w3.org/2000/svg','text');t2.setAttribute('x',lx);t2.setAttribute('y',ly+8);t2.setAttribute('text-anchor',anchor);t2.setAttribute('font-family',"IBM Plex Mono,monospace");t2.setAttribute('font-size','8');t2.setAttribute('fill','var(--t3)');t2.textContent=a.sub;node.addEventListener('mouseenter',function(){circ.setAttribute('fill','var(--gb)');circ.setAttribute('stroke','var(--g)');t1.setAttribute('fill','var(--g)');});node.addEventListener('mouseleave',function(){circ.setAttribute('fill','var(--surf)');circ.setAttribute('stroke','var(--rule)');t1.setAttribute('fill','var(--t1)');});node.appendChild(circ);node.appendChild(t1);node.appendChild(t2);g.appendChild(line);g.appendChild(node);});
-})();
-        </script>
-      </div>
-      <div id="coPanel" style="display:none"></div>
-      <div id="tcf-center" style="display:none"></div>
-    </div>
-  </div>
-</div>
-</div>
-
-<div id="ctxMenu" class="ctx-menu"></div>
-<div id="ctDrawerOverlay" onclick="closeDrawer()"></div>
-<div id="ctDrawer">
-  <div class="dr-head"><div class="dr-av" id="drAv">?</div><div><div class="dr-name" id="drName">—</div><div class="dr-sub" id="drSub">—</div></div><div class="dr-close" onclick="closeDrawer()">✕</div></div>
-  <div class="dr-body" id="drBody"></div>
-  <div class="dr-actions"><button class="btn sm full" onclick="drEmail()">✉ Draft Email</button><button class="btn sm full" onclick="drLinkedIn()">LinkedIn ↗</button><button class="btn sm full" onclick="drGmail()">Gmail History</button><button class="btn sm full p" onclick="drResearch()">Full Research ↗</button></div>
-</div>
-
-<div id="overlay">
-  <div class="modal-box">
-    <h2 id="modalTitle">Research a Company</h2>
-    <p id="modalDesc">Enter a company name to generate a full contact report with decision makers, outreach angle, and ICP fit.</p>
-    <input type="text" id="modalInput" placeholder="Company name…"/>
-    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn p" onclick="submitModal()">Open in Claude ↗</button></div>
-  </div>
-</div>
-
-<div id="mcOverlay"></div>
-<div id="mcDrawer">
-  <div class="mc-nav">
-    <div class="mc-logo">oA</div>
-    <span class="mc-title">Meeseeks <span class="mc-sub">/ Composer</span></span>
-    <span class="mc-persona-badge" id="mcNavBadge">STEVE</span>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-      <button class="mc-close" onclick="closeComposer()">✕</button>
-    </div>
-  </div>
-  <div class="mc-shell">
-    <div class="mc-left">
-      <div class="mc-scroll">
-        <div class="mc-lbl">Pick Meeseeks</div>
-        <div class="mc-pgrid" id="mcPersonaGrid"></div>
-        <div class="mc-lbl">Company</div>
-        <div class="mc-co" id="mcCoBlock"><div class="mc-co-top"><div class="mc-co-av" id="mcCoAv">?</div><div style="flex:1;min-width:0"><div class="mc-co-empty" id="mcCoEmpty">No company selected</div><div class="mc-co-name" id="mcCoName" style="display:none"></div><div class="mc-co-note" id="mcCoNote" style="display:none"></div></div></div><div class="mc-co-tags" id="mcCoTags" style="display:none"></div></div>
-        <div class="mc-lbl">Contact</div>
-        <div class="mc-ctlist" id="mcCtList"><div class="mc-ctempty">Open a company from the hub to load contacts</div></div>
-        <div class="mc-lbl" style="margin-top:12px">Context — signals, news, what they do</div>
-        <textarea class="mc-tf" id="mcCtx" rows="4" placeholder="e.g. EU DSP expanding into CTV, exploring cookieless, raised Series B…" oninput="mcHint(this,'mcCtxHint')"></textarea>
-        <div class="mc-tf-hint" id="mcCtxHint">0 chars</div>
-        <div class="mc-lbl">Outreach angle</div>
-        <textarea class="mc-tf" id="mcAngle" rows="3" placeholder="e.g. EU audience data + cookieless complement for their DSP inventory…" oninput="mcHint(this,'mcAngleHint')"></textarea>
-        <div class="mc-tf-hint" id="mcAngleHint">0 chars</div>
-      </div>
-      <div class="mc-footer"><button class="mc-gen" id="mcGenBtn" onclick="mcGenerate()"><span id="mcGenIcon">✉</span><span id="mcGenLabel">Generate Email</span></button></div>
-    </div>
-    <div class="mc-right">
-      <div class="mc-rbar"><span class="mc-rlbl" id="mcOutLabel">Output</span><div class="mc-racts" id="mcOutActs" style="display:none"><button class="mc-obtn" onclick="mcCopy()">Copy</button><button class="mc-obtn" onclick="mcGenerate()">↺ Regen</button><button class="mc-obtn p" onclick="closeComposer()">Done ✓</button></div></div>
-      <div class="mc-rscroll" id="mcRScroll"><div class="mc-empty" id="mcEmpty"><div class="mc-earrow">←</div><div class="mc-ehint">Pick persona · select contact · generate</div></div><div id="mcOutContent" style="display:none"></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- GVL CONFIRM MODAL -->
-<div id="gvl-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2100;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-  <div style="background:var(--surf);border:1px solid var(--rule);border-radius:4px;padding:20px;max-width:440px;width:90%;box-shadow:var(--sh)">
-    <div id="gvl-confirm-body"></div>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-      <button class="btn" onclick="closeGVLConfirm()">Cancel</button>
-      <button class="btn p" id="gvl-confirm-btn" onclick="executeGVLConfirm()">&#10003; Confirm Match</button>
-    </div>
-  </div>
-</div>
-
-<!-- PIN Lock -->
-<div id="pinLock" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column">
-  <div style="text-align:center;max-width:320px">
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">onAudience</div>
-    <div style="font-family:'IBM Plex Sans',sans-serif;font-size:18px;font-weight:500;color:var(--t1);margin-bottom:24px">Enter passphrase</div>
-    <input type="password" id="pinInput" placeholder="Passphrase…" autocomplete="off" style="width:100%;height:42px;padding:0 14px;border:1px solid var(--rule);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--surf2);color:var(--t1);outline:none;text-align:center;letter-spacing:.05em"/>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:#F87171;margin-top:8px;min-height:14px" id="pinErr"></div>
-  </div>
-</div>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>humanMCP — kapoost</title>
+<meta name="description" content="A personal MCP server publishing signed poems, images and data. Connect your AI agent to kapoost's content.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-#pinInput:focus{border-color:var(--g)}
-#pinInput::placeholder{color:var(--t4);letter-spacing:0}
-</style>
-
-<script>
-(function(){
-  /* hardcoded passphrase hash */
-  function hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return'ph_'+Math.abs(h).toString(36);}
-  const PASS_HASH=hash('Polskagurom2026');
-
-  const lock=document.getElementById('pinLock');
-  const app=document.querySelector('.app');
-  const inp=document.getElementById('pinInput');
-  const err=document.getElementById('pinErr');
-
-  function unlock(){lock.style.display='none';app.style.display='';sessionStorage.setItem('oaUnlocked','1');}
-
-  /* skip if already unlocked this session */
-  if(sessionStorage.getItem('oaUnlocked')==='1'){
-    /* don't hide app, don't show lock */
-  }else{
-    app.style.display='none';
-    lock.style.display='flex';
-    setTimeout(()=>inp.focus(),100);
+  :root {
+    --bg: #0c0c0b;
+    --fg: #e8e4dc;
+    --muted: #6b6660;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --border: rgba(200,169,110,0.18);
+    --green: #5a9e6f;
+    --green-dim: rgba(90,158,111,0.12);
+    --serif: 'Libre Baskerville', Georgia, serif;
+    --mono: 'DM Mono', monospace;
   }
 
-  inp.addEventListener('keydown',function(e){
-    if(e.key!=='Enter')return;
-    err.textContent='';
-    const val=inp.value;
-    if(!val){err.textContent='Enter passphrase';return;}
-    if(hash(val)===PASS_HASH){unlock();return;}
-    err.textContent='Wrong passphrase';
-    inp.value='';
-    inp.style.borderColor='#F87171';
-    setTimeout(()=>{inp.style.borderColor='';inp.focus();},600);
-  });
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  window.oaPinLock=function(){
-    sessionStorage.removeItem('oaUnlocked');
-    app.style.display='none';
-    lock.style.display='flex';
-    inp.value='';err.textContent='';
-    setTimeout(()=>inp.focus(),100);
-  };
-})();
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+  }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 5rem 0 4rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    margin-bottom: 1.25rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-desc {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 480px;
+    line-height: 1.75;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: .82rem;
+    padding: .55rem 1.2rem;
+    border-radius: 2px;
+    text-decoration: none;
+    letter-spacing: .03em;
+    transition: all .15s;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+  }
+
+  .btn-primary:hover { opacity: .85; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* SIGNED BADGE */
+  .signed {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid rgba(90,158,111,.3);
+    padding: .2rem .6rem;
+    border-radius: 2px;
+    letter-spacing: .08em;
+    margin-left: .5rem;
+  }
+
+  /* WHAT IS IT */
+  .section {
+    padding: 3.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1.75rem;
+  }
+
+  .what-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .what-cell {
+    background: var(--bg);
+    padding: 1.25rem 1.1rem;
+  }
+
+  .what-cell strong {
+    display: block;
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--accent);
+    margin-bottom: .35rem;
+    font-weight: 500;
+  }
+
+  .what-cell p {
+    font-size: .88rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* CONNECT TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .06em;
+    padding: .5rem 1rem;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all .12s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .code {
+    font-family: var(--mono);
+    font-size: .82rem;
+    background: #141412;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1rem 1.1rem;
+    line-height: 1.8;
+    color: var(--fg);
+    overflow-x: auto;
+    white-space: pre;
+    user-select: all;
+  }
+
+  .step {
+    font-size: .88rem;
+    color: var(--muted);
+    margin-bottom: .5rem;
+    padding-left: 1.4rem;
+    text-indent: -1.4rem;
+  }
+
+  .step strong { color: var(--fg); }
+
+  .step-note {
+    font-size: .82rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+
+  /* TOOLS */
+  .tool-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .4rem;
+  }
+
+  .tool-item {
+    font-family: var(--mono);
+    font-size: .75rem;
+    padding: .4rem .65rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .tool-item span { color: var(--muted); font-size: .7rem; }
+
+  /* FOOTER */
+  footer {
+    padding: 2.5rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .75rem;
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  /* ENDPOINT PILL */
+  .endpoint {
+    font-family: var(--mono);
+    font-size: .8rem;
+    background: var(--accent-dim);
+    border: 1px solid var(--border);
+    padding: .55rem 1rem;
+    border-radius: 2px;
+    color: var(--accent);
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    user-select: all;
+    letter-spacing: .02em;
+  }
+
+  /* ANIMATE IN */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero > * { animation: fadeUp .5s ease both; }
+  .hero > *:nth-child(1) { animation-delay: .05s; }
+  .hero > *:nth-child(2) { animation-delay: .12s; }
+  .hero > *:nth-child(3) { animation-delay: .2s; }
+  .hero > *:nth-child(4) { animation-delay: .28s; }
+
+  @media (max-width: 520px) {
+    .what-grid { grid-template-columns: 1fr; }
+    .tool-list { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">humanMCP v0.2</div>
+    <h1>A human on the<br><em>machine protocol</em></h1>
+    <p class="hero-desc">
+      kapoost's personal publishing server — poems, images, data —
+      signed with Ed25519, readable by any AI agent.
+    </p>
+    <div class="hero-actions">
+      <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-primary">read the work</a>
+      <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-ghost">connect an agent</a>
+      <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-ghost">github</a>
+    </div>
+  </section>
+
+  <!-- WHAT IS IT -->
+  <section class="section">
+    <div class="section-label">what it is</div>
+    <div class="what-grid">
+      <div class="what-cell">
+        <strong>poems &amp; essays</strong>
+        <p>Human-written, signed content with full access control — public, locked, challenge-gated.</p>
+      </div>
+      <div class="what-cell">
+        <strong>ed25519 signatures</strong>
+        <p>Every piece is cryptographically signed at save time. Agents can verify authorship before quoting.</p>
+      </div>
+      <div class="what-cell">
+        <strong>12 MCP tools</strong>
+        <p>Native tools for Claude. Browse, read, verify, leave messages, request licenses.</p>
+      </div>
+      <div class="what-cell">
+        <strong>open REST API</strong>
+        <p>Public JSON endpoints + OpenAPI spec for ChatGPT, Gemini, and any HTTP-capable agent.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONNECT -->
+  <section class="section">
+    <div class="section-label">connect your agent</div>
+    <div class="endpoint">https://kapoost-humanmcp.fly.dev/mcp</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'claude')">Claude</button>
+      <button class="tab" onclick="switchTab(this,'chatgpt')">ChatGPT</button>
+      <button class="tab" onclick="switchTab(this,'gemini')">Gemini</button>
+      <button class="tab" onclick="switchTab(this,'rest')">REST</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-claude">
+      <p class="step-note">Add to claude_desktop_config.json</p>
+      <div class="code">{
+  "mcpServers": {
+    "kapoost": {
+      "type": "http",
+      "url": "https://kapoost-humanmcp.fly.dev/mcp"
+    }
+  }
+}</div>
+    </div>
+
+    <div class="tab-panel" id="tab-chatgpt">
+      <p class="step"><strong>1.</strong> Create a Custom GPT → Configure → Add actions</p>
+      <p class="step"><strong>2.</strong> Import from URL:</p>
+      <div class="code">https://kapoost-humanmcp.fly.dev/openapi.json</div>
+      <p class="step" style="margin-top:.75rem;"><strong>3.</strong> Auth: None &mdash; System prompt:</p>
+      <div class="code" style="white-space:pre-wrap;">You have access to kapoost's humanMCP server with poems, images and signed data. Use listContent to browse, readContent to read pieces. Always note the Signature and License fields.</div>
+    </div>
+
+    <div class="tab-panel" id="tab-gemini">
+      <p class="step_note" style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Create a Gem with these instructions:</p>
+      <div class="code" style="white-space:pre-wrap;">You are connected to kapoost's content server.
+
+Browse: GET https://kapoost-humanmcp.fly.dev/api/content
+Read:   GET https://kapoost-humanmcp.fly.dev/api/content/{slug}
+Images: GET https://kapoost-humanmcp.fly.dev/api/blobs
+
+Pieces carry Ed25519 signatures — mention when signed.
+Respect the License field before quoting or adapting.</div>
+    </div>
+
+    <div class="tab-panel" id="tab-rest">
+      <div class="code">GET  /api/content          list all pieces
+GET  /api/content/:slug    read a piece
+GET  /api/blobs            list images & data
+GET  /api/blobs/:slug      read a blob
+GET  /files/:filename      raw image
+POST /contact              leave a message
+GET  /openapi.json         OpenAPI 3.1 spec</div>
+      <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;">Base URL: https://kapoost-humanmcp.fly.dev &mdash; no auth required for public content</p>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section class="section">
+    <div class="section-label">12 MCP tools</div>
+    <div class="tool-list">
+      <div class="tool-item">get_author_profile <span>who is kapoost</span></div>
+      <div class="tool-item">list_content <span>browse pieces</span></div>
+      <div class="tool-item">read_content <span>read a piece</span></div>
+      <div class="tool-item">request_access <span>gate details</span></div>
+      <div class="tool-item">submit_answer <span>unlock challenge</span></div>
+      <div class="tool-item">list_blobs <span>browse data</span></div>
+      <div class="tool-item">read_blob <span>image / vector / dataset</span></div>
+      <div class="tool-item">verify_content <span>check ed25519 sig</span></div>
+      <div class="tool-item">get_certificate <span>full IP cert</span></div>
+      <div class="tool-item">request_license <span>declare intended use</span></div>
+      <div class="tool-item">leave_comment <span>react to a piece</span></div>
+      <div class="tool-item">leave_message <span>direct note</span></div>
+    </div>
+  </section>
+
+  <!-- RUN YOUR OWN -->
+  <section class="section" style="border-bottom:none;">
+    <div class="section-label">run your own</div>
+    <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.25rem;">
+      Fork the project. Publish your own signed content on your own terms.<br>
+      Deploy to Fly.io in under 5 minutes.
+    </p>
+    <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-ghost">view on github →</a>
+  </section>
+
+  <footer>
+    <span>humanMCP v0.2 &mdash; <a href="https://kapoost-humanmcp.fly.dev">kapoost-humanmcp.fly.dev</a></span>
+    <span>
+      <a href="https://kapoost-humanmcp.fly.dev/connect">connect</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://kapoost-humanmcp.fly.dev/openapi.json">openapi.json</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/kapoost/humanmcp-go">github</a>
+    </span>
+  </footer>
+
+</div>
+
+<script>
+function switchTab(btn, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
 </script>
-
-<script type="module" src="app.js?v=20260325e"></script>
 </body>
 </html>
