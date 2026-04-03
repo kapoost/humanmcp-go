@@ -157,9 +157,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleDelete)))
 
 
-	// Blob uploader UI (owner only)
-	mux.Handle("/upload", h.auth.RequireOwner(http.HandlerFunc(h.handleUploadPage)))
-
 	// Blob upload (owner only)
 	mux.HandleFunc("/api/blobs", h.handleAPIBlobs)
 	mux.HandleFunc("/api/blobs/", h.handleAPIBlobs)
@@ -410,13 +407,6 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		"Stats":    stats,
 		"Pieces":   pieces,
 		"Messages": msgs,
-	})
-}
-
-func (h *Handler) handleUploadPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "blob-uploader.html", map[string]interface{}{
-		"Author":  h.cfg.AuthorName,
-		"IsOwner": true,
 	})
 }
 
