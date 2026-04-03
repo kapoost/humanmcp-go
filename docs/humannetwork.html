@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HumanNetwork</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -445,7 +447,7 @@ function App(){
         }catch(e){}
       },i*700);
     });
-  },[subs.map(s=>s.url).join(',')]);
+  },[subs.map(s=>s.url+':'+( s.pieces?.length||0)).join(',')]);
   useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem(LT,theme);},[theme]);
   useEffect(()=>{localStorage.setItem(LS,JSON.stringify(subs.map(({url,profile,pieces})=>({url,profile,pieces}))));},[subs]);
 
