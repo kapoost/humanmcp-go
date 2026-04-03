@@ -5,441 +5,400 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HumanNetwork</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:     #faf8f5;
-  --bg2:    #f0ede8;
-  --bg3:    #e8e4de;
-  --fg:     #1a1814;
-  --muted:  #6b6560;
-  --dim:    #9b9590;
-  --border: #e0dbd5;
-  --bord2:  #ccc8c2;
-  --accent: #534AB7;
-  --max:    660px;
-  --serif:  'Spectral', Georgia, serif;
-  --mono:   'DM Mono', monospace;
-  --sans:   -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --bg:  #0e0d0b; --bg2: #141210; --bg3: #1c1a16;
+  --fg:  #ede8df; --mut: #7a7268; --dim: #3a3830; --fnt: #252320;
+  --gold:#c9a96e; --gd:rgba(201,169,110,.08); --gb:rgba(201,169,110,.2);
+  --b1:rgba(255,255,255,.06); --b2:rgba(255,255,255,.11);
+  --grn:#6aab7e; --blu:#7aade0; --red:#d07070;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --mono:'DM Mono',monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:#131210; --bg2:#1c1a17; --bg3:#252220;
-    --fg:#e8e4de; --muted:#8a8580; --dim:#555050;
-    --border:#2e2b28; --bord2:#3e3b38;
-  }
+[data-theme="light"] {
+  --bg:#faf8f3; --bg2:#f0ede5; --bg3:#e8e4d8;
+  --fg:#1a1610; --mut:#7a7060; --dim:#cdc9bc; --fnt:#ede9df;
+  --gold:#7a5510; --gd:rgba(122,85,16,.07); --gb:rgba(122,85,16,.18);
+  --b1:rgba(0,0,0,.07); --b2:rgba(0,0,0,.13);
+  --grn:#1d5c30; --blu:#1a4e8c; --red:#982020;
 }
-*  { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--bg); color:var(--fg); font-family:var(--sans); font-size:16px; line-height:1.6; min-height:100vh; }
-a  { color:var(--accent); text-decoration:none; }
-a:hover { text-decoration:underline; }
-.wrap { max-width:var(--max); margin:0 auto; padding:0 1.25rem 4rem; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+a{color:var(--gold);text-decoration:none;}a:hover{text-decoration:underline;}
+button{cursor:pointer;font-family:inherit;background:none;border:none;color:inherit;}
+input{font-family:inherit;font-size:inherit;}
+::placeholder{color:var(--mut);opacity:1;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--dim);}
 
-/* ── Header ── */
-.hdr  { display:flex; align-items:center; justify-content:space-between; padding:1.1rem 0 1rem; border-bottom:1px solid var(--border); margin-bottom:1.5rem; }
-.logo { display:flex; align-items:center; gap:.5rem; font-size:.95rem; font-weight:500; }
-.nav  { display:flex; gap:.2rem; }
-.nb   { padding:.3rem .85rem; border-radius:6px; border:none; background:transparent; color:var(--muted); font-size:.82rem; cursor:pointer; font-family:inherit; transition:background .15s,color .15s; }
-.nb:hover  { background:var(--bg2); color:var(--fg); }
-.nb.active { background:var(--fg); color:var(--bg); }
+.app{display:flex;flex-direction:column;height:100vh;}
 
-/* ── Feed ── */
-.fi { border-left:2.5px solid var(--bord2); border-bottom:1px solid var(--border); }
-.fi:last-child { border-bottom:none; }
-.fc { padding:1rem 1rem 1rem 1.1rem; cursor:pointer; transition:background .12s; }
-.fc:hover { background:var(--bg2); }
-.locked .fc { cursor:default; }
-.mr  { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.45rem; }
-.av  { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:#fff; flex-shrink:0; }
-.aut { font-size:.82rem; font-weight:500; }
-.dot { color:var(--bord2); }
-.tb  { font-size:.68rem; padding:1px 6px; border-radius:4px; font-weight:500; letter-spacing:.02em; }
-.sb  { font-size:.68rem; padding:1px 6px; border-radius:4px; background:#E1F5EE; color:#0F6E56; }
-.lb  { font-size:.68rem; padding:1px 6px; border-radius:4px; background:#FAEEDA; color:#854F0B; }
-.dt  { margin-left:auto; font-size:.72rem; color:var(--dim); flex-shrink:0; }
-.pt  { font-family:var(--serif); font-size:1.05rem; font-weight:400; line-height:1.35; margin-bottom:.25rem; }
-.pd  { font-size:.84rem; color:var(--muted); line-height:1.5; }
-.tags { display:flex; gap:.3rem; flex-wrap:wrap; margin-top:.45rem; }
-.tag  { font-size:.7rem; padding:1px 5px; border-radius:10px; background:var(--bg2); color:var(--dim); }
-.rh   { font-size:.7rem; color:var(--dim); margin-top:.45rem; }
-.eb   { border-top:1px solid var(--border); padding:1.25rem 1rem 1.25rem 1.35rem; font-family:var(--serif); font-size:.97rem; line-height:2.05; white-space:pre-wrap; }
-.ef   { border-top:1px solid var(--border); padding:.5rem 1rem .5rem 1.35rem; display:flex; justify-content:space-between; align-items:center; font-size:.72rem; color:var(--dim); }
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;height:42px;padding:0 1.4rem;flex-shrink:0;border-bottom:1px solid var(--b1);}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--fg);}
+.lct{font-size:9px;color:var(--mut);letter-spacing:.06em;margin-left:.1rem;}
+.hdr-r{display:flex;align-items:center;gap:.55rem;}
+.hbtn{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--b2);border-radius:2px;color:var(--mut);transition:color .15s,border-color .15s;}
+.hbtn:hover{color:var(--gold);border-color:var(--gb);}
+.mob{display:none;}
 
-/* ── People ── */
-.abox { border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1rem; }
-.arow { display:flex; gap:.5rem; }
-.ai   { flex:1; font-size:.88rem; padding:.45rem .7rem; border:1px solid var(--bord2); border-radius:6px; background:var(--bg2); color:var(--fg); outline:none; font-family:inherit; }
-.ai:focus { border-color:var(--accent); }
-.ab   { padding:.45rem 1rem; border-radius:6px; border:none; background:var(--fg); color:var(--bg); font-size:.88rem; cursor:pointer; font-family:inherit; transition:opacity .15s; }
-.ab:disabled { opacity:.4; }
-.ah   { font-size:.72rem; color:var(--dim); margin-top:.4rem; }
-.ae   { font-size:.75rem; color:#E24B4A; margin-top:.35rem; }
-.pc   { display:flex; align-items:flex-start; gap:.85rem; padding:.85rem 0; border-bottom:1px solid var(--border); }
-.pc:last-child { border-bottom:none; }
-.pav  { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:600; color:#fff; flex-shrink:0; }
-.pn   { font-size:.9rem; font-weight:500; }
-.pb   { font-size:.78rem; color:var(--muted); margin-top:.1rem; line-height:1.4; }
-.pu   { font-family:var(--mono); font-size:.68rem; color:var(--dim); margin-top:.2rem; word-break:break-all; }
-.pm   { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; flex-wrap:wrap; }
-.pa   { display:flex; flex-direction:column; gap:.3rem; flex-shrink:0; }
-.bs   { padding:.25rem .55rem; border-radius:5px; border:1px solid var(--bord2); background:transparent; color:var(--muted); font-size:.72rem; cursor:pointer; font-family:inherit; }
-.bs:hover { background:var(--bg2); }
-.br   { border-color:#F09595; color:#E24B4A; }
+/* Main */
+.main{display:flex;flex:1;overflow:hidden;}
 
-/* ── Empty ── */
-.empty { text-align:center; padding:4rem 0; }
-.etitle { font-family:var(--serif); font-size:1.1rem; font-weight:400; margin:.75rem 0 .4rem; }
-.esub   { font-size:.84rem; color:var(--dim); margin-bottom:1rem; }
-.etry   { display:inline-block; padding:.35rem 1rem; border:1px solid var(--bord2); border-radius:6px; font-size:.82rem; color:var(--fg); background:var(--bg); cursor:pointer; font-family:inherit; }
-.etry:hover { background:var(--bg2); }
+/* Sidebar */
+.sidebar{width:228px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.sbhd{padding:.65rem 1rem .5rem;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--b1);}
+.sbsc{flex:1;overflow-y:auto;}
 
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-.loading { animation:pulse 1.4s infinite; color:var(--dim); font-size:.84rem; font-family:var(--sans); }
+/* Add */
+.add{padding:.7rem .9rem;border-bottom:1px solid var(--b1);}
+.ar{display:flex;gap:.3rem;}
+.ai{flex:1;font-size:10px;padding:5px 7px;border:1px solid var(--b2);border-radius:1px;background:var(--bg2);color:var(--fg);outline:none;min-width:0;}
+.ai:focus{border-color:var(--gb);}
+.ab{font-size:9px;padding:5px 9px;border:1px solid var(--gb);border-radius:1px;background:var(--gd);color:var(--gold);letter-spacing:.04em;transition:background .15s;}
+.ab:hover{background:rgba(201,169,110,.15);}
+.ab:disabled{opacity:.35;}
+.ae{font-size:9px;color:var(--red);margin-top:.3rem;}
+.ah{font-size:8px;color:var(--dim);margin-top:.25rem;letter-spacing:.05em;}
+
+/* Person row */
+.pr{display:flex;align-items:flex-start;gap:.55rem;padding:.55rem .9rem;border-bottom:1px solid var(--b1);transition:background .12s;}
+.pr:hover{background:var(--fnt);}
+.pav{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;margin-top:1px;}
+.pi{flex:1;min-width:0;}
+.pn{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm{font-size:8px;color:var(--mut);margin-top:1px;letter-spacing:.04em;}
+.pe{font-size:8px;color:var(--red);margin-top:1px;}
+.pa{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
+.pa button{font-size:8px;padding:2px 5px;border:1px solid var(--b2);border-radius:1px;color:var(--dim);}
+.pa button:hover{color:var(--gold);border-color:var(--gb);}
+.pa .del:hover{color:var(--red);border-color:var(--red);}
+.sbmt{padding:1.5rem 1rem;font-size:9px;color:var(--mut);text-align:center;line-height:1.9;letter-spacing:.04em;}
+
+/* Feed */
+.feed{flex:1;overflow-y:auto;}
+.fdin{max-width:660px;margin:0 auto;padding:0 2.2rem 5rem;}
+
+/* Empty */
+.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 120px);text-align:center;padding:3rem;}
+.etit{font-family:var(--serif);font-size:2rem;font-weight:300;font-style:italic;color:var(--fg);margin-bottom:.35rem;line-height:1.2;}
+.esub{font-size:8px;color:var(--mut);letter-spacing:.18em;text-transform:uppercase;margin-bottom:1.5rem;}
+.etry{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:6px 18px;border:1px solid var(--gb);color:var(--gold);border-radius:2px;transition:background .15s;}
+.etry:hover{background:var(--gd);}
+
+/* Feed item */
+.fi{border-top:1px solid var(--b1);padding:1.15rem 0;}
+.fi:first-child{border-top:none;padding-top:.5rem;}
+.fihd{cursor:pointer;}
+.mt{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.55rem;}
+.fav{width:17px;height:17px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:6.5px;font-weight:700;color:#fff;}
+.fau{font-size:9.5px;color:var(--mut);letter-spacing:.03em;}
+.fsp{color:var(--b2);font-size:8px;}
+.ftb{font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:1px;}
+.tp{background:var(--gd);color:var(--gold);border:1px solid var(--gb);}
+.te{background:rgba(122,173,224,.07);color:var(--blu);border:1px solid rgba(122,173,224,.18);}
+.tn{background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
+.ti,.td,.tc,.tx{background:var(--fnt);color:var(--mut);border:1px solid var(--b1);}
+.tlk{font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:1px;background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.18);}
+.tsg{font-size:8px;padding:1px 5px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
+.fdt{margin-left:auto;font-size:8.5px;color:var(--dim);letter-spacing:.04em;flex-shrink:0;}
+.ftit{font-family:var(--serif);font-size:1.25rem;font-weight:400;line-height:1.3;color:var(--fg);transition:color .15s;margin-bottom:.2rem;}
+.fihd:hover .ftit{color:var(--gold);}
+.fdsc{font-size:10.5px;color:var(--mut);line-height:1.55;margin-bottom:.2rem;}
+.fgs{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.3rem;}
+.fg{font-size:8px;color:var(--dim);letter-spacing:.06em;}
+.fg::before{content:'#';color:var(--mut);opacity:.6;}
+.fht{font-size:8px;color:var(--dim);margin-top:.5rem;letter-spacing:.08em;}
+
+/* Body */
+.fbod{margin-top:.8rem;border-top:1px solid var(--b1);padding-top:.9rem;}
+.fbdt{font-family:var(--serif);font-size:1.08rem;line-height:2.05;white-space:pre-wrap;color:var(--fg);}
+.fbld{font-size:9px;color:var(--mut);letter-spacing:.14em;text-transform:uppercase;}
+.fbft{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding-top:.55rem;border-top:1px solid var(--b1);font-size:8.5px;color:var(--dim);letter-spacing:.05em;}
+
+/* Bottom nav */
+.bnav{display:none;height:50px;border-top:1px solid var(--b1);background:var(--bg);flex-shrink:0;}
+.bnb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:7.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);transition:color .15s;border:none;background:none;padding:0;}
+.bnb.on{color:var(--gold);}
+
+@media(max-width:720px){
+  .sidebar{display:none;} .mob{display:flex;} .bnav{display:flex;}
+  .hdr{padding:0 1rem;} .fdin{padding:0 1rem 5rem;}
+}
+@media(min-width:721px){
+  .bnav{display:none!important;}
+  .mob-ppl{display:none!important;}
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ldg{animation:pulse 1.4s infinite;}
 </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const { useState, useEffect } = React;
-const LS = 'humannetwork-v1';
+const {useState,useEffect}=React;
+const LS='humannetwork-v1', LT='humannetwork-theme';
+const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx'};
 
-// type → badge colors
-const TC = {
-  poem:    {bg:'#EEEDFE',c:'#534AB7'},
-  essay:   {bg:'#E6F1FB',c:'#185FA5'},
-  note:    {bg:'#EAF3DE',c:'#3B6D11'},
-  image:   {bg:'#FAEEDA',c:'#854F0B'},
-  dataset: {bg:'#FBEAF0',c:'#993556'},
-  contact: {bg:'#E1F5EE',c:'#0F6E56'},
-  vector:  {bg:'#FAECE7',c:'#993C1D'},
-  capsule: {bg:'#F1EFE8',c:'#5F5E5A'},
-};
-const AV = ['#534AB7','#378ADD','#0F6E56','#BA7517','#993556','#185FA5','#993C1D','#639922'];
+function norm(u){return u.trim().replace(/\/$/,'').replace(/\/mcp$/,'');}
+function gf(o,k){if(!o)return;return o[k]!==undefined?o[k]:o[k[0].toUpperCase()+k.slice(1)];}
+function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';return dt.toLocaleDateString('en',{day:'numeric',month:'short',year:'numeric'});}
+function initials(s=''){return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'H';}
+const AVP=['#534AB7','#378ADD','#0F6E56','#BA7517','#993556','#185FA5','#993C1D','#639922'];
+function avBg(url){let h=0;for(let i=0;i<url.length;i++)h=(h*31+url.charCodeAt(i))&0xffff;return AVP[h%AVP.length];}
 
-function norm(u) { return u.trim().replace(/\/$/, '').replace(/\/mcp$/, ''); }
-function gf(o, k) { if (!o) return; return o[k] !== undefined ? o[k] : o[k[0].toUpperCase()+k.slice(1)]; }
-function fmtDate(d) {
-  if (!d) return '';
-  const dt = new Date(d);
-  return isNaN(dt) ? '' : dt.toLocaleDateString('en', {day:'numeric',month:'short',year:'numeric'});
-}
-function initials(s='') { return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'H'; }
-function avBg(url) { let h=0; for(let i=0;i<url.length;i++) h=(h*31+url.charCodeAt(i))&0xffff; return AV[h%AV.length]; }
-
-// ── MCP helpers ───────────────────────────────────────────────────────────
-// humanMCP list_content returns plain text blocks, not JSON.
-// Format: "slug:   X\ntitle:  Y\ntype:   Z\naccess: A\ndate:   D\ntags:   t1, t2\nabout:  desc"
-function parseTextPieces(text) {
-  if (!text || typeof text !== 'string') return [];
-  const pieces = [];
-  const MONTHS = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
-  for (const block of text.split(/\n\n+/)) {
-    if (!block.includes('slug:')) continue;
-    const p = {};
-    for (const line of block.split('\n')) {
-      const m = line.match(/^([\w-]+):\s+(.+)$/);
-      if (!m) continue;
-      const [, k, v] = [, m[1].trim(), m[2].trim()];
-      if (k === 'slug')   p.slug   = v;
-      else if (k === 'title')  p.title  = v;
-      else if (k === 'type')   p.type   = v;
-      else if (k === 'access') p.access = v;
-      else if (k === 'tags')   p.tags   = v.split(',').map(t => t.trim()).filter(Boolean);
-      else if (k === 'about')  p.description = v;
-      else if (k === 'date') {
-        const dm = v.match(/(\d+)\s+(\w+)\s+(\d{4})/);
-        if (dm && MONTHS[dm[2]] !== undefined)
-          p.published = new Date(+dm[3], MONTHS[dm[2]], +dm[1]).toISOString();
-      }
+function parseTextPieces(text){
+  if(!text||typeof text!=='string')return[];
+  const pieces=[];
+  const MO={January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
+  for(const block of text.split(/\n\n+/)){
+    if(!block.includes('slug:'))continue;
+    const p={};
+    for(const line of block.split('\n')){
+      const m=line.match(/^([\w-]+):\s+(.+)$/);if(!m)continue;
+      const[,k,v]=[,m[1].trim(),m[2].trim()];
+      if(k==='slug')p.slug=v;else if(k==='title')p.title=v;else if(k==='type')p.type=v;
+      else if(k==='access')p.access=v;else if(k==='tags')p.tags=v.split(',').map(t=>t.trim()).filter(Boolean);
+      else if(k==='about')p.description=v;
+      else if(k==='date'){const dm=v.match(/(\d+)\s+(\w+)\s+(\d{4})/);if(dm&&MO[dm[2]]!==undefined)p.published=new Date(+dm[3],MO[dm[2]],+dm[1]).toISOString();}
     }
-    if (p.slug) pieces.push(p);
+    if(p.slug)pieces.push(p);
   }
   return pieces;
 }
-
-function parsePieces(r) {
-  if (!r) return [];
-  if (Array.isArray(r)) return r;
-  if (r.pieces && Array.isArray(r.pieces)) return r.pieces;
-  if (typeof r === 'string') return parseTextPieces(r);
-  const a = Object.values(r).find(v => Array.isArray(v));
-  return a || [];
+function parsePieces(r){
+  if(!r)return[];if(Array.isArray(r))return r;
+  if(r.pieces&&Array.isArray(r.pieces))return r.pieces;
+  if(typeof r==='string')return parseTextPieces(r);
+  const a=Object.values(r).find(v=>Array.isArray(v));return a||[];
 }
-
-async function mcpCall(base, tool, args={}) {
-  const url = `${base}/mcp`;
-  const baseHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
-
-  // Step 1: initialize — required by MCP spec, returns session ID
-  let session = null;
-  try {
-    const ir = await fetch(url, {
-      method: 'POST', headers: baseHeaders,
-      body: JSON.stringify({ jsonrpc:'2.0', id:1, method:'initialize',
-        params:{ protocolVersion:'2024-11-05', capabilities:{}, clientInfo:{ name:'HumanNetwork', version:'0.1' } } })
-    });
-    session = ir.headers.get('mcp-session-id');
-  } catch {}
-
-  // Step 2: tools/call with session header
-  const headers = session ? { ...baseHeaders, 'mcp-session-id': session } : { ...baseHeaders };
-  const r = await fetch(url, {
-    method: 'POST', headers,
-    body: JSON.stringify({ jsonrpc:'2.0', id: Date.now(), method:'tools/call', params:{ name:tool, arguments:args } })
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-  const ct = r.headers.get('content-type') || '';
+async function mcpCall(base,tool,args={}){
+  const url=`${base}/mcp`;
+  const bh={'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
+  let session=null;
+  try{const ir=await fetch(url,{method:'POST',headers:bh,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'HumanNetwork',version:'0.2'}}})});session=ir.headers.get('mcp-session-id');}catch{}
+  const h=session?{...bh,'mcp-session-id':session}:{...bh};
+  const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify({jsonrpc:'2.0',id:Date.now(),method:'tools/call',params:{name:tool,arguments:args}})});
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const ct=r.headers.get('content-type')||'';
   let data;
-  if (ct.includes('event-stream')) {
-    const txt = await r.text();
-    for (const line of txt.split('\n'))
-      if (line.startsWith('data: ')) { try { data = JSON.parse(line.slice(6)); break; } catch {} }
-  } else {
-    data = await r.json();
-  }
-  if (!data) throw new Error('empty response');
-  if (data.error) throw new Error(data.error.message || 'MCP error');
-  const block = (data.result?.content || []).find(b => b.type === 'text');
-  // Return raw text — list_content is plain text, read_content is poem text
-  return block ? block.text : null;
+  if(ct.includes('event-stream')){const txt=await r.text();for(const line of txt.split('\n'))if(line.startsWith('data: ')){try{data=JSON.parse(line.slice(6));break;}catch{}}}
+  else{data=await r.json();}
+  if(!data)throw new Error('empty response');if(data.error)throw new Error(data.error.message||'MCP error');
+  const block=(data.result?.content||[]).find(b=>b.type==='text');
+  return block?block.text:null;
+}
+async function loadSub(url){
+  let profile={title:url.replace('https://',''),description:'',tags:[]};
+  try{const r=await fetch(`${url}/.well-known/mcp-server.json`);if(r.ok){const wk=await r.json();profile={title:wk.title||wk.name||profile.title,description:wk.description||'',tags:wk.tags||[]};}}catch{}
+  let pieces=[],piecesErr=null;
+  try{const t=await mcpCall(url,'list_content',{});pieces=parsePieces(t);if(!pieces.length&&t)piecesErr='No pieces parsed';}
+  catch(e){piecesErr=e.message;}
+  return{url,profile,pieces,piecesErr};
 }
 
-async function loadSub(url) {
-  let profile = { title: url.replace('https://', ''), description: '', tags: [] };
-  try {
-    const r = await fetch(`${url}/.well-known/mcp-server.json`);
-    if (r.ok) {
-      const wk = await r.json();
-      profile = { title: wk.title || wk.name || profile.title, description: wk.description || '', tags: wk.tags || [] };
-    }
-  } catch {}
-  let pieces = [], piecesErr = null;
-  try {
-    const text = await mcpCall(url, 'list_content', {});
-    pieces = parsePieces(text);
-    if (!pieces.length && text) piecesErr = 'No pieces parsed';
-  } catch(e) { piecesErr = e.message; }
-  return { url, profile, pieces, piecesErr };
-}
-
-// ── Main component ────────────────────────────────────────────────────────
-function App() {
-  const [subs,  setSubs]   = useState(() => { try { return JSON.parse(localStorage.getItem(LS) || '[]'); } catch { return []; } });
-  const [view,  setView]   = useState('feed');
-  const [open,  setOpen]   = useState(null);
-  const [bodies,setBodies] = useState({});
-  const [bodyL, setBodyL]  = useState(null);
-  const [addUrl,setAddUrl] = useState('');
-  const [addB,  setAddB]   = useState(false);
-  const [addE,  setAddE]   = useState('');
-
-  useEffect(() => {
-    localStorage.setItem(LS, JSON.stringify(subs.map(({ url, profile, pieces }) => ({ url, profile, pieces }))));
-  }, [subs]);
-
-  async function add() {
-    const base = norm(addUrl);
-    if (!base) return;
-    if (subs.find(s => s.url === base)) { setAddE('Already added'); return; }
-    setAddB(true); setAddE('');
-    try {
-      const sub = await loadSub(base);
-      setSubs(p => [...p, sub]);
-      setAddUrl('');
-    } catch(e) { setAddE(e.message || 'Could not connect'); }
-    setAddB(false);
-  }
-
-  async function refresh(sub) {
-    setSubs(p => p.map(s => s.url === sub.url ? {...s, refreshing:true, err:null} : s));
-    try {
-      const fresh = await loadSub(sub.url);
-      setSubs(p => p.map(s => s.url === sub.url ? {...fresh, refreshing:false} : s));
-    } catch(e) {
-      setSubs(p => p.map(s => s.url === sub.url ? {...s, refreshing:false, err:e.message} : s));
-    }
-  }
-
-  async function toggle(sub, piece) {
-    const slug = gf(piece, 'slug');
-    const key  = `${sub.url}::${slug}`;
-    if (open === key) { setOpen(null); return; }
-    setOpen(key);
-    if (bodies[key] !== undefined) return;
-    setBodyL(key);
-    try {
-      const text = await mcpCall(sub.url, 'read_content', { slug });
-      setBodies(p => ({...p, [key]: text || '(no content)'}));
-    } catch(e) {
-      setBodies(p => ({...p, [key]: `Error: ${e.message}`}));
-    }
-    setBodyL(null);
-  }
-
-  const feed = subs
-    .flatMap(sub => (sub.pieces || []).map(p => ({...p, _sub:sub})))
-    .sort((a, b) => new Date(gf(b,'published')||0) - new Date(gf(a,'published')||0));
-
-  const total = subs.reduce((n, s) => n + (s.pieces?.length || 0), 0);
-
-  return (
-    <div className="wrap">
-
-      {/* ── Header ── */}
-      <div className="hdr">
-        <div className="logo">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-            <circle cx="11" cy="11" r="9.5" stroke="#534AB7" strokeWidth="1.5"/>
-            <ellipse cx="11" cy="11" rx="4" ry="9.5" stroke="#534AB7" strokeWidth="1.2"/>
-            <path d="M1.5 11h19" stroke="#534AB7" strokeWidth="1.2"/>
-            <path d="M3 7.2h16M3 14.8h16" stroke="#534AB7" strokeWidth="1" strokeDasharray="2.5 2"/>
-          </svg>
-          HumanNetwork
-          {total > 0 && <span style={{fontSize:'.72rem',color:'var(--dim)',marginLeft:'.1rem'}}>· {total}</span>}
+function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove}){
+  return(<>
+    <div className="sbhd">People</div>
+    <div className="sbsc">
+      <div className="add">
+        <div className="ar">
+          <input className="ai" value={addUrl} onChange={e=>{setAddUrl(e.target.value);setAddE('');}} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="https://someone.fly.dev"/>
+          <button className="ab" onClick={add} disabled={addB||!addUrl.trim()}>{addB?'…':'add'}</button>
         </div>
-        <nav className="nav">
-          <button className={`nb${view==='feed'?' active':''}`} onClick={() => setView('feed')}>Feed</button>
-          <button className={`nb${view==='people'?' active':''}`} onClick={() => setView('people')}>
-            People{subs.length > 0 ? ` (${subs.length})` : ''}
-          </button>
-        </nav>
+        {addE&&<div className="ae">{addE}</div>}
+        <div className="ah">any humanmcp server url</div>
       </div>
-
-      {/* ── Feed ── */}
-      {view === 'feed' && (
-        <div>
-          {feed.length === 0 ? (
-            <div className="empty">
-              <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{display:'block',margin:'0 auto'}}>
-                <rect x="5" y="10" width="34" height="24" rx="4" stroke="var(--bord2)" strokeWidth="1.5"/>
-                <path d="M12 18h20M12 23h14" stroke="var(--bord2)" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              <div className="etitle">Your feed is empty</div>
-              <div className="esub">Add humanMCP servers in People to start reading.</div>
-              <button className="etry" onClick={() => { setView('people'); setAddUrl('https://kapoost-humanmcp.fly.dev'); }}>
-                Try kapoost's server →
-              </button>
-            </div>
-          ) : feed.map(piece => {
-            const sub    = piece._sub;
-            const slug   = gf(piece, 'slug');
-            const title  = gf(piece, 'title') || slug;
-            const type   = (gf(piece, 'type') || 'note').toLowerCase();
-            const pub    = gf(piece, 'published');
-            const desc   = gf(piece, 'description');
-            const tags   = gf(piece, 'tags') || [];
-            const access = gf(piece, 'access');
-            const sig    = gf(piece, 'signature');
-            const locked = access === 'locked' || access === 'members';
-            const key    = `${sub.url}::${slug}`;
-            const isOpen = open === key;
-            const tc     = TC[type] || { bg:'var(--bg2)', c:'var(--muted)' };
-            const author = gf(sub.profile, 'title') || sub.url.replace('https://', '');
-            const av     = avBg(sub.url);
-
-            return (
-              <div key={key} className={`fi${locked?' locked':''}`} style={{borderLeftColor: tc.c}}>
-                <div className="fc" onClick={() => !locked && toggle(sub, piece)}>
-                  <div className="mr">
-                    <div className="av" style={{background: av}}>{initials(author)}</div>
-                    <span className="aut">{author}</span>
-                    <span className="dot">·</span>
-                    <span className="tb" style={{background: tc.bg, color: tc.c}}>{type}</span>
-                    {sig && <span className="sb">✓ signed</span>}
-                    {locked && <span className="lb">locked</span>}
-                    <span className="dt">{fmtDate(pub)}</span>
-                  </div>
-                  <div className="pt">{title}</div>
-                  {desc && <div className="pd">{desc}</div>}
-                  {tags.length > 0 && (
-                    <div className="tags">{tags.map(t => <span key={t} className="tag">#{t}</span>)}</div>
-                  )}
-                  {!locked && <div className="rh">{isOpen ? '▲ collapse' : '▼ read'}</div>}
-                </div>
-                {isOpen && (
-                  <div>
-                    <div className="eb">
-                      {bodyL === key
-                        ? <span className="loading">Loading…</span>
-                        : bodies[key] || '(empty)'}
-                    </div>
-                    <div className="ef">
-                      <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer">
-                        {sub.url.replace('https://', '')} →
-                      </a>
-                      {sig && <span>Ed25519</span>}
-                    </div>
-                  </div>
-                )}
+      {subs.length===0
+        ?<div className="sbmt">No servers yet.<br/>Paste a URL above.</div>
+        :subs.map(sub=>{
+          const name=gf(sub.profile,'title')||sub.url.replace('https://','');
+          const av=avBg(sub.url);
+          return(
+            <div key={sub.url} className="pr">
+              <div className="pav" style={{background:av}}>{initials(name)}</div>
+              <div className="pi">
+                <div className="pn">{name}</div>
+                <div className="pm">{sub.pieces?.length||0} pieces</div>
+                {(sub.err||sub.piecesErr)&&<div className="pe">{sub.err||sub.piecesErr}</div>}
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── People ── */}
-      {view === 'people' && (
-        <div>
-          <div className="abox">
-            <div style={{fontSize:'.84rem',fontWeight:500,marginBottom:'.6rem'}}>Add a humanMCP server</div>
-            <div className="arow">
-              <input
-                className="ai"
-                value={addUrl}
-                onChange={e => { setAddUrl(e.target.value); setAddE(''); }}
-                onKeyDown={e => e.key === 'Enter' && add()}
-                placeholder="https://someone.fly.dev"
-              />
-              <button className="ab" onClick={add} disabled={addB || !addUrl.trim()}>
-                {addB ? '…' : 'Add'}
-              </button>
+              <div className="pa">
+                <button onClick={()=>refresh(sub)} disabled={sub.refreshing}>{sub.refreshing?'…':'↻'}</button>
+                <button className="del" onClick={()=>remove(sub.url)}>×</button>
+              </div>
             </div>
-            {addE && <div className="ae">{addE}</div>}
-            <div className="ah">Paste the base URL of any humanMCP server</div>
+          );
+        })
+      }
+    </div>
+  </>);
+}
+
+function PieceCard({piece,open,toggle,body,bodyLoading}){
+  const sub=piece._sub;
+  const slug=gf(piece,'slug');
+  const title=gf(piece,'title')||slug;
+  const type=(gf(piece,'type')||'note').toLowerCase();
+  const pub=gf(piece,'published');
+  const desc=gf(piece,'description');
+  const tags=gf(piece,'tags')||[];
+  const access=gf(piece,'access');
+  const sig=gf(piece,'signature');
+  const locked=access==='locked'||access==='members';
+  const tc=TCLS[type]||'tx';
+  const author=gf(sub.profile,'title')||sub.url.replace('https://','');
+  const av=avBg(sub.url);
+  return(
+    <div className="fi">
+      <div className="fihd" onClick={()=>!locked&&toggle(sub,piece)}>
+        <div className="mt">
+          <div className="fav" style={{background:av}}>{initials(author)}</div>
+          <span className="fau">{author}</span>
+          <span className="fsp">·</span>
+          <span className={`ftb ${tc}`}>{type}</span>
+          {sig&&<span className="tsg">✓ signed</span>}
+          {locked&&<span className="tlk">locked</span>}
+          <span className="fdt">{fmtDate(pub)}</span>
+        </div>
+        <div className="ftit">{title}</div>
+        {desc&&<div className="fdsc">{desc}</div>}
+        {tags.length>0&&<div className="fgs">{tags.map(t=><span key={t} className="fg">{t}</span>)}</div>}
+        {!locked&&<div className="fht">{open?'▲ collapse':'▼ read'}</div>}
+      </div>
+      {open&&(
+        <div className="fbod">
+          {bodyLoading?<div className="fbld ldg">loading…</div>:<div className="fbdt">{body||'(empty)'}</div>}
+          <div className="fbft">
+            <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer">{sub.url.replace('https://','/')} →</a>
+            {sig&&<span>Ed25519</span>}
           </div>
-
-          {subs.length === 0 ? (
-            <div style={{color:'var(--dim)',fontSize:'.84rem',paddingTop:'.5rem'}}>No servers yet.</div>
-          ) : subs.map(sub => {
-            const name = gf(sub.profile, 'title') || sub.url.replace('https://', '');
-            const bio  = gf(sub.profile, 'description');
-            const pt   = gf(sub.profile, 'tags') || [];
-            const av   = avBg(sub.url);
-            return (
-              <div key={sub.url} className="pc">
-                <div className="pav" style={{background: av}}>{initials(name)}</div>
-                <div style={{flex:1, minWidth:0}}>
-                  <div className="pn">{name}</div>
-                  {bio && <div className="pb">{bio}</div>}
-                  <div className="pu">{sub.url}</div>
-                  <div className="pm">
-                    <span style={{fontSize:'.72rem',color:'var(--muted)'}}>{sub.pieces?.length || 0} pieces</span>
-                    {pt.slice(0,4).map(t => <span key={t} className="tag">#{t}</span>)}
-                    {(sub.err || sub.piecesErr) && <span style={{fontSize:'.72rem',color:'#E24B4A'}}>{sub.err || sub.piecesErr}</span>}
-                  </div>
-                </div>
-                <div className="pa">
-                  <button className="bs" onClick={() => refresh(sub)} disabled={sub.refreshing} title="Refresh">
-                    {sub.refreshing ? '…' : '↻'}
-                  </button>
-                  <button className="bs br" onClick={() => setSubs(p => p.filter(s => s.url !== sub.url))} title="Remove">×</button>
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
-
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function App(){
+  const [theme,setTheme]=useState(()=>{const s=localStorage.getItem(LT);if(s)return s;return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';});
+  const [subs,setSubs]=useState(()=>{try{return JSON.parse(localStorage.getItem(LS)||'[]');}catch{return[];}});
+  const [view,setView]=useState('feed');
+  const [open,setOpen]=useState(null);
+  const [bodies,setBodies]=useState({});
+  const [bodyL,setBodyL]=useState(null);
+  const [addUrl,setAddUrl]=useState('');
+  const [addB,setAddB]=useState(false);
+  const [addE,setAddE]=useState('');
+
+  useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem(LT,theme);},[theme]);
+  useEffect(()=>{localStorage.setItem(LS,JSON.stringify(subs.map(({url,profile,pieces})=>({url,profile,pieces}))));},[subs]);
+
+  async function add(){
+    const base=norm(addUrl);if(!base)return;
+    if(subs.find(s=>s.url===base)){setAddE('Already added');return;}
+    setAddB(true);setAddE('');
+    try{const sub=await loadSub(base);setSubs(p=>[...p,sub]);setAddUrl('');}
+    catch(e){setAddE(e.message||'Could not connect');}
+    setAddB(false);
+  }
+  async function refresh(sub){
+    setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:true,err:null}:s));
+    try{const fresh=await loadSub(sub.url);setSubs(p=>p.map(s=>s.url===sub.url?{...fresh,refreshing:false}:s));}
+    catch(e){setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:false,err:e.message}:s));}
+  }
+  function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
+  async function toggle(sub,piece){
+    const slug=gf(piece,'slug');const key=`${sub.url}::${slug}`;
+    if(open===key){setOpen(null);return;}
+    setOpen(key);if(bodies[key]!==undefined)return;
+    setBodyL(key);
+    try{const t=await mcpCall(sub.url,'read_content',{slug});setBodies(p=>({...p,[key]:t||'(no content)'}));}
+    catch(e){setBodies(p=>({...p,[key]:`Error: ${e.message}`}));}
+    setBodyL(null);
+  }
+
+  const feed=subs.flatMap(sub=>(sub.pieces||[]).map(p=>({...p,_sub:sub}))).sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
+  const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
+  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove};
+
+  function FeedList(){
+    if(feed.length===0)return(
+      <div className="emp">
+        <div className="etit">Nothing here yet.</div>
+        <div className="esub">add a humanmcp server to begin</div>
+        <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>try kapoost's server</button>
+      </div>
+    );
+    return feed.map(piece=>{
+      const key=`${piece._sub.url}::${gf(piece,'slug')}`;
+      return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key}/>;
+    });
+  }
+
+  return(
+    <div className="app">
+      <div className="hdr">
+        <div className="logo">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="5.5" stroke="var(--gold)" strokeWidth="1.2"/>
+            <ellipse cx="6.5" cy="6.5" rx="2.5" ry="5.5" stroke="var(--gold)" strokeWidth="1"/>
+            <path d="M1 6.5h11" stroke="var(--gold)" strokeWidth="1"/>
+            <path d="M2 4h9M2 9h9" stroke="var(--gold)" strokeWidth=".7" strokeDasharray="1.8 1.5"/>
+          </svg>
+          HumanNetwork
+          {total>0&&<span className="lct">· {total}</span>}
+        </div>
+        <div className="hdr-r">
+          <button className="hbtn mob" onClick={()=>setView(v=>v==='feed'?'people':'feed')}>
+            {view==='feed'?'people':'feed'}
+          </button>
+          <button className="hbtn" onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>
+            {theme==='dark'?'day':'night'}
+          </button>
+        </div>
+      </div>
+
+      <div className="main">
+        <div className="sidebar"><PeoplePanel {...pp}/></div>
+
+        {(view==='feed')&&(
+          <div className="feed">
+            <div className="fdin"><FeedList/></div>
+          </div>
+        )}
+
+        {view==='people'&&(
+          <div className="mob-ppl" style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+            <PeoplePanel {...pp}/>
+          </div>
+        )}
+      </div>
+
+      <div className="bnav">
+        <button className={`bnb${view==='feed'?' on':''}`} onClick={()=>setView('feed')}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="3.5" width="12" height="1.2" rx=".6" fill="currentColor"/>
+            <rect x="2" y="7.4" width="8" height="1.2" rx=".6" fill="currentColor"/>
+            <rect x="2" y="11.3" width="10" height="1.2" rx=".6" fill="currentColor"/>
+          </svg>
+          Feed
+        </button>
+        <button className={`bnb${view==='people'?' on':''}`} onClick={()=>setView('people')}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
+            <path d="M3 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          People
+        </button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
