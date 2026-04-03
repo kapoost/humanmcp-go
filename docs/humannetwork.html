@@ -88,14 +88,21 @@ input{font-family:inherit;font-size:inherit;}
 .etry:hover{background:var(--gd);}
 
 /* Tile grid */
-.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));border-top:1px solid var(--b1);}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));border-top:1px solid var(--b1);}
 
 /* Tile */
 .ti-wrap{border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);}
 .ti-wrap.open{grid-column:1/-1;border-right:none;}
-.tile{padding:1.6rem 1.8rem 1.4rem;min-height:180px;display:flex;flex-direction:column;cursor:pointer;transition:background .15s;}
+.tile{padding:1.6rem 1.8rem 1.4rem;min-height:200px;display:flex;flex-direction:column;cursor:pointer;transition:background .15s;}
 .tile:hover{background:var(--fnt);}
 .locked .tile{cursor:default;}
+
+/* Thumbnail */
+.tile-thumb{margin:-1.6rem -1.8rem 1.2rem;height:190px;overflow:hidden;position:relative;flex-shrink:0;}
+.tile-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease;}
+.tile:hover .tile-thumb img{transform:scale(1.03);}
+.tile-thumb-loading{height:190px;background:var(--fnt);margin:-1.6rem -1.8rem 1.2rem;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;}
+
 .tile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.8rem;}
 .tile-badges{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;}
 .ftb{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:1px;}
@@ -107,9 +114,10 @@ input{font-family:inherit;font-size:inherit;}
 .tsg{font-size:9px;padding:2px 6px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .tile-date{font-size:9px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
 .tile-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;}
-.ftit{font-family:var(--serif);font-size:1.65rem;font-weight:400;line-height:1.25;color:var(--fg);transition:color .15s;margin-bottom:.5rem;}
+.ftit{font-family:var(--serif);font-size:1.65rem;font-weight:400;line-height:1.25;color:var(--fg);transition:color .15s;margin-bottom:.4rem;}
 .tile:hover .ftit{color:var(--gold);}
-.fdsc{font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:.4rem;}
+.fdsc{font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:.3rem;}
+.tile-frag{font-family:var(--serif);font-size:1rem;font-style:italic;color:var(--mut);line-height:1.75;margin:.35rem 0 .2rem;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .tile-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.7rem;}
 .tile-author{display:flex;align-items:center;gap:.4rem;}
 .fav{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:#fff;}
@@ -156,14 +164,48 @@ input{font-family:inherit;font-size:inherit;}
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const {useState,useEffect}=React;
+const {useState,useEffect,useRef}=React;
 const LS='humannetwork-v1', LT='humannetwork-theme';
 const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx'};
 
 function norm(u){return u.trim().replace(/\/$/,'').replace(/\/mcp$/,'');}
 function gf(o,k){if(!o)return;return o[k]!==undefined?o[k]:o[k[0].toUpperCase()+k.slice(1)];}
 function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';return dt.toLocaleDateString('en',{day:'numeric',month:'short',year:'numeric'});}
-function initials(s=''){return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'H';}
+
+// Extract poem fragment from read_content response text
+function extractFragment(text){
+  if(!text||typeof text!=='string')return null;
+  const sepIdx=text.search(/─{5,}/);
+  if(sepIdx===-1){
+    // No separator: skip first 2 lines (title, maybe byline), take next 4
+    const lines=text.split('\n').filter(l=>l.trim()).slice(2);
+    const frag=lines.filter(l=>!l.startsWith('— ')&&!l.startsWith('tags:')&&!l.startsWith('You may')).slice(0,4).join('\n');
+    return frag.slice(0,280)||null;
+  }
+  const afterSep=text.slice(sepIdx);
+  const contentStart=afterSep.indexOf('\n\n');
+  if(contentStart===-1)return null;
+  const content=afterSep.slice(contentStart).trim();
+  // Find first stanza (up to \n\n) or attribution markers
+  let end=content.length;
+  for(const m of['\n— ','\ntags:','\nYou may']){const i=content.indexOf(m);if(i>0&&i<end)end=i;}
+  const stanza=content.slice(0,end);
+  const lines=stanza.split('\n').filter(l=>l.trim()).slice(0,5);
+  return lines.join('\n').slice(0,280)||null;
+}
+
+// Extract base64 image data from read_blob response
+function extractImageSrc(text){
+  if(!text)return null;
+  const mimeMatch=text.match(/mime_type:\s*([^\n]+)/);
+  const mime=(mimeMatch?mimeMatch[1].trim():'image/jpeg');
+  const marker='data (base64, from file):\n';
+  const idx=text.indexOf(marker);
+  if(idx===-1)return null;
+  const b64=text.slice(idx+marker.length).trim();
+  if(!b64)return null;
+  return`data:${mime};base64,${b64}`;
+}function initials(s=''){return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'H';}
 const AVP=['#534AB7','#378ADD','#0F6E56','#BA7517','#993556','#185FA5','#993C1D','#639922'];
 function avBg(url){let h=0;for(let i=0;i<url.length;i++)h=(h*31+url.charCodeAt(i))&0xffff;return AVP[h%AVP.length];}
 
@@ -254,7 +296,7 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
   </>);
 }
 
-function PieceCard({piece,open,toggle,body,bodyLoading}){
+function PieceCard({piece,open,toggle,body,bodyLoading,preview,previewLoading}){
   const sub=piece._sub;
   const slug=gf(piece,'slug');
   const title=gf(piece,'title')||slug;
@@ -268,9 +310,18 @@ function PieceCard({piece,open,toggle,body,bodyLoading}){
   const tc=TCLS[type]||'tx';
   const author=gf(sub.profile,'title')||sub.url.replace('https://','');
   const av=avBg(sub.url);
+  const isImg=type==='image';
   return(
     <div className={`ti-wrap${open?' open':''}${locked?' locked':''}`}>
       <div className="tile" onClick={()=>!locked&&toggle(sub,piece)}>
+        {/* Thumbnail for image pieces */}
+        {isImg && (
+          preview?.kind==='img'
+            ? <div className="tile-thumb"><img src={preview.src} alt={title} loading="lazy"/></div>
+            : previewLoading
+              ? <div className="tile-thumb-loading ldg">loading image…</div>
+              : null
+        )}
         <div className="tile-top">
           <div className="tile-badges">
             <span className={`ftb ${tc}`}>{type}</span>
@@ -281,7 +332,12 @@ function PieceCard({piece,open,toggle,body,bodyLoading}){
         </div>
         <div className="tile-body">
           <div className="ftit">{title}</div>
-          {desc&&<div className="fdsc">{desc}</div>}
+          {/* Fragment for text pieces */}
+          {!isImg && preview?.kind==='text' && (
+            <div className="tile-frag">{preview.text}</div>
+          )}
+          {/* Description fallback if no fragment yet */}
+          {!isImg && !preview && desc && <div className="fdsc">{desc}</div>}
         </div>
         <div className="tile-foot">
           <div className="tile-author">
@@ -309,6 +365,9 @@ function PieceCard({piece,open,toggle,body,bodyLoading}){
             <div><button className="fbclose" style={{marginTop:'.4rem'}} onClick={e=>{e.stopPropagation();toggle(sub,piece);}}>▲ close</button></div>
           </div>
           <div>
+            {isImg && preview?.kind==='img' && (
+              <img src={preview.src} alt={title} style={{width:'100%',maxHeight:'400px',objectFit:'contain',marginBottom:'1rem'}}/>
+            )}
             {bodyLoading
               ?<div className="fbld ldg">loading…</div>
               :<div className="fbdt">{body||'(empty)'}</div>
@@ -330,7 +389,35 @@ function App(){
   const [addUrl,setAddUrl]=useState('');
   const [addB,setAddB]=useState(false);
   const [addE,setAddE]=useState('');
+  const [previews,setPreviews]=useState({});
+  const loadedKeys=useRef(new Set());
 
+  // Background: load fragments for text pieces, thumbnails for images
+  useEffect(()=>{
+    const feed=subs.flatMap(sub=>(sub.pieces||[]).map(p=>({...p,_sub:sub})));
+    feed.forEach((piece,i)=>{
+      const slug=gf(piece,'slug');
+      const key=`${piece._sub.url}::${slug}`;
+      if(loadedKeys.current.has(key))return;
+      loadedKeys.current.add(key);
+      const access=gf(piece,'access');
+      if(access==='locked'||access==='members')return;
+      const type=(gf(piece,'type')||'').toLowerCase();
+      setTimeout(async()=>{
+        try{
+          if(type==='image'){
+            const text=await mcpCall(piece._sub.url,'read_blob',{slug});
+            const src=extractImageSrc(text);
+            if(src)setPreviews(p=>({...p,[key]:{kind:'img',src}}));
+          }else{
+            const text=await mcpCall(piece._sub.url,'read_content',{slug});
+            const frag=extractFragment(text);
+            if(frag)setPreviews(p=>({...p,[key]:{kind:'text',text:frag}}));
+          }
+        }catch(e){}
+      },i*700);
+    });
+  },[subs.map(s=>s.url).join(',')]);
   useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem(LT,theme);},[theme]);
   useEffect(()=>{localStorage.setItem(LS,JSON.stringify(subs.map(({url,profile,pieces})=>({url,profile,pieces}))));},[subs]);
 
@@ -401,7 +488,12 @@ function App(){
               <div className="tgrid">
                 {feed.map(piece=>{
                   const key=`${piece._sub.url}::${gf(piece,'slug')}`;
-                  return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key}/>;
+                  const type=(gf(piece,'type')||'').toLowerCase();
+                  const isImg=type==='image';
+                  const access=gf(piece,'access');
+                  const locked=access==='locked'||access==='members';
+                  const previewLoading=isImg && !locked && !previews[key] && loadedKeys.current.has(key);
+                  return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key} preview={previews[key]} previewLoading={previewLoading}/>;
                 })}
               </div>
             )}
