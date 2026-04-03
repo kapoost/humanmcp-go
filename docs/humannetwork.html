@@ -78,44 +78,59 @@ input{font-family:inherit;font-size:inherit;}
 
 /* Feed */
 .feed{flex:1;overflow-y:auto;}
-.fdin{max-width:660px;margin:0 auto;padding:0 2.2rem 5rem;}
+.fdin{padding:0;}
 
 /* Empty */
-.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 120px);text-align:center;padding:3rem;}
-.etit{font-family:var(--serif);font-size:2rem;font-weight:300;font-style:italic;color:var(--fg);margin-bottom:.35rem;line-height:1.2;}
-.esub{font-size:8px;color:var(--mut);letter-spacing:.18em;text-transform:uppercase;margin-bottom:1.5rem;}
-.etry{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:6px 18px;border:1px solid var(--gb);color:var(--gold);border-radius:2px;transition:background .15s;}
+.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:calc(100vh - 80px);text-align:center;padding:3rem;}
+.etit{font-family:var(--serif);font-size:3.2rem;font-weight:300;font-style:italic;color:var(--fg);margin-bottom:.5rem;line-height:1.15;}
+.esub{font-size:10px;color:var(--mut);letter-spacing:.18em;text-transform:uppercase;margin-bottom:2rem;}
+.etry{font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 22px;border:1px solid var(--gb);color:var(--gold);border-radius:2px;transition:background .15s;}
 .etry:hover{background:var(--gd);}
 
-/* Feed item */
-.fi{border-top:1px solid var(--b1);padding:1.15rem 0;}
-.fi:first-child{border-top:none;padding-top:.5rem;}
-.fihd{cursor:pointer;}
-.mt{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.55rem;}
-.fav{width:17px;height:17px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:6.5px;font-weight:700;color:#fff;}
-.fau{font-size:9.5px;color:var(--mut);letter-spacing:.03em;}
-.fsp{color:var(--b2);font-size:8px;}
-.ftb{font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:1px;}
+/* Tile grid */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));border-top:1px solid var(--b1);}
+
+/* Tile */
+.ti-wrap{border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);}
+.ti-wrap.open{grid-column:1/-1;border-right:none;}
+.tile{padding:1.6rem 1.8rem 1.4rem;min-height:180px;display:flex;flex-direction:column;cursor:pointer;transition:background .15s;}
+.tile:hover{background:var(--fnt);}
+.locked .tile{cursor:default;}
+.tile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.8rem;}
+.tile-badges{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;}
+.ftb{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:1px;}
 .tp{background:var(--gd);color:var(--gold);border:1px solid var(--gb);}
 .te{background:rgba(122,173,224,.07);color:var(--blu);border:1px solid rgba(122,173,224,.18);}
 .tn{background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .ti,.td,.tc,.tx{background:var(--fnt);color:var(--mut);border:1px solid var(--b1);}
-.tlk{font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:1px;background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.18);}
-.tsg{font-size:8px;padding:1px 5px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
-.fdt{margin-left:auto;font-size:8.5px;color:var(--dim);letter-spacing:.04em;flex-shrink:0;}
-.ftit{font-family:var(--serif);font-size:1.25rem;font-weight:400;line-height:1.3;color:var(--fg);transition:color .15s;margin-bottom:.2rem;}
-.fihd:hover .ftit{color:var(--gold);}
-.fdsc{font-size:10.5px;color:var(--mut);line-height:1.55;margin-bottom:.2rem;}
-.fgs{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.3rem;}
-.fg{font-size:8px;color:var(--dim);letter-spacing:.06em;}
-.fg::before{content:'#';color:var(--mut);opacity:.6;}
-.fht{font-size:8px;color:var(--dim);margin-top:.5rem;letter-spacing:.08em;}
+.tlk{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:1px;background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.18);}
+.tsg{font-size:9px;padding:2px 6px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
+.tile-date{font-size:9px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
+.tile-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;}
+.ftit{font-family:var(--serif);font-size:1.65rem;font-weight:400;line-height:1.25;color:var(--fg);transition:color .15s;margin-bottom:.5rem;}
+.tile:hover .ftit{color:var(--gold);}
+.fdsc{font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:.4rem;}
+.tile-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.7rem;}
+.tile-author{display:flex;align-items:center;gap:.4rem;}
+.fav{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:#fff;}
+.fau{font-size:10px;color:var(--mut);letter-spacing:.03em;}
+.fgs{display:flex;gap:.35rem;flex-wrap:wrap;}
+.fg{font-size:9px;color:var(--dim);letter-spacing:.05em;}
+.fg::before{content:'#';color:var(--mut);opacity:.5;}
 
-/* Body */
-.fbod{margin-top:.8rem;border-top:1px solid var(--b1);padding-top:.9rem;}
-.fbdt{font-family:var(--serif);font-size:1.08rem;line-height:2.05;white-space:pre-wrap;color:var(--fg);}
-.fbld{font-size:9px;color:var(--mut);letter-spacing:.14em;text-transform:uppercase;}
-.fbft{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding-top:.55rem;border-top:1px solid var(--b1);font-size:8.5px;color:var(--dim);letter-spacing:.05em;}
+/* Expanded tile body */
+.fbod{border-top:1px solid var(--b1);padding:2rem 1.8rem 1.6rem;display:grid;grid-template-columns:1fr min(540px,50%);gap:3rem;}
+@media(max-width:900px){.fbod{grid-template-columns:1fr;gap:1.5rem;}}
+.fbod-meta{display:flex;flex-direction:column;gap:.5rem;}
+.fbod-author{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
+.fbod-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+.fbod-name{font-size:12px;font-weight:500;}
+.fbod-url{font-size:9px;color:var(--dim);letter-spacing:.04em;}
+.fbod-sig{font-size:9px;color:var(--grn);letter-spacing:.04em;margin-top:.2rem;}
+.fbdt{font-family:var(--serif);font-size:1.25rem;line-height:2.1;white-space:pre-wrap;color:var(--fg);}
+.fbld{font-size:10px;color:var(--mut);letter-spacing:.14em;text-transform:uppercase;}
+.fbclose{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:4px 10px;border:1px solid var(--b2);border-radius:1px;margin-top:1rem;display:inline-block;}
+.fbclose:hover{color:var(--gold);border-color:var(--gb);}
 
 /* Bottom nav */
 .bnav{display:none;height:50px;border-top:1px solid var(--b1);background:var(--bg);flex-shrink:0;}
@@ -129,6 +144,7 @@ input{font-family:inherit;font-size:inherit;}
 @media(min-width:721px){
   .bnav{display:none!important;}
   .mob-ppl{display:none!important;}
+  .feed{display:block!important;}
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .ldg{animation:pulse 1.4s infinite;}
@@ -253,28 +269,50 @@ function PieceCard({piece,open,toggle,body,bodyLoading}){
   const author=gf(sub.profile,'title')||sub.url.replace('https://','');
   const av=avBg(sub.url);
   return(
-    <div className="fi">
-      <div className="fihd" onClick={()=>!locked&&toggle(sub,piece)}>
-        <div className="mt">
-          <div className="fav" style={{background:av}}>{initials(author)}</div>
-          <span className="fau">{author}</span>
-          <span className="fsp">·</span>
-          <span className={`ftb ${tc}`}>{type}</span>
-          {sig&&<span className="tsg">✓ signed</span>}
-          {locked&&<span className="tlk">locked</span>}
-          <span className="fdt">{fmtDate(pub)}</span>
+    <div className={`ti-wrap${open?' open':''}${locked?' locked':''}`}>
+      <div className="tile" onClick={()=>!locked&&toggle(sub,piece)}>
+        <div className="tile-top">
+          <div className="tile-badges">
+            <span className={`ftb ${tc}`}>{type}</span>
+            {sig&&<span className="tsg">✓</span>}
+            {locked&&<span className="tlk">locked</span>}
+          </div>
+          <span className="tile-date">{fmtDate(pub)}</span>
         </div>
-        <div className="ftit">{title}</div>
-        {desc&&<div className="fdsc">{desc}</div>}
-        {tags.length>0&&<div className="fgs">{tags.map(t=><span key={t} className="fg">{t}</span>)}</div>}
-        {!locked&&<div className="fht">{open?'▲ collapse':'▼ read'}</div>}
+        <div className="tile-body">
+          <div className="ftit">{title}</div>
+          {desc&&<div className="fdsc">{desc}</div>}
+        </div>
+        <div className="tile-foot">
+          <div className="tile-author">
+            <div className="fav" style={{background:av}}>{initials(author)}</div>
+            <span className="fau">{author}</span>
+          </div>
+          {tags.length>0&&<div className="fgs">{tags.slice(0,3).map(t=><span key={t} className="fg">{t}</span>)}</div>}
+        </div>
       </div>
       {open&&(
         <div className="fbod">
-          {bodyLoading?<div className="fbld ldg">loading…</div>:<div className="fbdt">{body||'(empty)'}</div>}
-          <div className="fbft">
-            <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer">{sub.url.replace('https://','/')} →</a>
-            {sig&&<span>Ed25519</span>}
+          <div className="fbod-meta">
+            <div className="fbod-author">
+              <div className="fbod-av" style={{background:av}}>{initials(author)}</div>
+              <div>
+                <div className="fbod-name">{author}</div>
+                <div className="fbod-url">{sub.url.replace('https://','')}</div>
+              </div>
+            </div>
+            <div className={`ftb ${tc}`} style={{display:'inline-block',width:'fit-content'}}>{type}</div>
+            <div className="tile-date">{fmtDate(pub)}</div>
+            {tags.length>0&&<div className="fgs" style={{marginTop:'.3rem'}}>{tags.map(t=><span key={t} className="fg">{t}</span>)}</div>}
+            {sig&&<div className="fbod-sig">✓ Ed25519 signed</div>}
+            <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="fbclose">open original →</a>
+            <div><button className="fbclose" style={{marginTop:'.4rem'}} onClick={e=>{e.stopPropagation();toggle(sub,piece);}}>▲ close</button></div>
+          </div>
+          <div>
+            {bodyLoading
+              ?<div className="fbld ldg">loading…</div>
+              :<div className="fbdt">{body||'(empty)'}</div>
+            }
           </div>
         </div>
       )}
@@ -324,20 +362,6 @@ function App(){
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
   const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove};
 
-  function FeedList(){
-    if(feed.length===0)return(
-      <div className="emp">
-        <div className="etit">Nothing here yet.</div>
-        <div className="esub">add a humanmcp server to begin</div>
-        <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>try kapoost's server</button>
-      </div>
-    );
-    return feed.map(piece=>{
-      const key=`${piece._sub.url}::${gf(piece,'slug')}`;
-      return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key}/>;
-    });
-  }
-
   return(
     <div className="app">
       <div className="hdr">
@@ -364,12 +388,27 @@ function App(){
       <div className="main">
         <div className="sidebar"><PeoplePanel {...pp}/></div>
 
-        {(view==='feed')&&(
-          <div className="feed">
-            <div className="fdin"><FeedList/></div>
+        {/* Feed — always in DOM on desktop, hidden on mobile when view=people */}
+        <div className="feed" style={{display: view==='people' ? 'none' : 'block'}}>
+          <div className="fdin">
+            {feed.length===0 ? (
+              <div className="emp">
+                <div className="etit">Nothing here yet.</div>
+                <div className="esub">add a humanmcp server to begin</div>
+                <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>try kapoost's server</button>
+              </div>
+            ) : (
+              <div className="tgrid">
+                {feed.map(piece=>{
+                  const key=`${piece._sub.url}::${gf(piece,'slug')}`;
+                  return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key}/>;
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
+        {/* People panel — mobile only */}
         {view==='people'&&(
           <div className="mob-ppl" style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
             <PeoplePanel {...pp}/>
