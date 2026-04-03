@@ -411,6 +411,15 @@ function App(){
   const [previews,setPreviews]=useState({});
   const loadedKeys=useRef(new Set());
 
+  // On mount: silently refresh all subs (stale-while-revalidate — picks up new pieces)
+  useEffect(()=>{
+    subs.forEach((sub,i)=>{
+      setTimeout(async()=>{
+        try{const fresh=await loadSub(sub.url);setSubs(p=>p.map(s=>s.url===sub.url?{...fresh}:s));}catch{}
+      },i*1500);
+    });
+  },[]);
+
   // Background: load fragments for text pieces, thumbnails for images
   useEffect(()=>{
     const feed=subs.flatMap(sub=>(sub.pieces||[]).map(p=>({...p,_sub:sub})));
