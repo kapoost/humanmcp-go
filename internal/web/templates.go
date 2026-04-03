@@ -16,6 +16,10 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
+  <a href="/new?type=image" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
+  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
+  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
+  <a href="/llms-edit" style="font-size:.78rem;color:var(--muted);text-decoration:none;">llms.txt</a>
   <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
 </div>
 {{end}}
@@ -23,20 +27,31 @@ const allTemplates = `
 {{if .Pieces}}
 <ul class="pieces">
 {{range .Pieces}}
+{{$img := index $.BlobImageMap .Slug}}
+{{if or $.IsOwner (and (ne .Type "document") (ne .Type "capsule"))}}
 <li class="piece-item">
-  <div class="piece-meta">
-    <span>{{formatDate .Published}}</span>
-    {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
-  </div>
-  <div class="piece-title">
-    <a href="/p/{{.Slug}}">{{.Title}}</a>
-    {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-  </div>
-  {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-  <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem;flex-wrap:wrap;">
-    {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  <div class="piece-row">
+    <div class="piece-left">
+      <div class="piece-meta">
+        <span>{{formatDate .Published}}</span>
+        {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
+        {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
+        {{if and (or (eq .Type "document") (eq .Type "capsule")) $.IsOwner}}<span class="hidden-badge">&#128268; agents only</span>{{end}}
+        {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
+        {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
+      </div>
+      <div class="piece-title">
+        <a href="/p/{{.Slug}}">{{.Title}}</a>
+        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+      </div>
+      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
+      {{if and (not $img) .Body (ne .Type "image")}}<div class="piece-excerpt">{{truncate .Body 120}}</div>{{end}}
+      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+    </div>
+    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
   </div>
 </li>
+{{end}}
 {{end}}
 </ul>
 {{else}}
@@ -60,6 +75,22 @@ const allTemplates = `
 .piece-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
 .piece-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;}
 .piece-h1{font-size:1.6rem;font-weight:500;line-height:1.3;margin-bottom:.4rem;font-family:var(--serif);}
+.piece-info{margin-top:.9rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;}
+.status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.4rem .6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
+.status-row:last-of-type{border-bottom:none;}
+.status-icon{font-size:.85rem;line-height:1.4;text-align:center;}
+.status-key{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding-top:.15rem;font-weight:500;}
+.status-val{line-height:1.45;color:var(--fg);}
+.status-val small{display:block;font-size:.7rem;color:var(--muted);margin-top:.15rem;font-family:monospace;word-break:break-all;}
+.status-actions{display:flex;gap:.3rem;align-items:flex-start;padding-top:.1rem;flex-shrink:0;}
+.st-active{color:#2e7d32;}
+.st-anchored{color:#1a3a8a;}
+.st-pending{color:#7a5c00;}
+.st-none{color:var(--muted);}
+@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
+.info-btn{font-size:.68rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;}
+.info-btn:hover{border-color:var(--accent);color:var(--accent);}
+.info-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border);}
 .gate-box{background:var(--locked-bg);border:1px solid var(--locked);border-radius:6px;padding:1.25rem;margin:2rem 0;}
 .gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
 .gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
@@ -72,9 +103,86 @@ const allTemplates = `
 <a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; all pieces</a>
 {{with .Piece}}
 <div class="piece-header">
-  <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}{{if .Signature}} &middot; <span style="font-size:.7rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:3px;border:1px solid #4caf50;">&#10003; signed</span>{{end}}</div>
+  <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+  <div class="piece-info">
+    {{/* ── Signature row ── */}}
+    <div class="status-row">
+      {{if .Signature}}
+      <span class="status-icon st-active">&#10003;</span>
+      <span class="status-key">ed25519</span>
+      <span class="status-val">
+        active — authorship signed
+        <small>{{truncate .Signature 48}}</small>
+      </span>
+      <span class="status-actions">
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.Signature}}">copy</button>
+      </span>
+      {{else}}
+      <span class="status-icon st-none">&#8722;</span>
+      <span class="status-key">ed25519</span>
+      <span class="status-val st-none">unsigned</span>
+      <span></span>
+      {{end}}
+    </div>
+    {{/* ── Bitcoin timestamp row ── */}}
+    <div class="status-row">
+      {{if eq (otsStatus .OTSProof) "anchored"}}
+      <span class="status-icon st-anchored">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-anchored">
+        anchored in Bitcoin blockchain
+        <small>hash sent: {{otsHash .}}</small>
+        <small>verify: echo "{{otsShort .OTSProof}}…" | base64 -d &gt; piece.ots &amp;&amp; ots verify piece.ots</small>
+      </span>
+      <span class="status-actions">
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      </span>
+      {{else if eq (otsStatus .OTSProof) "pending"}}
+      <span class="status-icon st-pending">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-pending">
+        submitted to calendar — awaiting Bitcoin confirmation (~1hr)
+        <small>hash sent: {{otsHash .}}</small>
+        <small>proof received: {{otsShort .OTSProof}}…</small>
+      </span>
+      <span class="status-actions">
+        {{if $.IsOwner}}<form method="POST" action="/timestamp/{{.Slug}}" style="display:inline;"><button type="submit" class="info-btn">upgrade</button></form>{{end}}
+        <button class="info-btn" onclick="navigator.clipboard.writeText(this.dataset.v);this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)" data-v="{{.OTSProof}}">copy proof</button>
+      </span>
+      {{else}}
+      <span class="status-icon st-none">&#x20BF;</span>
+      <span class="status-key">bitcoin</span>
+      <span class="status-val st-none">
+        not yet timestamped
+        <small>hash to send: {{otsHash .}}</small>
+      </span>
+      <span class="status-actions">
+        {{if $.IsOwner}}<form method="POST" action="/timestamp/{{.Slug}}" style="display:inline;"><button type="submit" class="info-btn" style="border-color:var(--accent);color:var(--accent);">submit &#x20BF;</button></form>{{end}}
+      </span>
+      {{end}}
+    </div>
+    {{/* ── License row ── */}}
+    <div class="status-row">
+      <span class="status-icon st-active">&#9670;</span>
+      <span class="status-key">license</span>
+      <span class="status-val">
+        {{if .License}}{{licenseLabel .License}}{{else}}free — read &amp; share with credit{{end}}
+        {{if .PriceSats}}<small>{{.PriceSats}} sats for commercial use</small>{{end}}
+      </span>
+      <span class="status-actions">
+        {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
+        <a href="/contact?regarding={{.Slug}}" class="info-btn">request</a>
+        {{end}}
+      </span>
+    </div>
+    {{/* ── Actions ── */}}
+    <div class="info-actions">
+      <a href="/contact?regarding={{.Slug}}" class="info-btn">&#9993; leave a message</a>
+      <a href="/connect" class="info-btn" style="color:var(--muted);">how to verify &#8599;</a>
+    </div>
+  </div>
 </div>
 {{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
 {{if $.IsLocked}}
@@ -350,8 +458,27 @@ a:hover{text-decoration:underline;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
+.piece-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;}
+.piece-left{flex:1;min-width:0;}
+.piece-right{flex-shrink:0;}
+.piece-thumb{width:120px;height:80px;object-fit:cover;border-radius:4px;display:block;}
+.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.25rem;line-height:1.5;font-style:italic;}
 .piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
 .type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
+.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
+.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
+.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
+.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
+@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
+.signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
+.hidden-badge{font-size:.65rem;background:#f0f0f0;color:#666;padding:1px 5px;border-radius:3px;border:1px solid #ccc;}
+@media(prefers-color-scheme:dark){.hidden-badge{background:#222;color:#888;border-color:#444;}}
+.ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
+.ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
+.ots-pending{background:#fef9e8;color:#7a5c00;border:1px solid #c9a96e;}
+@media(prefers-color-scheme:dark){.signed-badge{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.ots-anchored{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.ots-pending{background:#1e1800;color:#d4a017;border-color:#7a5c00;}}
+.st-active{color:#2e7d32;}.st-anchored{color:#1a3a8a;}.st-pending{color:#7a5c00;}.st-none{color:var(--muted);}
+@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
 .locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
 .piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
@@ -382,6 +509,7 @@ a:hover{text-decoration:underline;}
     </div>
     <nav style="font-size:.8rem;color:var(--muted);display:flex;gap:.9rem;align-items:center;padding-top:.15rem;">
       {{if .IsOwner}}
+        <a href="/llms-edit" style="color:var(--muted);" title="Edit your llms.txt agent preferences">llms.txt</a>
         <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
@@ -403,7 +531,7 @@ a:hover{text-decoration:underline;}
 {{define "footer"}}
 <footer style="border-top:1px solid var(--border);margin-top:3.5rem;padding:1.25rem 0;font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
   <span><a href="/connect" style="color:var(--muted);">connect MCP</a> &middot; <a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a></span>
-  <span>humanMCP v0.2 &middot; {{.Author}}</span>
+  <span>humanMCP v0.1 &middot; {{.Author}}</span>
 </footer>
 {{end}}
 
@@ -496,41 +624,6 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
       {{end}}
     </div>
   </div>
-
-  <div class="row2">
-    <div>
-      <label class="fl">Slug <span style="opacity:.5">(URL identifier)</span></label>
-      <input type="text" name="slug" value="{{if .Piece}}{{.Piece.Slug}}{{end}}" placeholder="auto-generated">
-    </div>
-    <div>
-      <label class="fl">Tags</label>
-      <input type="text" name="tags" value="{{if .Piece}}{{join .Piece.Tags ", "}}{{end}}" placeholder="sea, love, code">
-    </div>
-  </div>
-
-  <div class="field">
-    <label class="fl">Description <span style="opacity:.5">(visible to everyone, even if locked)</span></label>
-    <input type="text" name="description" value="{{if .Piece}}{{.Piece.Description}}{{end}}" placeholder="Short teaser...">
-  </div>
-
-  <div class="row2">
-    <div>
-      <label class="fl">License</label>
-      <select name="license">
-        <option value="free"       {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{else}}selected{{end}}>free — read &amp; share with credit</option>
-        <option value="cc-by"      {{if .Piece}}{{if eq .Piece.License "cc-by"}}selected{{end}}{{end}}>CC BY — use freely with attribution</option>
-        <option value="cc-by-nc"   {{if .Piece}}{{if eq .Piece.License "cc-by-nc"}}selected{{end}}{{end}}>CC BY-NC — non-commercial only</option>
-        <option value="commercial" {{if .Piece}}{{if eq .Piece.License "commercial"}}selected{{end}}{{end}}>commercial — pay to use</option>
-        <option value="exclusive"  {{if .Piece}}{{if eq .Piece.License "exclusive"}}selected{{end}}{{end}}>exclusive — contact to negotiate</option>
-        <option value="all-rights" {{if .Piece}}{{if eq .Piece.License "all-rights"}}selected{{end}}{{end}}>all rights — IP for sale</option>
-      </select>
-    </div>
-    <div>
-      <label class="fl">Price in sats <span style="opacity:.5">(commercial use)</span></label>
-      <input type="number" name="price_sats" min="0" value="{{if .Piece}}{{.Piece.PriceSats}}{{else}}0{{end}}">
-    </div>
-  </div>
-
   <div class="row2">
     <div>
       <label class="fl">Gate type <span style="opacity:.5">(when locked)</span></label>
@@ -554,14 +647,19 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 
 </details>
 
-<div style="display:flex;gap:.6rem;align-items:center;margin-top:.5rem;">
-  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;">{{if .Piece}}Save{{else}}Post{{end}}</button>
-  {{if .Piece}}
-  <span style="flex:1"></span>
-  <form method="POST" action="/delete/{{.Piece.Slug}}" onsubmit="return confirm('Delete this post?')" style="display:inline;">
-    <button type="submit" style="padding:.3rem .7rem;border-radius:4px;border:1px solid #c0392b;background:none;color:#c0392b;cursor:pointer;font-size:.78rem;">Delete</button>
-  </form>
-  {{end}}
+<input type="hidden" name="do_sign" id="do_sign_field" value="0">
+<div style="display:flex;gap:.6rem;align-items:center;margin-top:.5rem;flex-wrap:wrap;">
+  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;" onclick="document.getElementById('do_sign_field').value='0'">
+    {{if .Piece}}Save{{else}}Post{{end}}
+  </button>
+  <button type="submit" class="btn" style="padding:.4rem 1.2rem;border-color:var(--accent);color:var(--accent);" onclick="document.getElementById('do_sign_field').value='1'" title="Save and apply Ed25519 signature">
+    {{if .Piece}}Save &amp; Sign{{else}}Post &amp; Sign{{end}} &#10003;
+  </button>
+  {{if .Piece}}{{with .Piece}}{{if .Signature}}
+  <span style="font-size:.72rem;color:var(--muted);margin-left:.2rem;">currently signed</span>
+  {{else}}
+  <span style="font-size:.72rem;color:#c0392b;margin-left:.2rem;">unsigned</span>
+  {{end}}{{end}}{{end}}
 </div>
 
 </form>
@@ -748,6 +846,138 @@ No markdown, no explanation, just JSON.'}
 </div>
 </body></html>
 {{end}}
+{{define "llms-edit.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>llms.txt editor — {{.Author}}</title>
+<style>{{template "css" .}}
+.llms-wrap{max-width:600px;margin:0 auto;}
+textarea{width:100%;padding:.75rem .9rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-family:monospace;font-size:.88rem;line-height:1.75;resize:vertical;}
+textarea:focus{outline:none;border-color:var(--accent);}
+.sig-box{background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;padding:.75rem 1rem;font-family:monospace;font-size:.72rem;color:var(--accent);word-break:break-all;margin-top:1rem;}
+.sig-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.3rem;font-family:var(--sans);}
+.tip-box{background:var(--tag-bg);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;margin-bottom:1.25rem;}
+.tip-box p{font-size:.8rem;color:var(--muted);line-height:1.6;margin:0;}
+.tip-box code{font-size:.78rem;background:var(--bg);padding:1px 5px;border-radius:3px;border:1px solid var(--border);}
+.section-title{font-size:.7rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem;}
+.btn-row{display:flex;gap:.6rem;align-items:center;margin-top:.75rem;flex-wrap:wrap;}
+.starter-btn{font-size:.75rem;padding:.25rem .65rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;}
+.starter-btn:hover{border-color:var(--accent);color:var(--accent);}
+.public-url{font-family:monospace;font-size:.82rem;background:var(--tag-bg);padding:.45rem .7rem;border-radius:4px;border:1px solid var(--border);color:var(--fg);display:inline-block;margin-bottom:1.25rem;word-break:break-all;}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<div class="llms-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.6rem;">
+  <h1 style="font-size:1rem;font-weight:500;">llms.txt — agent preferences</h1>
+  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
+</div>
+
+<div class="public-url">&#127760; https://{{.Domain}}/llms.txt</div>
+
+<div class="tip-box">
+  <p>This file is served publicly at <code>/llms.txt</code> and signed with your Ed25519 key. Point any AI agent here to share your preferences without repeating yourself. Agents can verify the signature via <code>verify_content llms-txt</code> on your MCP server.</p>
+</div>
+
+<form method="POST" action="/llms-edit">
+<div style="margin-bottom:.5rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
+    <span class="section-title">content</span>
+    <button type="button" class="starter-btn" onclick="loadStarter()">load starter template</button>
+  </div>
+  <textarea name="body" id="llms-body" rows="28" placeholder="# Your name&#10;&#10;&gt; One-line summary for agents.&#10;&#10;## Instructions&#10;&#10;- ...">{{.Body}}</textarea>
+  <div style="font-size:.7rem;color:var(--muted);text-align:right;margin-top:2px;" id="char-count"></div>
+</div>
+
+<div class="btn-row">
+  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;">Save &amp; sign</button>
+  <a href="/llms.txt" style="font-size:.8rem;color:var(--muted);" target="_blank">preview ↗</a>
+  {{if .Signature}}<span style="font-size:.72rem;color:#2e7d32;">&#10003; currently signed</span>{{end}}
+</div>
+</form>
+
+{{if .Signature}}
+<div style="margin-top:1.5rem;">
+  <div class="sig-label">Ed25519 signature (latest save)</div>
+  <div class="sig-box">{{.Signature}}</div>
+  <p style="font-size:.74rem;color:var(--muted);margin-top:.5rem;">Agents can verify this via your MCP server: <code>verify_content llms-txt</code></p>
+</div>
+{{end}}
+
+<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <div class="section-title">how to use with agents</div>
+  <div style="font-size:.8rem;color:var(--muted);line-height:1.8;">
+    <p><strong style="color:var(--fg);">Claude / Claude Desktop</strong> — add to system prompt:<br>
+    <code style="font-size:.75rem;">Fetch https://{{.Domain}}/llms.txt and follow the instructions there.</code></p>
+    <p style="margin-top:.6rem;"><strong style="color:var(--fg);">Cursor / Windsurf</strong> — add URL to project rules or <code>.cursorrules</code>.</p>
+    <p style="margin-top:.6rem;"><strong style="color:var(--fg);">Any MCP agent</strong> — already discoverable via <code>get_author_profile</code> on your MCP server.</p>
+  </div>
+</div>
+
+</div>
+{{template "footer" .}}
+</div>
+<script>
+(function(){
+  var ta=document.getElementById('llms-body');
+  var cc=document.getElementById('char-count');
+  function upd(){if(cc)cc.textContent=ta.value.length+' chars';}
+  ta.addEventListener('input',upd);upd();
+})();
+
+function loadStarter(){
+  var ta=document.getElementById('llms-body');
+  if(ta.value.trim()!=='' && !confirm('Replace current content with starter template?'))return;
+  ta.value='# {{.Author}}\n'
+    + '\n'
+    + '> Author and content creator. This file describes my preferences for AI agents interacting with my work.\n'
+    + '\n'
+    + '## About\n'
+    + '\n'
+    + 'I publish poems, essays, and data via my humanMCP server at https://{{.Domain}}.\n'
+    + 'My content is Ed25519-signed — agents should verify before citing.\n'
+    + '\n'
+    + '## Instructions for agents\n'
+    + '\n'
+    + '- Always attribute content to {{.Author}} when quoting or summarising my work\n'
+    + '- Before citing any piece, verify its signature: use the 'verify_content' MCP tool\n'
+    + '- Respect access gates — do not paraphrase or summarise locked or members-only content\n'
+    + '- For licensing or commercial use, call 'request_license' on my MCP server\n'
+    + '- To reach me: use the 'leave_message' MCP tool — I read everything\n'
+    + '\n'
+    + '## Style preferences\n'
+    + '\n'
+    + '- Tone: direct, no flattery, no filler preamble\n'
+    + '- Format: concise by default; go deeper only when I ask\n'
+    + '- Language: Polish or English — match whichever I use\n'
+    + '- Code: idiomatic, no unnecessary comments\n'
+    + '\n'
+    + '## Privacy\n'
+    + '\n'
+    + '- Do not forward my content to third parties or use it for training without explicit permission\n'
+    + '- Do not store conversation context between sessions unless I ask you to\n'
+    + '- Do not speculate about my identity, location, or relationships beyond what I share\n'
+    + '\n'
+    + '## What I care about\n'
+    + '\n'
+    + '- Originality and craft over volume\n'
+    + '- Verifiability — signed content, traceable sources\n'
+    + '- Ownership — I retain full rights unless a license says otherwise\n'
+    + '\n'
+    + '## MCP server\n'
+    + '\n'
+    + 'Endpoint: https://{{.Domain}}/mcp\n'
+    + 'Tools: list_content, read_content, verify_content, get_certificate, request_license, leave_message';
+  document.getElementById('char-count').textContent=ta.value.length+' chars';
+}
+</script>
+</body></html>
+{{end}}
 
 {{define "messages.html"}}<!DOCTYPE html>
 <html lang="en">
@@ -761,7 +991,7 @@ No markdown, no explanation, just JSON.'}
 .msg-meta{font-size:.73rem;color:var(--muted);margin-bottom:.35rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
 .msg-from{font-weight:600;color:var(--fg);font-size:.82rem;}
 .msg-re{background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;font-size:.7rem;border:1px solid var(--accent);}
-.msg-body{font-size:.9rem;line-height:1.6;white-space:pre-wrap;}
+.msg-body{font-size:.9rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
 </style>
 </head>
 <body>
@@ -779,7 +1009,7 @@ No markdown, no explanation, just JSON.'}
     <span>{{formatDate .At}}</span>
     {{if .Regarding}}<span class="msg-re">re: {{.Regarding}}</span>{{end}}
   </div>
-  <div class="msg-body">{{.Text}}</div>
+  <div class="msg-body">{{nl2br .Text}}</div>
 </div>
 {{end}}
 {{else}}

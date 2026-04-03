@@ -70,6 +70,7 @@ func TestAllTemplatesDefined(t *testing.T) {
 	for _, name := range []string{
 		"index.html", "piece.html", "login.html", "dashboard.html",
 		"contact.html", "connect.html", "new.html", "images.html",
+		"messages.html",
 		"css", "header", "header-simple", "footer",
 	} {
 		if h.tmpl.Lookup(name) == nil {
@@ -353,5 +354,44 @@ func TestWellKnownMCPServer(t *testing.T) {
 	}
 	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
 		t.Error("well-known missing CORS header")
+	}
+}
+
+// ── two-column index layout ───────────────────────────────────────────────────
+
+func TestIndexTwoColumnLayout(t *testing.T) {
+	h, dir := newTestHandler(t)
+
+	// Text piece — should show excerpt
+	seedPiece(t, dir, "poem", "The sea is wide and the wind is cold.", "public")
+
+	// Image piece with a blob
+	seedPiece(t, dir, "photo", "", "public")
+	blobDir := filepath.Join(filepath.Dir(dir), "blobs", "files")
+	os.MkdirAll(blobDir, 0755)
+	os.WriteFile(filepath.Join(blobDir, "photo.jpg"), []byte("JPEG"), 0644)
+	h.blobStore.Save(&content.Blob{
+		Slug: "photo", Title: "Photo",
+		BlobType: content.BlobImage,
+		Access:   content.AccessPublic,
+		MimeType: "image/jpeg",
+		FileRef:  "files/photo.jpg",
+	})
+	h.store.Load()
+
+	w := serve(h, httptest.NewRequest("GET", "/", nil))
+	if w.Code != 200 {
+		t.Fatalf("index: got %d", w.Code)
+	}
+	body := w.Body.String()
+
+	for _, want := range []string{
+		"piece-row", "piece-left", "piece-right", "piece-thumb",
+		"piece-excerpt", "files/photo.jpg",
+		".piece-row{", ".piece-left{", ".piece-right{", ".piece-thumb{",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index missing %q — two-column layout broken", want)
+		}
 	}
 }
