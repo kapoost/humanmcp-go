@@ -92,13 +92,12 @@ input{font-family:inherit;font-size:inherit;}
 
 /* Tile */
 .ti-wrap{border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);}
-.ti-wrap.open{grid-column:1/-1;border-right:none;}
 .tile{padding:1.6rem 1.8rem 1.4rem;min-height:200px;display:flex;flex-direction:column;cursor:pointer;transition:background .15s;}
 .tile:hover{background:var(--fnt);}
 .locked .tile{cursor:default;}
 
 /* Thumbnail */
-.tile-thumb{margin:-1.6rem -1.8rem 1.2rem;height:190px;overflow:hidden;position:relative;flex-shrink:0;}
+.tile-thumb{margin:-1.6rem -1.8rem 1.2rem;height:190px;overflow:hidden;flex-shrink:0;}
 .tile-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease;}
 .tile:hover .tile-thumb img{transform:scale(1.03);}
 .tile-thumb-loading{height:190px;background:var(--fnt);margin:-1.6rem -1.8rem 1.2rem;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;}
@@ -113,7 +112,7 @@ input{font-family:inherit;font-size:inherit;}
 .tlk{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:1px;background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.18);}
 .tsg{font-size:9px;padding:2px 6px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .tile-date{font-size:9px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
-.tile-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;}
+.tile-body{flex:1;display:flex;flex-direction:column;}
 .ftit{font-family:var(--serif);font-size:1.65rem;font-weight:400;line-height:1.25;color:var(--fg);transition:color .15s;margin-bottom:.4rem;}
 .tile:hover .ftit{color:var(--gold);}
 .fdsc{font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:.3rem;}
@@ -126,19 +125,24 @@ input{font-family:inherit;font-size:inherit;}
 .fg{font-size:9px;color:var(--dim);letter-spacing:.05em;}
 .fg::before{content:'#';color:var(--mut);opacity:.5;}
 
-/* Expanded tile body */
-.fbod{border-top:1px solid var(--b1);padding:2rem 1.8rem 1.6rem;display:grid;grid-template-columns:1fr min(540px,50%);gap:3rem;}
-@media(max-width:900px){.fbod{grid-template-columns:1fr;gap:1.5rem;}}
-.fbod-meta{display:flex;flex-direction:column;gap:.5rem;}
-.fbod-author{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
-.fbod-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
-.fbod-name{font-size:12px;font-weight:500;}
-.fbod-url{font-size:9px;color:var(--dim);letter-spacing:.04em;}
-.fbod-sig{font-size:9px;color:var(--grn);letter-spacing:.04em;margin-top:.2rem;}
-.fbdt{font-family:var(--serif);font-size:1.25rem;line-height:2.1;white-space:pre-wrap;color:var(--fg);}
-.fbld{font-size:10px;color:var(--mut);letter-spacing:.14em;text-transform:uppercase;}
-.fbclose{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:4px 10px;border:1px solid var(--b2);border-radius:1px;margin-top:1rem;display:inline-block;}
-.fbclose:hover{color:var(--gold);border-color:var(--gb);}
+/* Detail view — replaces grid when tile is opened */
+.dv{padding:2rem 2.5rem 5rem;max-width:860px;}
+.dv-back{display:inline-flex;align-items:center;gap:.4rem;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:2rem;border:none;background:none;padding:0;transition:color .15s;cursor:pointer;}
+.dv-back:hover{color:var(--gold);}
+.dv-img{margin-bottom:2rem;text-align:center;}
+.dv-img img{max-width:100%;max-height:62vh;object-fit:contain;display:inline-block;}
+.dv-title{font-family:var(--serif);font-size:2.6rem;font-weight:300;line-height:1.15;color:var(--fg);margin-bottom:.75rem;}
+.dv-meta{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--b1);}
+.dv-author{display:flex;align-items:center;gap:.4rem;}
+.dv-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0;}
+.dv-aname{font-size:10px;color:var(--mut);}
+.dv-sep{color:var(--dim);font-size:9px;}
+.dv-date{font-size:10px;color:var(--dim);letter-spacing:.04em;}
+.dv-sig{font-size:9px;color:var(--grn);letter-spacing:.04em;}
+.dv-body{font-family:var(--serif);font-size:1.22rem;line-height:2.1;white-space:pre-wrap;color:var(--fg);margin-bottom:2rem;}
+.dv-loading{font-size:10px;color:var(--mut);letter-spacing:.14em;text-transform:uppercase;}
+.dv-link{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);border:1px solid var(--b2);padding:4px 11px;border-radius:1px;display:inline-block;transition:color .15s,border-color .15s;}
+.dv-link:hover{color:var(--gold);border-color:var(--gb);text-decoration:none;}
 
 /* Bottom nav */
 .bnav{display:none;height:50px;border-top:1px solid var(--b1);background:var(--bg);flex-shrink:0;}
@@ -296,7 +300,7 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
   </>);
 }
 
-function PieceCard({piece,open,toggle,body,bodyLoading,preview,previewLoading}){
+function PieceCard({piece,onOpen,preview,previewLoading}){
   const sub=piece._sub;
   const slug=gf(piece,'slug');
   const title=gf(piece,'title')||slug;
@@ -312,15 +316,12 @@ function PieceCard({piece,open,toggle,body,bodyLoading,preview,previewLoading}){
   const av=avBg(sub.url);
   const isImg=type==='image';
   return(
-    <div className={`ti-wrap${open?' open':''}${locked?' locked':''}`}>
-      <div className="tile" onClick={()=>!locked&&toggle(sub,piece)}>
-        {/* Thumbnail for image pieces */}
-        {isImg && (
+    <div className={`ti-wrap${locked?' locked':''}`}>
+      <div className="tile" onClick={()=>!locked&&onOpen()}>
+        {isImg&&(
           preview?.kind==='img'
-            ? <div className="tile-thumb"><img src={preview.src} alt={title} loading="lazy"/></div>
-            : previewLoading
-              ? <div className="tile-thumb-loading ldg">loading image…</div>
-              : null
+            ?<div className="tile-thumb"><img src={preview.src} alt={title} loading="lazy"/></div>
+            :previewLoading?<div className="tile-thumb-loading ldg">loading…</div>:null
         )}
         <div className="tile-top">
           <div className="tile-badges">
@@ -332,12 +333,8 @@ function PieceCard({piece,open,toggle,body,bodyLoading,preview,previewLoading}){
         </div>
         <div className="tile-body">
           <div className="ftit">{title}</div>
-          {/* Fragment for text pieces */}
-          {!isImg && preview?.kind==='text' && (
-            <div className="tile-frag">{preview.text}</div>
-          )}
-          {/* Description fallback if no fragment yet */}
-          {!isImg && !preview && desc && <div className="fdsc">{desc}</div>}
+          {!isImg&&preview?.kind==='text'&&<div className="tile-frag">{preview.text}</div>}
+          {!isImg&&!preview&&desc&&<div className="fdsc">{desc}</div>}
         </div>
         <div className="tile-foot">
           <div className="tile-author">
@@ -347,34 +344,48 @@ function PieceCard({piece,open,toggle,body,bodyLoading,preview,previewLoading}){
           {tags.length>0&&<div className="fgs">{tags.slice(0,3).map(t=><span key={t} className="fg">{t}</span>)}</div>}
         </div>
       </div>
-      {open&&(
-        <div className="fbod">
-          <div className="fbod-meta">
-            <div className="fbod-author">
-              <div className="fbod-av" style={{background:av}}>{initials(author)}</div>
-              <div>
-                <div className="fbod-name">{author}</div>
-                <div className="fbod-url">{sub.url.replace('https://','')}</div>
-              </div>
-            </div>
-            <div className={`ftb ${tc}`} style={{display:'inline-block',width:'fit-content'}}>{type}</div>
-            <div className="tile-date">{fmtDate(pub)}</div>
-            {tags.length>0&&<div className="fgs" style={{marginTop:'.3rem'}}>{tags.map(t=><span key={t} className="fg">{t}</span>)}</div>}
-            {sig&&<div className="fbod-sig">✓ Ed25519 signed</div>}
-            <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="fbclose">open original →</a>
-            <div><button className="fbclose" style={{marginTop:'.4rem'}} onClick={e=>{e.stopPropagation();toggle(sub,piece);}}>▲ close</button></div>
-          </div>
-          <div>
-            {isImg && preview?.kind==='img' && (
-              <img src={preview.src} alt={title} style={{width:'100%',maxHeight:'400px',objectFit:'contain',marginBottom:'1rem'}}/>
-            )}
-            {bodyLoading
-              ?<div className="fbld ldg">loading…</div>
-              :<div className="fbdt">{body||'(empty)'}</div>
-            }
-          </div>
-        </div>
+    </div>
+  );
+}
+
+function DetailView({piece,body,bodyLoading,preview,onClose}){
+  const sub=piece._sub;
+  const slug=gf(piece,'slug');
+  const title=gf(piece,'title')||slug;
+  const type=(gf(piece,'type')||'note').toLowerCase();
+  const pub=gf(piece,'published');
+  const tags=gf(piece,'tags')||[];
+  const sig=gf(piece,'signature');
+  const tc=TCLS[type]||'tx';
+  const author=gf(sub.profile,'title')||sub.url.replace('https://','');
+  const av=avBg(sub.url);
+  const isImg=type==='image';
+  return(
+    <div className="dv">
+      <button className="dv-back" onClick={onClose}>← back to feed</button>
+      {isImg&&preview?.kind==='img'&&(
+        <div className="dv-img"><img src={preview.src} alt={title}/></div>
       )}
+      <div className="dv-title">{title}</div>
+      <div className="dv-meta">
+        <div className="dv-author">
+          <div className="dv-av" style={{background:av}}>{initials(author)}</div>
+          <span className="dv-aname">{author}</span>
+        </div>
+        <span className="dv-sep">·</span>
+        <span className={`ftb ${tc}`}>{type}</span>
+        <span className="dv-sep">·</span>
+        <span className="dv-date">{fmtDate(pub)}</span>
+        {sig&&<><span className="dv-sep">·</span><span className="dv-sig">✓ signed</span></>}
+        {tags.length>0&&<>{tags.map(t=><span key={t} className="fg" style={{marginLeft:'.2rem'}}>{t}</span>)}</>}
+      </div>
+      <div>
+        {bodyLoading
+          ?<div className="dv-loading ldg">loading…</div>
+          :<div className="dv-body">{body||'(empty)'}</div>
+        }
+      </div>
+      <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="dv-link">open on {sub.url.replace('https://','')}</a>
     </div>
   );
 }
@@ -435,16 +446,6 @@ function App(){
     catch(e){setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:false,err:e.message}:s));}
   }
   function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
-  async function toggle(sub,piece){
-    const slug=gf(piece,'slug');const key=`${sub.url}::${slug}`;
-    if(open===key){setOpen(null);return;}
-    setOpen(key);if(bodies[key]!==undefined)return;
-    setBodyL(key);
-    try{const t=await mcpCall(sub.url,'read_content',{slug});setBodies(p=>({...p,[key]:t||'(no content)'}));}
-    catch(e){setBodies(p=>({...p,[key]:`Error: ${e.message}`}));}
-    setBodyL(null);
-  }
-
   const feed=subs.flatMap(sub=>(sub.pieces||[]).map(p=>({...p,_sub:sub}))).sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
   const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove};
@@ -484,7 +485,14 @@ function App(){
                 <div className="esub">add a humanmcp server to begin</div>
                 <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>try kapoost's server</button>
               </div>
+            ) : open ? (
+              // Detail view
+              (()=>{
+                const op=feed.find(p=>`${p._sub.url}::${gf(p,'slug')}`===open);
+                return op?<DetailView piece={op} body={bodies[open]} bodyLoading={bodyL===open} preview={previews[open]} onClose={()=>setOpen(null)}/>:null;
+              })()
             ) : (
+              // Tile grid
               <div className="tgrid">
                 {feed.map(piece=>{
                   const key=`${piece._sub.url}::${gf(piece,'slug')}`;
@@ -492,8 +500,17 @@ function App(){
                   const isImg=type==='image';
                   const access=gf(piece,'access');
                   const locked=access==='locked'||access==='members';
-                  const previewLoading=isImg && !locked && !previews[key] && loadedKeys.current.has(key);
-                  return <PieceCard key={key} piece={piece} open={open===key} toggle={toggle} body={bodies[key]} bodyLoading={bodyL===key} preview={previews[key]} previewLoading={previewLoading}/>;
+                  const previewLoading=isImg&&!locked&&!previews[key]&&loadedKeys.current.has(key);
+                  function openPiece(){
+                    setOpen(key);
+                    if(!bodies[key]){
+                      setBodyL(key);
+                      mcpCall(piece._sub.url,'read_content',{slug:gf(piece,'slug')})
+                        .then(t=>{setBodies(p=>({...p,[key]:t||'(empty)'}));setBodyL(null);})
+                        .catch(e=>{setBodies(p=>({...p,[key]:`Error: ${e.message}`}));setBodyL(null);});
+                    }
+                  }
+                  return <PieceCard key={key} piece={piece} onOpen={openPiece} preview={previews[key]} previewLoading={previewLoading}/>;
                 })}
               </div>
             )}
