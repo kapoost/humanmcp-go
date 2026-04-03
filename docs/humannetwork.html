@@ -130,64 +130,86 @@ function fmtDate(d) {
 function initials(s='') { return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'H'; }
 function avBg(url) { let h=0; for(let i=0;i<url.length;i++) h=(h*31+url.charCodeAt(i))&0xffff; return AV[h%AV.length]; }
 
-// ── MCP JSON-RPC call ─────────────────────────────────────────────────────
-async function parseMCPResponse(resp) {
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const ct = resp.headers.get('content-type') || '';
-  let data;
-  if (ct.includes('event-stream')) {
-    const txt = await resp.text();
-    for (const line of txt.split('\n')) {
-      if (line.startsWith('data: ')) { try { data = JSON.parse(line.slice(6)); break; } catch {} }
+// ── MCP helpers ───────────────────────────────────────────────────────────
+// humanMCP list_content returns plain text blocks, not JSON.
+// Format: "slug:   X\ntitle:  Y\ntype:   Z\naccess: A\ndate:   D\ntags:   t1, t2\nabout:  desc"
+function parseTextPieces(text) {
+  if (!text || typeof text !== 'string') return [];
+  const pieces = [];
+  const MONTHS = {January:0,February:1,March:2,April:3,May:4,June:5,July:6,August:7,September:8,October:9,November:10,December:11};
+  for (const block of text.split(/\n\n+/)) {
+    if (!block.includes('slug:')) continue;
+    const p = {};
+    for (const line of block.split('\n')) {
+      const m = line.match(/^([\w-]+):\s+(.+)$/);
+      if (!m) continue;
+      const [, k, v] = [, m[1].trim(), m[2].trim()];
+      if (k === 'slug')   p.slug   = v;
+      else if (k === 'title')  p.title  = v;
+      else if (k === 'type')   p.type   = v;
+      else if (k === 'access') p.access = v;
+      else if (k === 'tags')   p.tags   = v.split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'about')  p.description = v;
+      else if (k === 'date') {
+        const dm = v.match(/(\d+)\s+(\w+)\s+(\d{4})/);
+        if (dm && MONTHS[dm[2]] !== undefined)
+          p.published = new Date(+dm[3], MONTHS[dm[2]], +dm[1]).toISOString();
+      }
     }
-  } else {
-    data = await resp.json();
+    if (p.slug) pieces.push(p);
   }
-  return data;
-}
-
-async function mcpCall(base, tool, args={}) {
-  const url = `${base}/mcp`;
-  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
-
-  // Step 1: initialize (required by MCP spec before any tool call)
-  let sessionId = null;
-  try {
-    const initResp = await fetch(url, {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 1, method: 'initialize',
-        params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'HumanNetwork', version: '0.1' } }
-      })
-    });
-    sessionId = initResp.headers.get('mcp-session-id');
-  } catch {}
-
-  // Step 2: tools/call (pass session id if server issued one)
-  const callHeaders = sessionId ? { ...headers, 'mcp-session-id': sessionId } : { ...headers };
-  const r = await fetch(url, {
-    method: 'POST', headers: callHeaders,
-    body: JSON.stringify({ jsonrpc:'2.0', id: Date.now(), method:'tools/call', params:{ name:tool, arguments:args } })
-  });
-
-  const data = await parseMCPResponse(r);
-  if (!data) throw new Error('empty response');
-  if (data.error) throw new Error(data.error.message || 'MCP error');
-  const block = (data.result?.content || []).find(b => b.type === 'text');
-  if (!block) return null;
-  try { return JSON.parse(block.text); } catch { return block.text; }
+  return pieces;
 }
 
 function parsePieces(r) {
   if (!r) return [];
   if (Array.isArray(r)) return r;
   if (r.pieces && Array.isArray(r.pieces)) return r.pieces;
+  if (typeof r === 'string') return parseTextPieces(r);
   const a = Object.values(r).find(v => Array.isArray(v));
   return a || [];
 }
 
+async function mcpCall(base, tool, args={}) {
+  const url = `${base}/mcp`;
+  const baseHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
+
+  // Step 1: initialize — required by MCP spec, returns session ID
+  let session = null;
+  try {
+    const ir = await fetch(url, {
+      method: 'POST', headers: baseHeaders,
+      body: JSON.stringify({ jsonrpc:'2.0', id:1, method:'initialize',
+        params:{ protocolVersion:'2024-11-05', capabilities:{}, clientInfo:{ name:'HumanNetwork', version:'0.1' } } })
+    });
+    session = ir.headers.get('mcp-session-id');
+  } catch {}
+
+  // Step 2: tools/call with session header
+  const headers = session ? { ...baseHeaders, 'mcp-session-id': session } : { ...baseHeaders };
+  const r = await fetch(url, {
+    method: 'POST', headers,
+    body: JSON.stringify({ jsonrpc:'2.0', id: Date.now(), method:'tools/call', params:{ name:tool, arguments:args } })
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+  const ct = r.headers.get('content-type') || '';
+  let data;
+  if (ct.includes('event-stream')) {
+    const txt = await r.text();
+    for (const line of txt.split('\n'))
+      if (line.startsWith('data: ')) { try { data = JSON.parse(line.slice(6)); break; } catch {} }
+  } else {
+    data = await r.json();
+  }
+  if (!data) throw new Error('empty response');
+  if (data.error) throw new Error(data.error.message || 'MCP error');
+  const block = (data.result?.content || []).find(b => b.type === 'text');
+  // Return raw text — list_content is plain text, read_content is poem text
+  return block ? block.text : null;
+}
+
 async function loadSub(url) {
-  // Profile from well-known (already has CORS *)
   let profile = { title: url.replace('https://', ''), description: '', tags: [] };
   try {
     const r = await fetch(`${url}/.well-known/mcp-server.json`);
@@ -196,10 +218,13 @@ async function loadSub(url) {
       profile = { title: wk.title || wk.name || profile.title, description: wk.description || '', tags: wk.tags || [] };
     }
   } catch {}
-  // Pieces via MCP
-  let pieces = [];
-  try { pieces = parsePieces(await mcpCall(url, 'list_content', {})); } catch {}
-  return { url, profile, pieces };
+  let pieces = [], piecesErr = null;
+  try {
+    const text = await mcpCall(url, 'list_content', {});
+    pieces = parsePieces(text);
+    if (!pieces.length && text) piecesErr = 'No pieces parsed';
+  } catch(e) { piecesErr = e.message; }
+  return { url, profile, pieces, piecesErr };
 }
 
 // ── Main component ────────────────────────────────────────────────────────
@@ -248,11 +273,10 @@ function App() {
     if (bodies[key] !== undefined) return;
     setBodyL(key);
     try {
-      const result = await mcpCall(sub.url, 'read_content', { slug });
-      const body = gf(result, 'body') || (typeof result === 'string' ? result : '(no content)');
-      setBodies(p => ({...p, [key]: body}));
+      const text = await mcpCall(sub.url, 'read_content', { slug });
+      setBodies(p => ({...p, [key]: text || '(no content)'}));
     } catch(e) {
-      setBodies(p => ({...p, [key]: `Error loading: ${e.message}`}));
+      setBodies(p => ({...p, [key]: `Error: ${e.message}`}));
     }
     setBodyL(null);
   }
@@ -396,7 +420,7 @@ function App() {
                   <div className="pm">
                     <span style={{fontSize:'.72rem',color:'var(--muted)'}}>{sub.pieces?.length || 0} pieces</span>
                     {pt.slice(0,4).map(t => <span key={t} className="tag">#{t}</span>)}
-                    {sub.err && <span style={{fontSize:'.72rem',color:'#E24B4A'}}>{sub.err}</span>}
+                    {(sub.err || sub.piecesErr) && <span style={{fontSize:'.72rem',color:'#E24B4A'}}>{sub.err || sub.piecesErr}</span>}
                   </div>
                 </div>
                 <div className="pa">
