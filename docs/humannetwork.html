@@ -176,25 +176,33 @@ function norm(u){return u.trim().replace(/\/$/,'').replace(/\/mcp$/,'');}
 function gf(o,k){if(!o)return;return o[k]!==undefined?o[k]:o[k[0].toUpperCase()+k.slice(1)];}
 function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';return dt.toLocaleDateString('en',{day:'numeric',month:'short',year:'numeric'});}
 
+// Strip agent-only footer lines from humanMCP body text
+function cleanBody(text){
+  if(!text||typeof text!=='string')return text;
+  return text
+    .replace(/\nYou may share[^\n]*/g,'')
+    .replace(/\n— Ask the reader[^\n]*/g,'')
+    .replace(/\ntags:[^\n]*/g,'')
+    .trim();
+}
+
 // Extract poem fragment from read_content response text
 function extractFragment(text){
   if(!text||typeof text!=='string')return null;
-  const sepIdx=text.search(/─{5,}/);
+  const t=cleanBody(text);
+  const sepIdx=t.search(/─{5,}/);
   if(sepIdx===-1){
-    // No separator: skip first 2 lines (title, maybe byline), take next 4
-    const lines=text.split('\n').filter(l=>l.trim()).slice(2);
-    const frag=lines.filter(l=>!l.startsWith('— ')&&!l.startsWith('tags:')&&!l.startsWith('You may')).slice(0,4).join('\n');
+    const lines=t.split('\n').filter(l=>l.trim()).slice(2);
+    const frag=lines.filter(l=>!l.startsWith('— ')).slice(0,4).join('\n');
     return frag.slice(0,280)||null;
   }
-  const afterSep=text.slice(sepIdx);
+  const afterSep=t.slice(sepIdx);
   const contentStart=afterSep.indexOf('\n\n');
   if(contentStart===-1)return null;
   const content=afterSep.slice(contentStart).trim();
-  // Find first stanza (up to \n\n) or attribution markers
   let end=content.length;
-  for(const m of['\n— ','\ntags:','\nYou may']){const i=content.indexOf(m);if(i>0&&i<end)end=i;}
-  const stanza=content.slice(0,end);
-  const lines=stanza.split('\n').filter(l=>l.trim()).slice(0,5);
+  const i=content.indexOf('\n— ');if(i>0&&i<end)end=i;
+  const lines=content.slice(0,end).split('\n').filter(l=>l.trim()).slice(0,5);
   return lines.join('\n').slice(0,280)||null;
 }
 
@@ -382,7 +390,7 @@ function DetailView({piece,body,bodyLoading,preview,onClose}){
       <div>
         {bodyLoading
           ?<div className="dv-loading ldg">loading…</div>
-          :<div className="dv-body">{body||'(empty)'}</div>
+          :<div className="dv-body">{cleanBody(body)||'(empty)'}</div>
         }
       </div>
       <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="dv-link">open on {sub.url.replace('https://','')}</a>
@@ -446,7 +454,12 @@ function App(){
     catch(e){setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:false,err:e.message}:s));}
   }
   function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
-  const feed=subs.flatMap(sub=>(sub.pieces||[]).map(p=>({...p,_sub:sub}))).sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
+  // Bot-only types are consumed directly via MCP — HumanNetwork shows human content only
+  const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule']);
+  const feed=subs.flatMap(sub=>(sub.pieces||[])
+    .filter(p=>HUMAN_TYPES.has((gf(p,'type')||'note').toLowerCase()))
+    .map(p=>({...p,_sub:sub})))
+    .sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
   const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove};
 
