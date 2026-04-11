@@ -113,3 +113,59 @@ func TestMemoryDeleteNotFound(t *testing.T) {
 		t.Error("deleting nonexistent memory should return error")
 	}
 }
+
+func TestMemoryGCEnforcesLimit(t *testing.T) {
+	ms := NewMemoryStoreWithLimit(t.TempDir(), 3)
+	for i := 0; i < 5; i++ {
+		ms.Save("obs", "", nil)
+		time.Sleep(time.Millisecond) // unikalny timestamp
+	}
+	all, _ := ms.List("", 0)
+	if len(all) > 3 {
+		t.Errorf("GC should keep max 3 entries, got %d", len(all))
+	}
+}
+
+func TestMemoryGCKeepsNewest(t *testing.T) {
+	ms := NewMemoryStoreWithLimit(t.TempDir(), 2)
+	ms.Save("stara", "", nil)
+	time.Sleep(2 * time.Millisecond)
+	ms.Save("srednia", "", nil)
+	time.Sleep(2 * time.Millisecond)
+	ms.Save("nowa", "", nil) // ta powinna usunac "stara"
+
+	all, _ := ms.List("", 0)
+	if len(all) != 2 {
+		t.Fatalf("expected 2 entries after GC, got %d", len(all))
+	}
+	bodies := []string{all[0].Body, all[1].Body}
+	for _, b := range bodies {
+		if b == "stara" {
+			t.Error("oldest entry should have been removed by GC")
+		}
+	}
+}
+
+func TestMemoryCount(t *testing.T) {
+	ms := NewMemoryStore(t.TempDir())
+	if ms.Count() != 0 {
+		t.Error("empty store should have count 0")
+	}
+	ms.Save("a", "", nil)
+	ms.Save("b", "", nil)
+	if ms.Count() != 2 {
+		t.Errorf("expected count 2, got %d", ms.Count())
+	}
+}
+
+func TestMemoryNoLimitWhenZero(t *testing.T) {
+	ms := NewMemoryStoreWithLimit(t.TempDir(), 0) // 0 = bez limitu
+	for i := 0; i < 10; i++ {
+		ms.Save("obs", "", nil)
+		time.Sleep(time.Millisecond)
+	}
+	all, _ := ms.List("", 0)
+	if len(all) != 10 {
+		t.Errorf("with limit=0, all 10 should be kept, got %d", len(all))
+	}
+}
