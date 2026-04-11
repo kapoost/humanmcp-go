@@ -22,12 +22,21 @@ type Memory struct {
 }
 
 type MemoryStore struct {
-	mu  sync.RWMutex
-	dir string
+	mu         sync.RWMutex
+	dir        string
+	maxEntries int // 0 = brak limitu
 }
 
 func NewMemoryStore(contentDir string) *MemoryStore {
-	ms := &MemoryStore{dir: filepath.Join(contentDir, "memory")}
+	return NewMemoryStoreWithLimit(contentDir, 500)
+}
+
+// NewMemoryStoreWithLimit tworzy store z limitem wpisów.
+func NewMemoryStoreWithLimit(contentDir string, maxEntries int) *MemoryStore {
+	ms := &MemoryStore{
+		dir:        filepath.Join(contentDir, "memory"),
+		maxEntries: maxEntries,
+	}
 	os.MkdirAll(ms.dir, 0755)
 	return ms
 }
@@ -53,7 +62,11 @@ func (ms *MemoryStore) Save(body, agentHint string, tags []string) (*Memory, err
 	if err != nil {
 		return nil, err
 	}
-	return m, os.WriteFile(filepath.Join(ms.dir, m.ID+".json"), data, 0644)
+	if err := os.WriteFile(filepath.Join(ms.dir, m.ID+".json"), data, 0644); err != nil {
+		return nil, err
+	}
+	ms.gc()
+	return m, nil
 }
 
 // List zwraca obserwacje — najnowsze najpierw, opcjonalnie filtrowane tagiem.
@@ -105,6 +118,48 @@ func (ms *MemoryStore) Delete(id string) error {
 		return fmt.Errorf("not found")
 	}
 	return os.Remove(path)
+}
+
+
+// Count zwraca liczbę zapisanych obserwacji.
+func (ms *MemoryStore) Count() int {
+	entries, err := os.ReadDir(ms.dir)
+	if err != nil {
+		return 0
+	}
+	count := 0
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".json") {
+			count++
+		}
+	}
+	return count
+}
+
+// gc usuwa najstarsze wpisy gdy przekroczono limit.
+// Musi być wywoływane pod lockiem Write.
+func (ms *MemoryStore) gc() {
+	if ms.maxEntries <= 0 {
+		return
+	}
+	entries, err := os.ReadDir(ms.dir)
+	if err != nil {
+		return
+	}
+	// Zbierz tylko .json, posortowane po nazwie (ID = UnixNano = chronologicznie)
+	var files []string
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".json") {
+			files = append(files, e.Name())
+		}
+	}
+	// Najstarsze mają najmniejsze ID (UnixNano), sort.Strings działa poprawnie
+	sort.Strings(files)
+	for len(files) > ms.maxEntries {
+		oldest := files[0]
+		files = files[1:]
+		os.Remove(filepath.Join(ms.dir, oldest))
+	}
 }
 
 func hasTagMem(tags []string, tag string) bool {
