@@ -28,6 +28,7 @@ type Handler struct {
 	tmpl  *template.Template
 	loginLimiter *loginRateLimiter
 	skillStore   *content.SkillStore
+	sessionCode  *content.SessionCode
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
@@ -156,6 +157,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Skills + Personas web pages (public)
 	mux.HandleFunc("/skills", h.handleSkillsPage)
 	mux.HandleFunc("/personas", h.handlePersonasPage)
+
+	// Session code (owner only)
+	mux.Handle("/api/session/rotate", h.auth.RequireOwner(http.HandlerFunc(h.handleSessionRotate)))
 
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
@@ -436,12 +440,15 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	pieces := h.store.List(false)
 	msgs, _ := h.msgStore.List()
+code, expiry := h.sessionCode.Current()
 	h.render(w, "dashboard.html", map[string]interface{}{
-		"Author":   h.cfg.AuthorName,
-		"IsOwner":  true,
-		"Stats":    stats,
-		"Pieces":   pieces,
-		"Messages": msgs,
+		"Author":      h.cfg.AuthorName,
+		"IsOwner":     true,
+		"Stats":       stats,
+		"Pieces":      pieces,
+		"Messages":    msgs,
+		"SessionCode": code,
+		"SessionExp":  expiry,
 	})
 }
 
@@ -1186,6 +1193,17 @@ func (h *Handler) handlePersonasPage(w http.ResponseWriter, r *http.Request) {
 		"Personas": personas,
 		"IsOwner":  h.auth.IsOwner(r),
 	})
+}
+
+
+func (h *Handler) handleSessionRotate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, "POST required", 405)
+		return
+	}
+	newCode := h.sessionCode.Rotate()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"code": newCode})
 }
 
 func jsonError(w http.ResponseWriter, msg string, code int) {

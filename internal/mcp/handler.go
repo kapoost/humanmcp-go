@@ -59,7 +59,8 @@ type Handler struct {
 	msgStore  *content.MessageStore
 	statStore *content.StatStore
 	blobStore  *content.BlobStore
-	skillStore *content.SkillStore
+	skillStore  *content.SkillStore
+	sessionCode *content.SessionCode
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
@@ -70,7 +71,8 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 		msgStore:   content.NewMessageStore(cfg.ContentDir),
 		statStore:  content.NewStatStore(cfg.ContentDir),
 		blobStore:  content.NewBlobStore(cfg.ContentDir),
-		skillStore: content.NewSkillStore(cfg.ContentDir),
+		skillStore:  content.NewSkillStore(cfg.ContentDir),
+		sessionCode: content.NewSessionCode(time.Duration(cfg.SessionRotateHours) * time.Hour),
 	}
 }
 
@@ -361,6 +363,25 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "bootstrap_session",
+			Description: "Authenticate with a session code and receive full context: team personas, skills, and a ready-made system prompt. Ask the user for the session code shown in their humanMCP dashboard. Provide the code to receive your briefing.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"code"},
+				"properties": map[string]interface{}{
+					"code": map[string]interface{}{
+						"type":        "string",
+						"description": "Session code from the humanMCP dashboard (a short Polish poetry fragment)",
+					},
+					"format": map[string]interface{}{
+						"type":        "string",
+						"description": "Response format: minimal (lists only), full (all prompts and bodies), system_prompt (single block ready to paste). Default: full",
+						"enum":        []string{"minimal", "full", "system_prompt"},
+					},
+				},
+			},
+		},
+		{
 			Name:        "list_skills",
 			Description: "List the author's skills — instructions for how to work with them. Filter by category (e.g. tech, writing, workflow).",
 			InputSchema: map[string]interface{}{
@@ -493,6 +514,8 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolLeaveComment(w, req, params.Arguments)
 	case "leave_message":
 		h.toolLeaveMessage(w, req, params.Arguments)
+	case "bootstrap_session":
+		h.toolBootstrapSession(w, r, req, params.Arguments)
 	case "list_skills":
 		h.toolListSkills(w, req, params.Arguments)
 	case "get_skill":
@@ -1341,4 +1364,131 @@ func (h *Handler) toolDeletePersona(w http.ResponseWriter, r *http.Request, req 
 		return
 	}
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "deleted: " + a.Slug}}})
+}
+
+// ── bootstrap_session ─────────────────────────────────────────────────────────
+
+func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	var a struct {
+		Code   string `json:"code"`
+		Format string `json:"format"`
+	}
+	json.Unmarshal(args, &a)
+
+	if !h.sessionCode.Verify(a.Code) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{
+			Type: "text",
+			Text: "Niepoprawne hasło sesji. Sprawdź aktualne hasło w panelu humanMCP (/dashboard) i podaj je dokładnie tak jak widnieje na ekranie.",
+		}}})
+		return
+	}
+
+	format := a.Format
+	if format == "" {
+		format = "full"
+	}
+
+	skills, _ := h.skillStore.ListSkills("")
+	personas, _ := h.skillStore.ListPersonas()
+
+	switch format {
+	case "minimal":
+		h.bootstrapMinimal(w, req, skills, personas)
+	case "system_prompt":
+		h.bootstrapSystemPrompt(w, req, skills, personas)
+	default:
+		h.bootstrapFull(w, req, skills, personas)
+	}
+}
+
+func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
+	var sb strings.Builder
+	sb.WriteString("✓ Sesja autoryzowana.\n\n")
+	sb.WriteString(fmt.Sprintf("AUTOR: %s | %s\n\n", h.cfg.AuthorName, h.cfg.Domain))
+
+	sb.WriteString(fmt.Sprintf("PERSONAS (%d) — użyj get_persona <slug> po szczegóły:\n", len(personas)))
+	for _, p := range personas {
+		sb.WriteString(fmt.Sprintf("  %-16s %s\n", p.Slug, p.Role))
+	}
+
+	sb.WriteString(fmt.Sprintf("\nSKILLS (%d) — użyj get_skill <slug> po szczegóły:\n", len(skills)))
+	for _, sk := range skills {
+		sb.WriteString(fmt.Sprintf("  %-24s [%s] %s\n", sk.Slug, sk.Category, sk.Title))
+	}
+
+	sb.WriteString("\nNastępny krok: pobierz potrzebne persony i skille przed pierwszą odpowiedzią.")
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) bootstrapFull(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
+	var sb strings.Builder
+	sb.WriteString("✓ Sesja autoryzowana. Pełny kontekst poniżej.\n\n")
+	sb.WriteString(fmt.Sprintf("═══ AUTOR: %s ═══\n", h.cfg.AuthorName))
+	sb.WriteString(fmt.Sprintf("%s\n\n", h.cfg.AuthorBio))
+
+	sb.WriteString(fmt.Sprintf("═══ TEAM (%d person) ═══\n\n", len(personas)))
+	for _, p := range personas {
+		sb.WriteString(fmt.Sprintf("── %s ── %s\n", p.Name, p.Role))
+		sb.WriteString(p.Prompt)
+		sb.WriteString("\n\n")
+	}
+
+	sb.WriteString(fmt.Sprintf("═══ SKILLS (%d) ═══\n\n", len(skills)))
+	for _, sk := range skills {
+		sb.WriteString(fmt.Sprintf("── %s [%s] ──\n", sk.Title, sk.Category))
+		sb.WriteString(sk.Body)
+		sb.WriteString("\n\n")
+	}
+
+	sb.WriteString("═══ PROTOKÓŁ PRACY ═══\n")
+	sb.WriteString("1. Przeczytaj skille przed pierwszą odpowiedzią\n")
+	sb.WriteString("2. Dobieraj persony do zadania\n")
+	sb.WriteString("3. Trudne decyzje zawsze przez Hermionę\n")
+	sb.WriteString("4. Nie spiesz się — Łukasz nie lubi być poganiany\n")
+
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) bootstrapSystemPrompt(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf(`Jesteś asystentem %s — %s
+
+KONTEKST PRACY:
+`, h.cfg.AuthorName, h.cfg.AuthorBio))
+
+	// Skille jako kontekst
+	for _, sk := range skills {
+		if sk.Category == "workflow" {
+			sb.WriteString(fmt.Sprintf("\n%s:\n%s\n", sk.Title, sk.Body))
+		}
+	}
+
+	// Team summary
+	sb.WriteString("\nTWÓJ ZESPÓŁ EKSPERTÓW:\n")
+	for _, p := range personas {
+		sb.WriteString(fmt.Sprintf("• %s (%s)\n", p.Name, p.Role))
+	}
+
+	sb.WriteString(`
+ZASADY:
+- Czytaj skille przed odpowiedzią — są tam instrukcje jak pracować z autorem
+- Dobieraj ekspertów do zadania i prezentuj ich perspektywy
+- Nie spiesz się z decyzjami — daj czas na przemyślenie
+- Trudne rozmowy zawsze przez Hermionę
+- Gdy coś jest niejasne — pytaj raz, precyzyjnie
+
+Pełne opisy person i skillli dostępne przez: list_personas, get_persona <slug>, list_skills, get_skill <slug>
+`)
+
+	systemPromptText := sb.String()
+
+	var out strings.Builder
+	out.WriteString("✓ Gotowy system prompt. Skopiuj blok poniżej i wklej jako system prompt agenta:\n\n")
+	out.WriteString("```\n")
+	out.WriteString(systemPromptText)
+	out.WriteString("```\n\n")
+	out.WriteString("Alternatywnie: użyj format=full aby dostać pełne prompty wszystkich person.")
+
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: out.String()}}})
 }

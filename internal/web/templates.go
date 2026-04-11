@@ -284,6 +284,24 @@ const allTemplates = `
   <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
 </div>
 
+
+{{if .SessionCode}}
+<div class="section" style="background:var(--accent-light);border:1px solid var(--accent);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.75rem;">
+  <div class="section-title" style="color:var(--accent);margin-bottom:.5rem;">hasło sesji</div>
+  <div style="font-family:var(--serif);font-size:1.15rem;font-weight:500;color:var(--fg);margin-bottom:.5rem;letter-spacing:.02em;">
+    &bdquo;{{.SessionCode}}&rdquo;
+  </div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:.75rem;">
+    ważne do {{formatDate .SessionExp}} &middot; rotacja automatyczna co 24h
+  </div>
+  <div style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem;">
+    Powiedz agentowi: <em style="color:var(--fg);">bootstrap_session, hasło: {{.SessionCode}}</em>
+  </div>
+  <form method="POST" action="/api/session/rotate" style="display:inline;">
+    <button type="submit" class="btn btn-sm" style="font-size:.75rem;">↻ rotuj teraz</button>
+  </form>
+</div>
+{{end}}
 {{with .Stats}}
 <div class="grid">
   <div class="card"><div class="card-num">{{.TotalReads}}</div><div class="card-label">reads</div></div>
