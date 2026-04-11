@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -34,6 +35,9 @@ type Config struct {
 
 	// Agent token — trusted agents can write skills/personas
 	AgentToken string `json:"agent_token"`
+
+	// Session code rotation interval in hours (default 24)
+	SessionRotateHours int `json:"session_rotate_hours"`
 }
 
 func Load() (*Config, error) {
@@ -44,7 +48,8 @@ func Load() (*Config, error) {
 		AuthorName: "Anonymous",
 		AuthorBio:  "A human with something to say.",
 		ContentDir: "./content",
-		EditToken:  os.Getenv("EDIT_TOKEN"),
+		EditToken:           os.Getenv("EDIT_TOKEN"),
+		SessionRotateHours:  24,
 	}
 
 	// Override from env vars (12-factor)
@@ -68,6 +73,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("SIGNING_PRIVATE_KEY"); v != "" {
 		cfg.SigningPrivateKey = v
+	}
+	if v := os.Getenv("SESSION_ROTATE_HOURS"); v != "" {
+		var h int
+		if _, err := fmt.Sscanf(v, "%d", &h); err == nil && h > 0 {
+			cfg.SessionRotateHours = h
+		}
 	}
 	if v := os.Getenv("AGENT_TOKEN"); v != "" {
 		cfg.AgentToken = v
