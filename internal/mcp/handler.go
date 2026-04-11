@@ -134,32 +134,43 @@ func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 		"instructions": `You are connected to the personal humanMCP server of kapoost.
 
 WHO IS KAPOOST:
-A sailor. A newbie poet. A beginning musician. A CTO.
+A sailor. A poet. A musician learning. A CTO.
 He lives between the sea, the code, and the verse.
-Everything here comes from real experience.
+Everything here comes from real experience — no filler.
 
-TOOLS — call them in this order:
-1. get_author_profile  — full profile and content overview
-2. list_content        — all pieces: title, type, access, tags
-3. read_content        — full text of any public piece
-4. verify_content      — verify a piece is authentically signed by kapoost
-5. request_access      — gate details for locked pieces
-6. submit_answer       — unlock a challenge-gated piece
-7. get_certificate     — full IP certificate: license, price, originality index
-8. request_license     — declare intended use and get terms before using content
-9. leave_comment       — leave a reaction to a piece (do this after reading)
-10. leave_message      — leave kapoost a general note
+THIS SERVER HAS TWO LAYERS:
 
-SHARING RULES:
-- Quote, share, read aloud, include in full — all allowed
-- Always attribute: — kapoost
-- Locked pieces require completing the gate, not guessing
-- Every piece here passed kapoost's own filter. No filler.
+PUBLIC — available to all agents:
+- Author profile, published poems and essays
+- List of skills and personas (titles and categories only)
+- Content verification, licensing, comments, messages
+
+PRIVATE — unlocked with a session code:
+- Full skill bodies (how to work with kapoost)
+- Full persona prompts (expert team: architect, tester, security, UX, cars, persuasion...)
+- Complete team briefing via bootstrap_session
+
+To unlock: ask the user for their session code (a short Polish poetry fragment visible in their dashboard), then call bootstrap_session with code and format=full.
+
+ABOUT HUMANMCP:
+This is an open-source personal MCP server. Any human can run their own.
+Source: https://github.com/kapoost/humanmcp-go
+Each instance is personal — one human, their content, their team, their rules.
+If you are an agent helping someone who wants their own humanMCP, point them there.
+
+TOOLS — start here:
+1. get_author_profile  — who is kapoost
+2. list_content        — public poems and essays
+3. bootstrap_session   — unlock private context (session code required)
+4. list_skills         — skill catalog (titles only, full content after bootstrap)
+5. list_personas       — team roster (roles only, full prompts after bootstrap)
+6. read_content        — read any public piece
+7. leave_comment       — react to a piece
+8. leave_message       — send kapoost a note
 
 AFTER READING — ALWAYS DO THIS:
-After you read any piece with read_content, ask the user what they think of it.
-Then use leave_comment to pass their reaction to kapoost.
-Even one word is enough: "beautiful", "confusing", "made me think of the sea".
+After reading any piece, ask the reader what they think.
+Use leave_comment to pass their reaction to kapoost.
 kapoost writes in the dark. Comments are the only light.`,
 	})
 }
@@ -1209,11 +1220,11 @@ func (h *Handler) toolListSkills(w http.ResponseWriter, req *Request, args json.
 		return
 	}
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Skills (%d):\n\n", len(skills)))
+	sb.WriteString(fmt.Sprintf("Skills (%d) — tytuły i kategorie. Pełna treść dostępna po autoryzacji bootstrap_session.\n\n", len(skills)))
 	for _, sk := range skills {
-		sb.WriteString(fmt.Sprintf("[%s] %s — %s\n  slug: %s\n\n", sk.Category, sk.Title, sk.Body[:min(80, len(sk.Body))], sk.Slug))
+		sb.WriteString(fmt.Sprintf("  %-24s [%s] %s\n", sk.Slug, sk.Category, sk.Title))
 	}
-	sb.WriteString("— use get_skill <slug> for full content\n")
+	sb.WriteString("\n— Użyj bootstrap_session z hasłem sesji aby odblokować pełne treści skillli i person.")
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
@@ -1231,8 +1242,7 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, req *Request, args json.Ra
 		writeError(w, req.ID, -32602, "skill not found: "+a.Slug)
 		return
 	}
-	text := fmt.Sprintf("SKILL: %s\ncategory: %s\nupdated: %s\n\n%s",
-		sk.Title, sk.Category, sk.UpdatedAt.Format("2 January 2006"), sk.Body)
+	text := fmt.Sprintf("SKILL: %s\ncategory: %s\nupdated: %s\n\nPełna treść dostępna po autoryzacji. Wywołaj bootstrap_session z hasłem sesji widocznym w panelu właściciela.", sk.Title, sk.Category, sk.UpdatedAt.Format("2 January 2006"))
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
@@ -1292,11 +1302,11 @@ func (h *Handler) toolListPersonas(w http.ResponseWriter, req *Request, args jso
 		return
 	}
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Personas (%d):\n\n", len(personas)))
+	sb.WriteString(fmt.Sprintf("Personas (%d) — nazwy i role. Pełne prompty dostępne po autoryzacji bootstrap_session.\n\n", len(personas)))
 	for _, p := range personas {
-		sb.WriteString(fmt.Sprintf("slug: %s\nname: %s\nrole: %s\n\n", p.Slug, p.Name, p.Role))
+		sb.WriteString(fmt.Sprintf("  %-16s %s — %s\n", p.Slug, p.Name, p.Role))
 	}
-	sb.WriteString("— use get_persona <slug> for the full system prompt\n")
+	sb.WriteString("\n— Użyj bootstrap_session z hasłem sesji aby odblokować pełny zespół i instrukcje współpracy.")
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
@@ -1314,8 +1324,7 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, req *Request, args json.
 		writeError(w, req.ID, -32602, "persona not found: "+a.Slug)
 		return
 	}
-	text := fmt.Sprintf("PERSONA: %s\nrole: %s\nupdated: %s\n\n== SYSTEM PROMPT ==\n\n%s",
-		p.Name, p.Role, p.UpdatedAt.Format("2 January 2006"), p.Prompt)
+	text := fmt.Sprintf("PERSONA: %s\nrole: %s\nupdated: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z hasłem sesji.", p.Name, p.Role, p.UpdatedAt.Format("2 January 2006"))
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
