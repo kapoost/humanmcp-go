@@ -6,6 +6,8 @@ import (
 	"strings"
 	"os"
 
+	"time"
+
 	"github.com/kapoost/humanmcp-go/internal/auth"
 	"github.com/kapoost/humanmcp-go/internal/config"
 	"github.com/kapoost/humanmcp-go/internal/content"
@@ -34,8 +36,14 @@ func main() {
 	}
 
 	a := auth.New(cfg.EditToken)
-	mcpHandler := mcp.NewHandler(cfg, store, a)
-	webHandler := web.NewHandler(cfg, store, a)
+
+	// Shared stores — one instance, wired into both handlers
+	sessionCode := content.NewSessionCode(time.Duration(cfg.SessionRotateHours) * time.Hour)
+	memoryStore := content.NewMemoryStore(cfg.ContentDir)
+	skillStore := content.NewSkillStore(cfg.ContentDir)
+
+	mcpHandler := mcp.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore)
+	webHandler := web.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore)
 	webHandler.SetToolCounter(mcpHandler)
 
 	mux := http.NewServeMux()

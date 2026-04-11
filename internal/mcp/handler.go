@@ -64,17 +64,17 @@ type Handler struct {
 	memoryStore *content.MemoryStore
 }
 
-func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
+func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore) *Handler {
 	return &Handler{
-		cfg:        cfg,
-		store:      store,
-		auth:       a,
-		msgStore:   content.NewMessageStore(cfg.ContentDir),
-		statStore:  content.NewStatStore(cfg.ContentDir),
-		blobStore:  content.NewBlobStore(cfg.ContentDir),
-		skillStore:  content.NewSkillStore(cfg.ContentDir),
-		sessionCode:  content.NewSessionCode(time.Duration(cfg.SessionRotateHours) * time.Hour),
-		memoryStore:  content.NewMemoryStore(cfg.ContentDir),
+		cfg:         cfg,
+		store:       store,
+		auth:        a,
+		msgStore:    content.NewMessageStore(cfg.ContentDir),
+		statStore:   content.NewStatStore(cfg.ContentDir),
+		blobStore:   content.NewBlobStore(cfg.ContentDir),
+		skillStore:  skillStore,
+		sessionCode: sessionCode,
+		memoryStore: memoryStore,
 	}
 }
 

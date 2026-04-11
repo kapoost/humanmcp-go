@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kapoost/humanmcp-go/internal/auth"
 	"github.com/kapoost/humanmcp-go/internal/config"
@@ -17,7 +18,17 @@ import (
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+
+func testStores(t *testing.T) (*content.SessionCode, *content.MemoryStore, *content.SkillStore) {
+	t.Helper()
+	sc := content.NewSessionCode(24 * time.Hour)
+	ms := content.NewMemoryStore(t.TempDir())
+	ss := content.NewSkillStore(t.TempDir())
+	return sc, ms, ss
+}
+
 func newTestHandler(t *testing.T) (*Handler, string) {
+	sc, ms, ss := testStores(t)
 	t.Helper()
 	dir := t.TempDir()
 	cfg := &config.Config{
@@ -28,7 +39,7 @@ func newTestHandler(t *testing.T) (*Handler, string) {
 	}
 	store := content.NewStore(dir)
 	a := auth.New("secret")
-	h := NewHandler(cfg, store, a)
+	h := NewHandler(cfg, store, a, sc, ms, ss)
 	return h, dir
 }
 

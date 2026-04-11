@@ -17,7 +17,17 @@ import (
 
 // --- test helpers ---
 
+
+func testStores(t *testing.T) (*content.SessionCode, *content.MemoryStore, *content.SkillStore) {
+	t.Helper()
+	sc := content.NewSessionCode(24 * time.Hour)
+	ms := content.NewMemoryStore(t.TempDir())
+	ss := content.NewSkillStore(t.TempDir())
+	return sc, ms, ss
+}
+
 func newTestHandler(t *testing.T) (*Handler, string) {
+	sc, ms, ss := testStores(t)
 	t.Helper()
 	dir := t.TempDir()
 
@@ -65,7 +75,7 @@ Future content.`), 0644)
 	store := content.NewStore(dir)
 	store.Load()
 	a := auth.New("testtoken")
-	h := NewHandler(cfg, store, a)
+	h := NewHandler(cfg, store, a, sc, ms, ss)
 	return h, dir
 }
 
@@ -352,7 +362,7 @@ func TestVerifySignedContent(t *testing.T) {
 	}
 	store2 := content.NewStore(dir)
 	store2.Load()
-	h := NewHandler(cfg, store2, auth.New(""))
+	h := NewHandler(cfg, store2, auth.New(""), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(dir), content.NewSkillStore(dir))
 
 	text := tool(t, h, "verify_content", map[string]interface{}{"slug": "signed"})
 	if !bytes.Contains([]byte(text), []byte("VERIFIED")) {
@@ -385,7 +395,7 @@ func TestListBlobsWithContent(t *testing.T) {
 		Audience: []content.AudienceEntry{{Kind: "agent", ID: "claude"}},
 	})
 
-	h := NewHandler(cfg, store, auth.New(""))
+	h := NewHandler(cfg, store, auth.New(""), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
 
 	// Agent:claude can see it
 	text := tool(t, h, "list_blobs", map[string]interface{}{
@@ -411,7 +421,7 @@ func TestReadBlobAccessDenied(t *testing.T) {
 		Audience: []content.AudienceEntry{{Kind: "human", ID: "alice"}},
 		TextData: "secret data",
 	})
-	h := NewHandler(cfg, store, auth.New(""))
+	h := NewHandler(cfg, store, auth.New(""), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
 
 	// Bob should be denied
 	text := tool(t, h, "read_blob", map[string]interface{}{
@@ -438,7 +448,7 @@ func TestReadBlobAccessGranted(t *testing.T) {
 		TextData:  `{"email":"alice@example.com"}`,
 		MimeType:  "application/json",
 	})
-	h := NewHandler(cfg, store, auth.New(""))
+	h := NewHandler(cfg, store, auth.New(""), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
 
 	// Alice should get access
 	text := tool(t, h, "read_blob", map[string]interface{}{

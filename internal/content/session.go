@@ -108,7 +108,6 @@ var poetryFragments = []string{
 	"ballada o spalonej Warszawie",
 	"zbroja",
 	"autoportret z kamerą",
-	"nasza klasa",
 	"na gruzach Homeru",
 	// Gintrowski
 	"adagio",
