@@ -27,10 +27,11 @@ type Handler struct {
 	toolCounter func() int
 	tmpl  *template.Template
 	loginLimiter *loginRateLimiter
+	skillStore   *content.SkillStore
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
-	h := &Handler{cfg: cfg, store: store, auth: a, msgStore: content.NewMessageStore(cfg.ContentDir), statStore: content.NewStatStore(cfg.ContentDir), blobStore: content.NewBlobStore(cfg.ContentDir), loginLimiter: newLoginRateLimiter()}
+	h := &Handler{cfg: cfg, store: store, auth: a, msgStore: content.NewMessageStore(cfg.ContentDir), statStore: content.NewStatStore(cfg.ContentDir), blobStore: content.NewBlobStore(cfg.ContentDir), loginLimiter: newLoginRateLimiter(), skillStore: content.NewSkillStore(cfg.ContentDir)}
 	if cfg.SigningPrivateKey != "" {
 		if kp, err := content.KeyPairFromBase64(cfg.SigningPrivateKey); err == nil {
 			h.signingKey = kp
@@ -113,6 +114,28 @@ func (h *Handler) SetToolCounter(tc ToolCounter) {
 	h.toolCounter = tc.ToolCount
 }
 
+
+// isAgent checks the Authorization header for the agent token.
+func (h *Handler) isAgent(r *http.Request) bool {
+	if h.cfg.AgentToken == "" {
+		return false
+	}
+	bearer := r.Header.Get("Authorization")
+	if !strings.HasPrefix(bearer, "Bearer ") {
+		return false
+	}
+	return strings.TrimPrefix(bearer, "Bearer ") == h.cfg.AgentToken
+}
+
+// requireAgentOrOwner returns true when caller is agent or owner, else writes 401.
+func (h *Handler) requireAgentOrOwner(w http.ResponseWriter, r *http.Request) bool {
+	if h.isAgent(r) || h.auth.IsOwner(r) {
+		return true
+	}
+	jsonError(w, "unauthorized", 401)
+	return false
+}
+
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.handleIndex)
 	mux.HandleFunc("/p/", h.handlePiece)
@@ -121,6 +144,18 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Public read API — GET is open, writes require owner token
 	mux.HandleFunc("/api/content", h.handleAPIList)
 	mux.HandleFunc("/api/content/", h.handleAPIContent)
+
+	// Skills API — read: public, write: agent-token or owner
+	mux.HandleFunc("/api/skills", h.handleAPISkills)
+	mux.HandleFunc("/api/skills/", h.handleAPISkills)
+
+	// Personas API — read: public, write: agent-token or owner
+	mux.HandleFunc("/api/personas", h.handleAPIPersonas)
+	mux.HandleFunc("/api/personas/", h.handleAPIPersonas)
+
+	// Skills + Personas web pages (public)
+	mux.HandleFunc("/skills", h.handleSkillsPage)
+	mux.HandleFunc("/personas", h.handlePersonasPage)
 
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
@@ -1039,6 +1074,117 @@ func (h *Handler) handleLLMSTxtEdit(w http.ResponseWriter, r *http.Request) {
 		"Body":      body,
 		"Signature": sig,
 		"Domain":    h.cfg.Domain,
+	})
+}
+
+
+// ── Skills API ────────────────────────────────────────────────────────────────
+
+func (h *Handler) handleAPISkills(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/api/skills")
+	slug = strings.TrimPrefix(slug, "/")
+	switch r.Method {
+	case http.MethodGet:
+		if slug == "" {
+			skills, err := h.skillStore.ListSkills(r.URL.Query().Get("category"))
+			if err != nil { jsonError(w, err.Error(), 500); return }
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(skills)
+			return
+		}
+		sk, err := h.skillStore.GetSkill(slug)
+		if err != nil { jsonError(w, "not found", 404); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(sk)
+	case http.MethodPost, http.MethodPut:
+		if !h.requireAgentOrOwner(w, r) { return }
+		var sk content.Skill
+		if err := json.NewDecoder(r.Body).Decode(&sk); err != nil { jsonError(w, "invalid json: "+err.Error(), 400); return }
+		if slug != "" && sk.Slug == "" { sk.Slug = slug }
+		if sk.Slug == "" { jsonError(w, "slug required", 400); return }
+		if h.isAgent(r) { sk.UpdatedBy = "agent" } else { sk.UpdatedBy = "owner" }
+		if err := h.skillStore.SaveSkill(&sk); err != nil { jsonError(w, err.Error(), 500); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "saved", "slug": sk.Slug})
+	case http.MethodDelete:
+		if !h.requireAgentOrOwner(w, r) { return }
+		if err := h.skillStore.DeleteSkill(slug); err != nil { jsonError(w, "not found", 404); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+	default:
+		jsonError(w, "method not allowed", 405)
+	}
+}
+
+// ── Personas API ──────────────────────────────────────────────────────────────
+
+func (h *Handler) handleAPIPersonas(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/api/personas")
+	slug = strings.TrimPrefix(slug, "/")
+	switch r.Method {
+	case http.MethodGet:
+		if slug == "" {
+			personas, err := h.skillStore.ListPersonas()
+			if err != nil { jsonError(w, err.Error(), 500); return }
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(personas)
+			return
+		}
+		p, err := h.skillStore.GetPersona(slug)
+		if err != nil { jsonError(w, "not found", 404); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(p)
+	case http.MethodPost, http.MethodPut:
+		if !h.requireAgentOrOwner(w, r) { return }
+		var p content.Persona
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil { jsonError(w, "invalid json: "+err.Error(), 400); return }
+		if slug != "" && p.Slug == "" { p.Slug = slug }
+		if p.Slug == "" { jsonError(w, "slug required", 400); return }
+		if h.isAgent(r) { p.UpdatedBy = "agent" } else { p.UpdatedBy = "owner" }
+		if err := h.skillStore.SavePersona(&p); err != nil { jsonError(w, err.Error(), 500); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "saved", "slug": p.Slug})
+	case http.MethodDelete:
+		if !h.requireAgentOrOwner(w, r) { return }
+		if err := h.skillStore.DeletePersona(slug); err != nil { jsonError(w, "not found", 404); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+	default:
+		jsonError(w, "method not allowed", 405)
+	}
+}
+
+// ── Skills + Personas web pages ───────────────────────────────────────────────
+
+func (h *Handler) handleSkillsPage(w http.ResponseWriter, r *http.Request) {
+	skills, err := h.skillStore.ListSkills("")
+	if err != nil { http.Error(w, "error: "+err.Error(), 500); return }
+	grouped := map[string][]*content.Skill{}
+	var order []string
+	seen := map[string]bool{}
+	for _, sk := range skills {
+		cat := sk.Category
+		if cat == "" { cat = "general" }
+		if !seen[cat] { seen[cat] = true; order = append(order, cat) }
+		grouped[cat] = append(grouped[cat], sk)
+	}
+	type catGroup struct { Name string; Skills []*content.Skill }
+	var groups []catGroup
+	for _, cat := range order { groups = append(groups, catGroup{Name: cat, Skills: grouped[cat]}) }
+	h.render(w, "skills.html", map[string]interface{}{
+		"Author":  h.cfg.AuthorName,
+		"Groups":  groups,
+		"IsOwner": h.auth.IsOwner(r),
+	})
+}
+
+func (h *Handler) handlePersonasPage(w http.ResponseWriter, r *http.Request) {
+	personas, err := h.skillStore.ListPersonas()
+	if err != nil { http.Error(w, "error: "+err.Error(), 500); return }
+	h.render(w, "personas.html", map[string]interface{}{
+		"Author":   h.cfg.AuthorName,
+		"Personas": personas,
+		"IsOwner":  h.auth.IsOwner(r),
 	})
 }
 

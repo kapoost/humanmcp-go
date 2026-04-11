@@ -31,6 +31,9 @@ type Config struct {
 	// Ed25519 signing keypair (base64 private key, hex public key)
 	SigningPrivateKey string `json:"signing_private_key"`
 	SigningPublicKey  string `json:"signing_public_key"`
+
+	// Agent token — trusted agents can write skills/personas
+	AgentToken string `json:"agent_token"`
 }
 
 func Load() (*Config, error) {
@@ -65,6 +68,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("SIGNING_PRIVATE_KEY"); v != "" {
 		cfg.SigningPrivateKey = v
+	}
+	if v := os.Getenv("AGENT_TOKEN"); v != "" {
+		cfg.AgentToken = v
 	}
 	if v := os.Getenv("SIGNING_PUBLIC_KEY"); v != "" {
 		cfg.SigningPublicKey = v
