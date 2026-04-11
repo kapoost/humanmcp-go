@@ -1019,4 +1019,103 @@ function loadStarter(){
 </div>
 </body></html>
 {{end}}
+
+{{define "skills.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skills — {{.Author}}</title>
+<style>{{template "css" .}}
+.sk-group{margin-bottom:2rem;}
+.sk-cat{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.75rem;padding-bottom:.35rem;border-bottom:2px solid var(--accent);}
+.sk-card{border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-bottom:.55rem;}
+.sk-title{font-size:.95rem;font-weight:500;margin-bottom:.3rem;}
+.sk-body{font-size:.85rem;color:var(--muted);line-height:1.6;white-space:pre-wrap;}
+.sk-meta{font-size:.7rem;color:var(--muted);margin-top:.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
+.sk-by{font-size:.65rem;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:3px;border:1px solid var(--accent);}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
+  <div>
+    <h1 style="font-size:1.1rem;font-weight:500;">Skills</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.2rem;">How to work with {{.Author}} — instructions for agents and collaborators.</p>
+  </div>
+  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
+</div>
+{{if .Groups}}
+  {{range .Groups}}
+  <div class="sk-group">
+    <div class="sk-cat">{{.Name}}</div>
+    {{range .Skills}}
+    <div class="sk-card">
+      <div class="sk-title">{{.Title}}</div>
+      <div class="sk-body">{{.Body}}</div>
+      <div class="sk-meta">
+        {{if .Tags}}<span>{{join .Tags " · "}}</span>{{end}}
+        {{if .UpdatedAt}}<span>updated {{formatDate .UpdatedAt}}</span>{{end}}
+        {{if .UpdatedBy}}<span class="sk-by">{{.UpdatedBy}}</span>{{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+{{else}}
+<div class="empty">No skills defined yet.</div>
+{{end}}
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "personas.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personas — {{.Author}}</title>
+<style>{{template "css" .}}
+.pe-card{border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem;margin-bottom:.75rem;}
+.pe-name{font-size:1rem;font-weight:500;margin-bottom:.15rem;}
+.pe-role{font-size:.78rem;color:var(--accent);font-weight:500;margin-bottom:.6rem;}
+.pe-prompt{font-size:.82rem;color:var(--muted);line-height:1.65;background:var(--tag-bg);border-radius:4px;padding:.65rem .8rem;border:1px solid var(--border);white-space:pre-wrap;}
+.pe-meta{font-size:.7rem;color:var(--muted);margin-top:.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
+.pe-slug{font-family:monospace;font-size:.72rem;background:var(--tag-bg);color:var(--tag-fg);padding:1px 6px;border-radius:3px;}
+.pe-by{font-size:.65rem;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:3px;border:1px solid var(--accent);}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
+  <div>
+    <h1 style="font-size:1.1rem;font-weight:500;">Personas</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.2rem;">Expert roles an agent can adopt to assist {{.Author}}. Use <code>get_persona</code> via MCP.</p>
+  </div>
+  <a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
+</div>
+{{if .Personas}}
+  {{range .Personas}}
+  <div class="pe-card">
+    <div class="pe-name">{{.Name}}</div>
+    <div class="pe-role">{{.Role}}</div>
+    {{if .Prompt}}<div class="pe-prompt">{{.Prompt}}</div>{{end}}
+    <div class="pe-meta">
+      <span class="pe-slug">{{.Slug}}</span>
+      {{if .Tags}}<span>{{join .Tags " · "}}</span>{{end}}
+      {{if .UpdatedAt}}<span>updated {{formatDate .UpdatedAt}}</span>{{end}}
+      {{if .UpdatedBy}}<span class="pe-by">{{.UpdatedBy}}</span>{{end}}
+    </div>
+  </div>
+  {{end}}
+{{else}}
+<div class="empty">No personas defined yet.</div>
+{{end}}
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
 `

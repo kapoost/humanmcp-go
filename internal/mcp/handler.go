@@ -58,17 +58,19 @@ type Handler struct {
 	auth      *auth.Auth
 	msgStore  *content.MessageStore
 	statStore *content.StatStore
-	blobStore *content.BlobStore
+	blobStore  *content.BlobStore
+	skillStore *content.SkillStore
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
 	return &Handler{
-		cfg:       cfg,
-		store:     store,
-		auth:      a,
-		msgStore:  content.NewMessageStore(cfg.ContentDir),
-		statStore: content.NewStatStore(cfg.ContentDir),
-		blobStore: content.NewBlobStore(cfg.ContentDir),
+		cfg:        cfg,
+		store:      store,
+		auth:       a,
+		msgStore:   content.NewMessageStore(cfg.ContentDir),
+		statStore:  content.NewStatStore(cfg.ContentDir),
+		blobStore:  content.NewBlobStore(cfg.ContentDir),
+		skillStore: content.NewSkillStore(cfg.ContentDir),
 	}
 }
 
@@ -358,6 +360,98 @@ func (h *Handler) buildTools() []Tool {
 				},
 			},
 		},
+		{
+			Name:        "list_skills",
+			Description: "List the author's skills — instructions for how to work with them. Filter by category (e.g. tech, writing, workflow).",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"category": map[string]interface{}{
+						"type":        "string",
+						"description": "Filter by category. Empty = all.",
+					},
+				},
+			},
+		},
+		{
+			Name:        "get_skill",
+			Description: "Get the full body of a specific skill by slug. Read this before starting work with the author.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string", "description": "Skill slug"},
+				},
+			},
+		},
+		{
+			Name:        "upsert_skill",
+			Description: "Create or update a skill. Requires agent token in Authorization: Bearer <token> header.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug", "category", "title", "body"},
+				"properties": map[string]interface{}{
+					"slug":     map[string]interface{}{"type": "string"},
+					"category": map[string]interface{}{"type": "string"},
+					"title":    map[string]interface{}{"type": "string"},
+					"body":     map[string]interface{}{"type": "string", "description": "Markdown instructions"},
+					"tags":     map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				},
+			},
+		},
+		{
+			Name:        "delete_skill",
+			Description: "Delete a skill by slug. Requires agent token.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string"},
+				},
+			},
+		},
+		{
+			Name:        "list_personas",
+			Description: "List available expert personas the agent can adopt to assist the author.",
+			InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+		{
+			Name:        "get_persona",
+			Description: "Get the full system prompt for a persona by slug. Adopt this persona to assist the author in their preferred style.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string"},
+				},
+			},
+		},
+		{
+			Name:        "upsert_persona",
+			Description: "Create or update a persona. Requires agent token.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug", "name", "role", "prompt"},
+				"properties": map[string]interface{}{
+					"slug":   map[string]interface{}{"type": "string"},
+					"name":   map[string]interface{}{"type": "string"},
+					"role":   map[string]interface{}{"type": "string", "description": "Short label, e.g. senior Go dev"},
+					"prompt": map[string]interface{}{"type": "string", "description": "Full system prompt the agent should adopt"},
+					"tags":   map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+				},
+			},
+		},
+		{
+			Name:        "delete_persona",
+			Description: "Delete a persona by slug. Requires agent token.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string"},
+				},
+			},
+		},
 	}
 }
 
@@ -399,6 +493,22 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolLeaveComment(w, req, params.Arguments)
 	case "leave_message":
 		h.toolLeaveMessage(w, req, params.Arguments)
+	case "list_skills":
+		h.toolListSkills(w, req, params.Arguments)
+	case "get_skill":
+		h.toolGetSkill(w, req, params.Arguments)
+	case "upsert_skill":
+		h.toolUpsertSkill(w, r, req, params.Arguments)
+	case "delete_skill":
+		h.toolDeleteSkill(w, r, req, params.Arguments)
+	case "list_personas":
+		h.toolListPersonas(w, req, params.Arguments)
+	case "get_persona":
+		h.toolGetPersona(w, req, params.Arguments)
+	case "upsert_persona":
+		h.toolUpsertPersona(w, r, req, params.Arguments)
+	case "delete_persona":
+		h.toolDeletePersona(w, r, req, params.Arguments)
 	default:
 		writeError(w, req.ID, -32602, "unknown tool: "+params.Name)
 	}
@@ -1008,6 +1118,18 @@ func (h *Handler) toolRequestLicense(w http.ResponseWriter, req *Request, args j
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
+
+func (h *Handler) isAuthorizedAgent(r *http.Request) bool {
+	if h.cfg.AgentToken == "" {
+		return false
+	}
+	bearer := r.Header.Get("Authorization")
+	if !strings.HasPrefix(bearer, "Bearer ") {
+		return false
+	}
+	return strings.TrimPrefix(bearer, "Bearer ") == h.cfg.AgentToken
+}
+
 func (h *Handler) handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -1049,4 +1171,174 @@ func hasTag(tags []string, tag string) bool {
 		}
 	}
 	return false
+}
+
+// ── Skills tools ──────────────────────────────────────────────────────────────
+
+func (h *Handler) toolListSkills(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Category string `json:"category"`
+	}
+	json.Unmarshal(args, &a)
+	skills, err := h.skillStore.ListSkills(a.Category)
+	if err != nil || len(skills) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "No skills defined yet."}}})
+		return
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Skills (%d):\n\n", len(skills)))
+	for _, sk := range skills {
+		sb.WriteString(fmt.Sprintf("[%s] %s — %s\n  slug: %s\n\n", sk.Category, sk.Title, sk.Body[:min(80, len(sk.Body))], sk.Slug))
+	}
+	sb.WriteString("— use get_skill <slug> for full content\n")
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolGetSkill(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Slug string `json:"slug"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Slug == "" {
+		writeError(w, req.ID, -32602, "slug required")
+		return
+	}
+	sk, err := h.skillStore.GetSkill(a.Slug)
+	if err != nil {
+		writeError(w, req.ID, -32602, "skill not found: "+a.Slug)
+		return
+	}
+	text := fmt.Sprintf("SKILL: %s\ncategory: %s\nupdated: %s\n\n%s",
+		sk.Title, sk.Category, sk.UpdatedAt.Format("2 January 2006"), sk.Body)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+}
+
+func (h *Handler) toolUpsertSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	if !h.isAuthorizedAgent(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required — set Authorization: Bearer <token>"}}})
+		return
+	}
+	var a struct {
+		Slug     string   `json:"slug"`
+		Category string   `json:"category"`
+		Title    string   `json:"title"`
+		Body     string   `json:"body"`
+		Tags     []string `json:"tags"`
+	}
+	if err := json.Unmarshal(args, &a); err != nil || a.Slug == "" || a.Body == "" {
+		writeError(w, req.ID, -32602, "slug, category, title and body required")
+		return
+	}
+	sk := &content.Skill{
+		Slug:      a.Slug,
+		Category:  a.Category,
+		Title:     a.Title,
+		Body:      a.Body,
+		Tags:      a.Tags,
+		UpdatedBy: "agent",
+	}
+	if err := h.skillStore.SaveSkill(sk); err != nil {
+		writeError(w, req.ID, -32603, err.Error())
+		return
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "skill saved: " + sk.Slug}}})
+}
+
+func (h *Handler) toolDeleteSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	if !h.isAuthorizedAgent(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required"}}})
+		return
+	}
+	var a struct {
+		Slug string `json:"slug"`
+	}
+	json.Unmarshal(args, &a)
+	if err := h.skillStore.DeleteSkill(a.Slug); err != nil {
+		writeError(w, req.ID, -32602, "not found: "+a.Slug)
+		return
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "deleted: " + a.Slug}}})
+}
+
+// ── Personas tools ────────────────────────────────────────────────────────────
+
+func (h *Handler) toolListPersonas(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	personas, err := h.skillStore.ListPersonas()
+	if err != nil || len(personas) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "No personas defined yet."}}})
+		return
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Personas (%d):\n\n", len(personas)))
+	for _, p := range personas {
+		sb.WriteString(fmt.Sprintf("slug: %s\nname: %s\nrole: %s\n\n", p.Slug, p.Name, p.Role))
+	}
+	sb.WriteString("— use get_persona <slug> for the full system prompt\n")
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolGetPersona(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Slug string `json:"slug"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Slug == "" {
+		writeError(w, req.ID, -32602, "slug required")
+		return
+	}
+	p, err := h.skillStore.GetPersona(a.Slug)
+	if err != nil {
+		writeError(w, req.ID, -32602, "persona not found: "+a.Slug)
+		return
+	}
+	text := fmt.Sprintf("PERSONA: %s\nrole: %s\nupdated: %s\n\n== SYSTEM PROMPT ==\n\n%s",
+		p.Name, p.Role, p.UpdatedAt.Format("2 January 2006"), p.Prompt)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+}
+
+func (h *Handler) toolUpsertPersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	if !h.isAuthorizedAgent(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required — set Authorization: Bearer <token>"}}})
+		return
+	}
+	var a struct {
+		Slug   string   `json:"slug"`
+		Name   string   `json:"name"`
+		Role   string   `json:"role"`
+		Prompt string   `json:"prompt"`
+		Tags   []string `json:"tags"`
+	}
+	if err := json.Unmarshal(args, &a); err != nil || a.Slug == "" || a.Prompt == "" {
+		writeError(w, req.ID, -32602, "slug, name, role and prompt required")
+		return
+	}
+	p := &content.Persona{
+		Slug:      a.Slug,
+		Name:      a.Name,
+		Role:      a.Role,
+		Prompt:    a.Prompt,
+		Tags:      a.Tags,
+		UpdatedBy: "agent",
+	}
+	if err := h.skillStore.SavePersona(p); err != nil {
+		writeError(w, req.ID, -32603, err.Error())
+		return
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "persona saved: " + p.Slug}}})
+}
+
+func (h *Handler) toolDeletePersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	if !h.isAuthorizedAgent(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required"}}})
+		return
+	}
+	var a struct {
+		Slug string `json:"slug"`
+	}
+	json.Unmarshal(args, &a)
+	if err := h.skillStore.DeletePersona(a.Slug); err != nil {
+		writeError(w, req.ID, -32602, "not found: "+a.Slug)
+		return
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "deleted: " + a.Slug}}})
 }
