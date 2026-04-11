@@ -32,7 +32,7 @@ type Handler struct {
 	memoryStore  *content.MemoryStore
 }
 
-func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
+func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore) *Handler {
 	h := &Handler{
 		cfg:          cfg,
 		store:        store,
@@ -40,9 +40,9 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler
 		msgStore:     content.NewMessageStore(cfg.ContentDir),
 		statStore:    content.NewStatStore(cfg.ContentDir),
 		blobStore:    content.NewBlobStore(cfg.ContentDir),
-		skillStore:   content.NewSkillStore(cfg.ContentDir),
-		sessionCode:  content.NewSessionCode(time.Duration(24) * time.Hour),
-		memoryStore:  content.NewMemoryStore(cfg.ContentDir),
+		skillStore:   skillStore,
+		sessionCode:  sessionCode,
+		memoryStore:  memoryStore,
 		loginLimiter: newLoginRateLimiter(),
 	}
 	if cfg.SigningPrivateKey != "" {
