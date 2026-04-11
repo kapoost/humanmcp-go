@@ -29,10 +29,22 @@ type Handler struct {
 	loginLimiter *loginRateLimiter
 	skillStore   *content.SkillStore
 	sessionCode  *content.SessionCode
+	memoryStore  *content.MemoryStore
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth) *Handler {
-	h := &Handler{cfg: cfg, store: store, auth: a, msgStore: content.NewMessageStore(cfg.ContentDir), statStore: content.NewStatStore(cfg.ContentDir), blobStore: content.NewBlobStore(cfg.ContentDir), loginLimiter: newLoginRateLimiter(), skillStore: content.NewSkillStore(cfg.ContentDir)}
+	h := &Handler{
+		cfg:          cfg,
+		store:        store,
+		auth:         a,
+		msgStore:     content.NewMessageStore(cfg.ContentDir),
+		statStore:    content.NewStatStore(cfg.ContentDir),
+		blobStore:    content.NewBlobStore(cfg.ContentDir),
+		skillStore:   content.NewSkillStore(cfg.ContentDir),
+		sessionCode:  content.NewSessionCode(time.Duration(24) * time.Hour),
+		memoryStore:  content.NewMemoryStore(cfg.ContentDir),
+		loginLimiter: newLoginRateLimiter(),
+	}
 	if cfg.SigningPrivateKey != "" {
 		if kp, err := content.KeyPairFromBase64(cfg.SigningPrivateKey); err == nil {
 			h.signingKey = kp
