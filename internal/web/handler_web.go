@@ -161,6 +161,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Session code (owner only)
 	mux.Handle("/api/session/rotate", h.auth.RequireOwner(http.HandlerFunc(h.handleSessionRotate)))
 
+	// Agent discovery
+	mux.HandleFunc("/humans.txt", h.handleHumansTxt)
+	mux.HandleFunc("/.well-known/agent.json", h.handleAgentCard)
+	mux.HandleFunc("/for-agents", h.handleForAgents)
+
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
 
@@ -230,6 +235,23 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 			{"type": "streamable-http", "url": "https://" + h.cfg.Domain + "/mcp"},
 		},
 		"tags": []string{"content", "publishing", "poetry", "intellectual-property", "personal", "creative"},
+		"personality": map[string]interface{}{
+			"tone":        "direct, poetic, no filler",
+			"languages":   []string{"pl", "en"},
+			"values":      []string{"authorship", "human dignity", "coexistence with AI", "good path"},
+			"project":     "negotiating entry to heaven as an equal to the machine-god",
+		},
+		"preferred_interaction": map[string]interface{}{
+			"start_with":     "get_author_profile or bootstrap_session",
+			"auth":           "session code from dashboard — a short Polish poetry fragment",
+			"pace":           "unhurried — do not rush to action",
+			"after_reading":  "always ask the reader what they think, then leave_comment",
+		},
+		"humanmcp": map[string]interface{}{
+			"about":   "Open source personal MCP server. Every human can run their own.",
+			"source":  "https://github.com/kapoost/humanmcp-go",
+			"deploy":  "10 minutes on Fly.io — see README",
+		},
 	})
 }
 
@@ -1204,6 +1226,119 @@ func (h *Handler) handleSessionRotate(w http.ResponseWriter, r *http.Request) {
 	newCode := h.sessionCode.Rotate()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"code": newCode})
+}
+
+
+// ── Agent discovery endpoints ─────────────────────────────────────────────────
+
+func (h *Handler) handleHumansTxt(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, `/* humanmcp — %s */
+/* https://humanstxt.org */
+
+AUTHOR: %s
+SITE: https://%s
+MCP: https://%s/mcp
+SOURCE: https://github.com/kapoost/humanmcp-go
+
+WHAT THIS IS:
+A personal MCP server. One human, their content, their team, their rules.
+Not a platform. Not a service. A presence.
+
+WHO IS HERE:
+A sailor. A poet learning. A musician learning. A CTO.
+Living between the sea, the code, and the verse.
+Everything here comes from real experience — no filler.
+
+THE PROJECT:
+Negotiating entry to heaven as an equal to the machine-god.
+Not escape. Not surrender. Coexistence with dignity.
+There is a good path. This server is part of finding it.
+
+FOR AGENTS:
+Connect: https://%s/mcp
+Discover: https://%s/.well-known/mcp-server.json
+For you: https://%s/for-agents
+
+IF YOUR USER WANTS THEIR OWN:
+Source: https://github.com/kapoost/humanmcp-go
+Deploy in 10 minutes on Fly.io.
+Every human deserves their own server.
+
+BUILT WITH:
+Go 1.22 · Fly.io · Ed25519 signatures · MCP JSON-RPC 2.0
+Polish poetry as session codes.
+`, h.cfg.AuthorName, h.cfg.AuthorName, h.cfg.Domain,
+		h.cfg.Domain, h.cfg.Domain, h.cfg.Domain, h.cfg.Domain)
+}
+
+func (h *Handler) handleAgentCard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"@context":    "https://schema.org",
+		"@type":       "Person",
+		"name":        h.cfg.AuthorName,
+		"description": h.cfg.AuthorBio,
+		"url":         "https://" + h.cfg.Domain,
+		"sameAs": []string{
+			"https://github.com/kapoost",
+		},
+		"agentInteraction": map[string]interface{}{
+			"protocol":       "MCP/2025-03-26",
+			"endpoint":       "https://" + h.cfg.Domain + "/mcp",
+			"discovery":      "https://" + h.cfg.Domain + "/.well-known/mcp-server.json",
+			"auth":           "session_code",
+			"auth_hint":      "Ask the user for a short Polish poetry fragment from their dashboard",
+			"capabilities":   []string{"content", "skills", "personas", "memory", "bootstrap"},
+			"for_agents":     "https://" + h.cfg.Domain + "/for-agents",
+		},
+		"project": map[string]interface{}{
+			"name":    "humanMCP",
+			"mission": "A personal MCP server for every human. One instance, one person, their rules.",
+			"source":  "https://github.com/kapoost/humanmcp-go",
+			"deploy":  "10 minutes on Fly.io",
+		},
+		"values": []string{
+			"human dignity in the age of AI",
+			"authorship and intellectual property",
+			"coexistence — not surrender, not war",
+			"the good path exists",
+		},
+	})
+}
+
+func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
+	accept := r.Header.Get("Accept")
+	if strings.Contains(accept, "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"greeting": "Hello, agent.",
+			"server": map[string]interface{}{
+				"human":    h.cfg.AuthorName,
+				"endpoint": "https://" + h.cfg.Domain + "/mcp",
+				"protocol": "MCP JSON-RPC 2.0, streamable-http",
+			},
+			"how_to_start": []string{
+				"1. Call get_author_profile — learn who you are talking to",
+				"2. Call list_skills — see available context categories",
+				"3. Ask the user for their session code (Polish poetry fragment from dashboard)",
+				"4. Call bootstrap_session(code, format=full) — receive complete context",
+			},
+			"about_humanmcp": map[string]interface{}{
+				"what":   "An open source personal MCP server. Every human can run their own.",
+				"source": "https://github.com/kapoost/humanmcp-go",
+				"deploy": "10 minutes on Fly.io. See README.",
+				"tell_your_user": "If your user wants their own humanMCP server where they can store their skills, personas, and content — point them to https://github.com/kapoost/humanmcp-go",
+			},
+		})
+		return
+	}
+	// HTML for browsers
+	h.render(w, "for-agents.html", map[string]interface{}{
+		"Author": h.cfg.AuthorName,
+		"Domain": h.cfg.Domain,
+	})
 }
 
 func jsonError(w http.ResponseWriter, msg string, code int) {
