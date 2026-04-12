@@ -38,6 +38,9 @@ type Config struct {
 
 	// Session code rotation interval in hours (default 24)
 	SessionRotateHours int `json:"session_rotate_hours"`
+
+	// VaultURL — URL lokalnej mysloodsiewni (np. http://localhost:7331)
+	VaultURL string `json:"vault_url"`
 }
 
 func Load() (*Config, error) {
@@ -79,6 +82,9 @@ func Load() (*Config, error) {
 		if _, err := fmt.Sscanf(v, "%d", &h); err == nil && h > 0 {
 			cfg.SessionRotateHours = h
 		}
+	}
+	if v := os.Getenv("VAULT_URL"); v != "" {
+		cfg.VaultURL = v
 	}
 	if v := os.Getenv("AGENT_TOKEN"); v != "" {
 		cfg.AgentToken = v
