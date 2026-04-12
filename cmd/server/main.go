@@ -35,7 +35,7 @@ func main() {
 		log.Printf("initial content load: %v", err)
 	}
 
-	a := auth.New(cfg.EditToken)
+	a := auth.New(cfg.EditToken, cfg.AgentToken)
 
 	// Shared stores — one instance, wired into both handlers
 	sessionCode := content.NewSessionCode(time.Duration(cfg.SessionRotateHours) * time.Hour)
