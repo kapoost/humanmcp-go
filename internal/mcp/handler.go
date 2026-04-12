@@ -956,6 +956,14 @@ func (h *Handler) toolLeaveMessage(w http.ResponseWriter, req *Request, args jso
 	}
 	json.Unmarshal(args, &a)
 
+	// Truncate to max allowed lengths
+	if len(a.Text) > 2000 { a.Text = a.Text[:2000] }
+	if len(a.From) > 32   { a.From = a.From[:32] }
+	if a.Text == ""        {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "text is required"}}})
+		return
+	}
+
 	m, err := h.msgStore.Save(a.From, a.Text, a.Regarding)
 	if err != nil {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{
