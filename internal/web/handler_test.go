@@ -38,7 +38,7 @@ func newTestHandler(t *testing.T) (*Handler, string) {
 		EditToken:  "secret",
 	}
 	store := content.NewStore(dir)
-	a := auth.New("secret")
+	a := auth.New("secret", "test-agent-token")
 	h := NewHandler(cfg, store, a, sc, ms, ss)
 	return h, dir
 }
