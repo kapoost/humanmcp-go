@@ -1323,8 +1323,8 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, req *Request, args json.Ra
 }
 
 func (h *Handler) toolUpsertSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
-	if !h.isAuthorizedAgent(r) {
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required — set Authorization: Bearer <token>"}}})
+	if !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "owner token required"}}})
 		return
 	}
 	var a struct {
@@ -1354,8 +1354,8 @@ func (h *Handler) toolUpsertSkill(w http.ResponseWriter, r *http.Request, req *R
 }
 
 func (h *Handler) toolDeleteSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
-	if !h.isAuthorizedAgent(r) {
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required"}}})
+	if !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "owner token required"}}})
 		return
 	}
 	var a struct {
@@ -1405,8 +1405,8 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, req *Request, args json.
 }
 
 func (h *Handler) toolUpsertPersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
-	if !h.isAuthorizedAgent(r) {
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required — set Authorization: Bearer <token>"}}})
+	if !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "owner token required"}}})
 		return
 	}
 	var a struct {
@@ -1436,8 +1436,8 @@ func (h *Handler) toolUpsertPersona(w http.ResponseWriter, r *http.Request, req 
 }
 
 func (h *Handler) toolDeletePersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
-	if !h.isAuthorizedAgent(r) {
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "agent token required"}}})
+	if !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "owner token required"}}})
 		return
 	}
 	var a struct {

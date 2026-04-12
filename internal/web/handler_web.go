@@ -1373,10 +1373,8 @@ func (h *Handler) handleAPINotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// POST/PUT — wymaga AGENT_TOKEN lub owner
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	isAgent := token != "" && token == h.cfg.AgentToken
-	if !isAgent && !h.auth.IsOwner(r) {
+	// POST/PUT — wymaga owner (EDIT_TOKEN)
+	if !h.auth.IsOwner(r) {
 		jsonError(w, "unauthorized", 401)
 		return
 	}
@@ -1394,8 +1392,6 @@ func (h *Handler) handleAPINotes(w http.ResponseWriter, r *http.Request) {
 		if slug != "" && p.Slug == "" { p.Slug = slug }
 		if p.Slug == "" { jsonError(w, "slug required", 400); return }
 		if p.Published.IsZero() { p.Published = time.Now() }
-		// Agenci mogą tworzyć tylko type=note
-		if isAgent { p.Type = "note" }
 		if h.signingKey != nil {
 			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
 				p.Signature = sig
