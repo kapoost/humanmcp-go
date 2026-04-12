@@ -39,6 +39,30 @@ func (a *Auth) IsOwner(r *http.Request) bool {
 }
 
 // RequireOwner is middleware that 401s if not owner (JSON for API, redirect for browser)
+// RequireAgent sprawdza Authorization: Bearer <AGENT_TOKEN> w nagłówku.
+// Używany przez endpointy które trusted agenci mogą zapisywać.
+func (a *Auth) RequireAgent(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if token == "" || token == a.agentToken || a.IsOwner(r) {
+			// Brak tokenu = tylko GET (publiczne), agent token lub owner = pełny dostęp
+			if r.Method != http.MethodGet && token != a.agentToken && !a.IsOwner(r) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"error":"unauthorized"}`))
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// IsAgent sprawdza czy request pochodzi od trusted agenta.
+func (a *Auth) IsAgent(r *http.Request) bool {
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	return token != "" && token == a.agentToken
+}
+
 func (a *Auth) RequireOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.IsOwner(r) {
