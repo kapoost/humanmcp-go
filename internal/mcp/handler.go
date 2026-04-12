@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -395,6 +396,26 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "query_vault",
+			Description: "Search kapoost's local knowledge vault (mysloodsiewnia). Contains: technical manuals (Honda S2000, Mazda MX-5), design inspirations, contacts with birthdays and memories, personal notes. Returns excerpts with page numbers and citations. Only available when Mac is online.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"query"},
+				"properties": map[string]interface{}{
+					"query":    map[string]interface{}{"type": "string", "description": "What to search for. Be specific."},
+					"limit":    map[string]interface{}{"type": "integer", "description": "Max results (default 5)"},
+					"doc_slug": map[string]interface{}{"type": "string", "description": "Search only in specific document"},
+				},
+			},
+		},
+		{
+			Name:        "list_vault",
+			Description: "List all documents in kapoost's local knowledge vault.",
+			InputSchema: map[string]interface{}{
+				"type": "object", "properties": map[string]interface{}{},
+			},
+		},
+		{
 			Name:        "remember",
 			Description: "Save an observation about the author for future sessions. Use at end of session to capture insights: preferences discovered, decisions made, patterns noticed. Requires session code verification.",
 			InputSchema: map[string]interface{}{
@@ -562,6 +583,10 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolLeaveComment(w, req, params.Arguments)
 	case "leave_message":
 		h.toolLeaveMessage(w, req, params.Arguments)
+	case "query_vault":
+		h.toolQueryVault(w, req, params.Arguments)
+	case "list_vault":
+		h.toolListVault(w, req)
 	case "remember":
 		h.toolRemember(w, r, req, params.Arguments)
 	case "recall":
@@ -1652,4 +1677,104 @@ Endpoint: https://` + h.cfg.Domain + `/mcp
 Discovery: https://` + h.cfg.Domain + `/.well-known/mcp-server.json`
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+}
+
+// ── Vault tools ───────────────────────────────────────────────────────────────
+
+func (h *Handler) vaultClient() *http.Client {
+	return &http.Client{Timeout: 15 * time.Second}
+}
+
+func (h *Handler) toolQueryVault(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Query   string `json:"query"`
+		Limit   int    `json:"limit"`
+		DocSlug string `json:"doc_slug"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Query == "" {
+		writeError(w, req.ID, -32602, "query required")
+		return
+	}
+	if a.Limit == 0 {
+		a.Limit = 5
+	}
+
+	if h.cfg.VaultURL == "" {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "myśloodsiewnia nie skonfigurowana. Ustaw VAULT_URL w Fly secrets."}}})
+		return
+	}
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"query": a.Query, "limit": a.Limit, "doc_slug": a.DocSlug,
+	})
+	resp, err := h.vaultClient().Post(
+		h.cfg.VaultURL+"/query", "application/json", bytes.NewReader(body))
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: fmt.Sprintf("myśloodsiewnia niedostępna (Mac offline?): %v", err)}}})
+		return
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	var sb strings.Builder
+	if summary, ok := result["summary"].(string); ok {
+		sb.WriteString(summary + "\n\n")
+	}
+	if results, ok := result["results"].([]interface{}); ok {
+		for i, r := range results {
+			if item, ok := r.(map[string]interface{}); ok {
+				citation, _ := item["citation"].(string)
+				itemBody, _ := item["body"].(string)
+				page, _ := item["page"].(float64)
+				sb.WriteString(fmt.Sprintf("--- %d. %s", i+1, citation))
+				if page > 0 {
+					sb.WriteString(fmt.Sprintf(" (str. %d)", int(page)))
+				}
+				sb.WriteString(" ---\n")
+				sb.WriteString(itemBody + "\n\n")
+			}
+		}
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolListVault(w http.ResponseWriter, req *Request) {
+	if h.cfg.VaultURL == "" {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "VAULT_URL nie skonfigurowany."}}})
+		return
+	}
+	resp, err := h.vaultClient().Get(h.cfg.VaultURL + "/documents")
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: fmt.Sprintf("myśloodsiewnia niedostępna: %v", err)}}})
+		return
+	}
+	defer resp.Body.Close()
+
+	var docs []map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&docs)
+
+	if len(docs) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "Vault jest pusty."}}})
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Dokumenty w myśloodsiewni (%d):\n\n", len(docs)))
+	for _, d := range docs {
+		slug, _ := d["slug"].(string)
+		title, _ := d["title"].(string)
+		docType, _ := d["doc_type"].(string)
+		chunks, _ := d["chunk_count"].(float64)
+		sb.WriteString(fmt.Sprintf("  %-24s %-12s %s (%d chunków)\n",
+			slug, docType, title, int(chunks)))
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
