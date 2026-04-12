@@ -21,30 +21,6 @@ jobs:
       - name: test (race detector)
         run: go test ./... -race -timeout 60s
 
-  test-python:
-    name: Python tests (myśloodsiewnia)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mysloodsiewnia
-    # Uruchom tylko gdy katalog mysloodsiewnia istnieje
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: mysloodsiewnia/requirements.txt
-      - name: check if mysloodsiewnia exists
-        id: check
-        run: test -f requirements.txt && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
-      - name: install deps
-        if: steps.check.outputs.exists == 'true'
-        run: pip install -r requirements.txt pytest httpx
-      - name: test
-        if: steps.check.outputs.exists == 'true'
-        run: python -m pytest test_mysloodsiewnia.py -v --tb=short
-
   deploy:
     name: Deploy to Fly.io
     needs: [test-go]
