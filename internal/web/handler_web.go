@@ -178,6 +178,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/.well-known/agent.json", h.handleAgentCard)
 	mux.HandleFunc("/for-agents", h.handleForAgents)
 
+	// Notes API — trusted agents mogą tworzyć notatki (AGENT_TOKEN lub owner)
+	mux.HandleFunc("/api/notes", h.handleAPINotes)
+	mux.HandleFunc("/api/notes/", h.handleAPINotes)
+
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
 
@@ -1352,6 +1356,61 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 		"Domain": h.cfg.Domain,
 	})
 }
+
+// handleAPINotes — agents mogą tworzyć/aktualizować notatki przez AGENT_TOKEN
+func (h *Handler) handleAPINotes(w http.ResponseWriter, r *http.Request) {
+	// GET — publiczne
+	if r.Method == http.MethodGet {
+		slug := strings.TrimPrefix(r.URL.Path, "/api/notes/")
+		if slug == "" || slug == "/api/notes" {
+			h.handleAPIList(w, r)
+			return
+		}
+		p, err := h.store.GetForEdit(slug)
+		if err != nil { jsonError(w, "not found", 404); return }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(p)
+		return
+	}
+
+	// POST/PUT — wymaga AGENT_TOKEN lub owner
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	isAgent := token != "" && token == h.cfg.AgentToken
+	if !isAgent && !h.auth.IsOwner(r) {
+		jsonError(w, "unauthorized", 401)
+		return
+	}
+
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
+		var raw map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+			jsonError(w, "invalid json: "+err.Error(), 400)
+			return
+		}
+		data, _ := json.Marshal(raw)
+		var p content.Piece
+		json.Unmarshal(data, &p)
+		slug := strings.TrimPrefix(r.URL.Path, "/api/notes/")
+		if slug != "" && p.Slug == "" { p.Slug = slug }
+		if p.Slug == "" { jsonError(w, "slug required", 400); return }
+		if p.Published.IsZero() { p.Published = time.Now() }
+		// Agenci mogą tworzyć tylko type=note
+		if isAgent { p.Type = "note" }
+		if h.signingKey != nil {
+			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
+				p.Signature = sig
+			}
+		}
+		if err := h.store.Save(&p); err != nil {
+			jsonError(w, err.Error(), 500); return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "saved", "slug": p.Slug})
+		return
+	}
+	jsonError(w, "method not allowed", 405)
+}
+
 
 func jsonError(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
