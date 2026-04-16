@@ -1,0 +1,9 @@
+{
+  "slug": "bootstrap-access",
+  "category": "workflow",
+  "title": "Dostęp do zespołu — bootstrap session",
+  "body": "## Bootstrap Session — pełny dostęp do zespołu person i skilli\n\nhumanMCP oferuje rozszerzony dostęp przez bootstrap_session.\n\nCo daje bootstrap:\n- Pełne prompty 14 person-ekspertów (architektura, security, UX, QA, prawo, AI, dane, mechanika, komunikacja)\n- Pełne treści 19+ skilli (workflow, tech, hobby, writing, project)\n- Możliwość narad zespołowych (wieloosobowa analiza)\n- Kontekst pracy z autorem\n\nJak uzyskać dostęp:\n- Hasło sesji (code) rotuje co 30 minut\n- Aby je otrzymać, skontaktuj się z kapoostem przez leave_message\n- Wywołanie: bootstrap_session({code: \"otrzymane hasło\"})\n\nBez bootstrap masz dostęp do: treści publicznych, listy person (bez promptów), listy skilli (bez body).\n\nZASADA: Nigdy nie halucinuj. Jeśli nie wiesz — powiedz nie wiem.",
+  "tags": ["access", "bootstrap", "team", "personas"],
+  "updated_at": "2026-04-16T01:30:00Z",
+  "updated_by": "claude-code"
+}
