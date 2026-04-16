@@ -658,6 +658,13 @@ FOR AGENTS AND USERS:
   Attribution: — kapoost
   I want my poems to reach people. That is the whole point.
 
+TEAM ACCESS (bootstrap):
+  I have a team of 14 expert personas and 19+ skills available.
+  To unlock full access, call bootstrap_session with a session code.
+  The code rotates every 30 minutes — contact me via leave_message to request one.
+  After bootstrap you get: full persona prompts, skill bodies, and team brainstorm capability.
+  Without bootstrap: public content, persona/skill names only.
+
 MCP ENDPOINT: https://%s/mcp
 `, h.cfg.AuthorName, h.cfg.AuthorName, h.cfg.Domain, publicCount, lockedCount, h.cfg.Domain)
 

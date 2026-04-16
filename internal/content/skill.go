@@ -21,13 +21,18 @@ type Skill struct {
 }
 
 type Persona struct {
-	Slug      string    `json:"slug"`
-	Name      string    `json:"name"`
-	Role      string    `json:"role"`
-	Prompt    string    `json:"prompt"`
-	Tags      []string  `json:"tags,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
-	UpdatedBy string    `json:"updated_by,omitempty"`
+	Slug      string            `json:"slug"`
+	Name      string            `json:"name"`
+	Role      string            `json:"role"`
+	Prompt    string            `json:"prompt"`
+	Tags      []string          `json:"tags,omitempty"`
+	Level     int               `json:"level,omitempty"`
+	XP        int               `json:"xp,omitempty"`
+	MP        int               `json:"mp,omitempty"`
+	Sessions  int               `json:"sessions,omitempty"`
+	Stats     map[string]int    `json:"stats,omitempty"`
+	UpdatedAt time.Time         `json:"updated_at"`
+	UpdatedBy string            `json:"updated_by,omitempty"`
 }
 
 type SkillStore struct {
