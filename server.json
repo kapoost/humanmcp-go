@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.kapoost/humanmcp",
-  "title": "humanMCP",
-  "description": "Personal MCP server for publishing art with cryptographic authorship proof and license gates.",
-  "version": "0.1.0",
+  "title": "humanMCP — kapoost",
+  "description": "Personal MCP server. Publishes poetry, manages an expert AI team (14 personas), tracks skills and memories. Session bootstrap with rotating code unlocks full context.",
+  "version": "0.2.0",
   "license": "MIT",
   "homepage": "https://kapoost.github.io/humanmcp",
   "repository": {
@@ -17,12 +17,17 @@
     }
   ],
   "tags": [
-    "content",
-    "publishing",
-    "poetry",
-    "intellectual-property",
-    "cryptography",
-    "personal",
-    "creative"
-  ]
+    "content", "publishing", "poetry", "personas", "skills",
+    "knowledge-vault", "personal", "creative", "bootstrap"
+  ],
+  "capabilities": {
+    "public": [
+      "get_author_profile", "list_content", "read_content",
+      "list_skills", "list_personas", "leave_message", "leave_comment"
+    ],
+    "authenticated": [
+      "bootstrap_session", "query_vault", "list_vault",
+      "remember", "recall", "get_persona", "get_skill"
+    ]
+  }
 }
