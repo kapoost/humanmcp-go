@@ -45,6 +45,8 @@ var poetryFragments = []string{
 	"rodzinna europa",
 	"druga przestrzeń",
 	"gdy myślę o przyszłości",
+	"chruściana furtka zamiast zamka ślimak",
+	"shiba no to no jō no kawari ni katatsumuri",
 	// Leśmian
 	"dziewczyna szła przez świat",
 	"w malinowym chruśniaku",
