@@ -293,7 +293,13 @@ const allTemplates = `
     {{end}}
   </div>
 {{else}}
-  <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
+  {{if eq .Type "image"}}
+    {{$img := index $.BlobImageMap .Slug}}
+    {{if $img}}<div style="margin:1.5rem 0;"><img src="{{$img}}" alt="{{.Title}}" style="max-width:100%;height:auto;border:1px solid var(--border);cursor:pointer;" onclick="this.style.maxWidth=this.style.maxWidth==='100%'?'none':'100%'"></div>{{end}}
+    {{if .Body}}<div class="essay-body">{{nl2br .Body}}</div>{{end}}
+  {{else}}
+    <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
+  {{end}}
 {{end}}
   <div class="piece-info">
     {{/* ── Signature row ── */}}
