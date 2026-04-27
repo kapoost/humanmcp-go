@@ -754,7 +754,7 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
     <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a> &middot; <span id="theme-toggle" style="cursor:pointer;" title="toggle light/dark [d]">&#9788;</span></span>
     <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
   </div>
-  <div style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;"><span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate <span style="color:var(--accent2);">[d]</span> theme <span style="color:var(--accent2);">[?]</span> help</div>
+  <div style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;">{{if .Piece}}<span style="color:var(--accent2);">[b]</span> back {{end}}{{if not .Piece}}<span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate {{end}}<span style="color:var(--accent2);">[d]</span> theme <span style="color:var(--accent2);">[?]</span> help</div>
 </footer>
 <script>
 (function(){
