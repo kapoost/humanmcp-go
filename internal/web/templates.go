@@ -42,9 +42,9 @@ const allTemplates = `
   <span class="irc-title"><a href="/p/{{.Slug}}">{{.Title}}</a></span>
   {{if .Signature}}<span class="irc-signed">✓</span>{{end}}
   {{if ne (lower (print .Access)) "public"}}<span class="irc-locked">{{.Access}}</span>{{end}}
-  {{if .Tags}}<span class="irc-tags">{{range .Tags}}#{{.}} {{end}}</span>{{end}}
   {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
 </div>
+{{if .Tags}}<div class="irc-tags-line">{{range .Tags}}<span class="irc-tag">#{{.}}</span> {{end}}</div>{{end}}
 {{end}}
 </div>
 {{else}}
@@ -58,7 +58,7 @@ const allTemplates = `
 {{if .Images}}
 <div class="gallery-row">
 {{range .Images}}
-<a href="/p/{{.Slug}}"><img class="gallery-thumb" src="/files/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>
+<a href="/p/{{.Slug}}"><img class="gallery-thumb" src="/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>
 {{end}}
 </div>
 {{else}}
@@ -657,6 +657,8 @@ a:hover{color:#00ff00;text-decoration:underline;}
 .irc-title a{color:var(--fg);}
 .irc-title a:hover{color:var(--accent);}
 .irc-tags{color:var(--accent2);font-size:.75rem;}
+.irc-tags-line{padding-left:4.2rem;font-size:.72rem;margin-bottom:2px;}
+.irc-tag{color:#4a6a6a;}
 .irc-badge{font-size:.7rem;color:var(--accent3);}
 .irc-locked{color:var(--accent5);font-size:.7rem;}
 .irc-signed{color:var(--accent);font-size:.7rem;}
