@@ -82,12 +82,6 @@ const allTemplates = `
 {{end}}
 </div>
 
-<!-- team hint -->
-{{if gt .PersonaCount 0}}
-<div style="margin:1.5rem 0;font-size:.82rem;color:var(--muted);">
-  <span style="color:var(--accent2);">{{.PersonaCount}}</span> AI personas available &middot; <a href="/team">meet the team</a> &middot; <a href="/connect">connect via MCP</a>
-</div>
-{{end}}
 
 {{template "footer" .}}
 </div>
@@ -103,7 +97,6 @@ const allTemplates = `
   <div class="help-row"><span class="help-key">1</span><span>wiersze</span></div>
   <div class="help-row"><span class="help-key">2</span><span>obrazy</span></div>
   <div class="help-row"><span class="help-key">3</span><span>ogłoszenia</span></div>
-  <div class="help-row"><span class="help-key">t</span><span>team</span></div>
   <div class="help-row"><span class="help-key">c</span><span>connect</span></div>
   <div class="help-row"><span class="help-key">m</span><span>contact</span></div>
   <div class="help-row"><span class="help-key">Tab</span><span>next section</span></div>
@@ -194,9 +187,6 @@ const allTemplates = `
         e.preventDefault();
         secIdx = (secIdx + (e.shiftKey ? sections.length-1 : 1)) % sections.length;
         document.getElementById(sections[secIdx]).scrollIntoView({behavior:'smooth'});
-        break;
-      case 't':
-        window.location='/team';
         break;
       case 'c':
         window.location='/connect';
@@ -731,7 +721,6 @@ a:hover{color:#00ff00;text-decoration:underline;}
         <a href="#wiersze" style="color:var(--accent2);">wiersze</a>
         <a href="#obrazy" style="color:var(--accent2);">obrazy</a>
         <a href="#ogloszenia" style="color:var(--accent2);">ogłoszenia</a>
-        <a href="/team" style="color:var(--muted);">team</a>
         <a href="/contact" style="color:var(--muted);">contact</a>
         <a href="/connect" style="color:var(--accent);">+connect</a>
         <span style="color:var(--muted);cursor:pointer;" id="help-trigger" title="keyboard shortcuts [?]">?</span>
@@ -752,7 +741,7 @@ a:hover{color:#00ff00;text-decoration:underline;}
 {{define "footer"}}
 <footer style="border-top:1px solid var(--border);margin-top:2.5rem;padding:1rem 0;font-size:.75rem;color:var(--muted);">
   <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/team" style="color:var(--muted);">team</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a></span>
+    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a></span>
     <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
   </div>
   <div style="margin-top:.4rem;color:#333;font-size:.7rem;"><span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate <span style="color:var(--accent2);">[?]</span> help</div>
