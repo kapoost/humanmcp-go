@@ -381,12 +381,6 @@ const allTemplates = `
 {{end}}
 {{template "footer" .}}
 </div>
-<script>
-document.addEventListener('keydown',function(e){
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
-  if(e.key==='b'||e.key==='Backspace'){e.preventDefault();window.location='/';}
-});
-</script>
 </body></html>
 {{end}}
 
@@ -760,7 +754,7 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
     <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a> &middot; <span id="theme-toggle" style="cursor:pointer;" title="toggle light/dark [d]">&#9788;</span></span>
     <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
   </div>
-  <div style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;">{{if .Piece}}<span style="color:var(--accent2);">[b]</span> back {{end}}{{if not .Piece}}<span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate {{end}}<span style="color:var(--accent2);">[d]</span> theme <span style="color:var(--accent2);">[?]</span> help</div>
+  <div id="kb-hints" style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;"></div>
 </footer>
 <script>
 (function(){
@@ -774,9 +768,17 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
     document.documentElement.setAttribute('data-theme',next);
     localStorage.setItem('theme',next);
   }
+  var isIndex=location.pathname==='/';
+  var h=document.getElementById('kb-hints');
+  if(h){
+    var a='color:var(--accent2)';
+    if(isIndex) h.innerHTML='<span style="'+a+'">[/]</span> search <span style="'+a+'">[j/k]</span> navigate <span style="'+a+'">[1-3]</span> sections <span style="'+a+'">[d]</span> theme <span style="'+a+'">[?]</span> help';
+    else h.innerHTML='<span style="'+a+'">[b]</span> back <span style="'+a+'">[d]</span> theme';
+  }
   document.addEventListener('keydown',function(e){
     if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
     if(e.key==='d'){e.preventDefault();toggle();}
+    if(!isIndex&&(e.key==='b'||e.key==='Backspace')){e.preventDefault();window.location='/';}
   });
 })();
 </script>
