@@ -322,18 +322,41 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
 
-	// Build persona slug set to exclude from poems
-	personaSlugs := make(map[string]bool)
-	if personas, err := h.skillStore.ListPersonas(); err == nil {
-		for _, p := range personas {
-			personaSlugs[p.Slug] = true
+	// Build persona name set to exclude from poems
+	personaNames := make(map[string]bool)
+	allPersonas, _ := h.skillStore.ListPersonas()
+	for _, per := range allPersonas {
+		personaNames[strings.ToLower(per.Name)] = true
+		// Also match slug variations
+		personaNames[strings.ToLower(per.Slug)] = true
+	}
+
+	isPersonaPiece := func(p *content.Piece) bool {
+		lt := strings.ToLower(p.Title)
+		ls := strings.ToLower(p.Slug)
+		if personaNames[lt] || personaNames[ls] {
+			return true
 		}
+		// Check if piece slug contains a persona slug (e.g. "eleanor-voss" contains "eleanor")
+		for _, per := range allPersonas {
+			ps := strings.ToLower(per.Name)
+			if strings.HasPrefix(lt, ps) || strings.Contains(ls, strings.ToLower(per.Slug)) {
+				return true
+			}
+		}
+		// Check if any tag is "persona"
+		for _, t := range p.Tags {
+			if strings.ToLower(t) == "persona" {
+				return true
+			}
+		}
+		return false
 	}
 
 	// Separate pieces by type for sectioned layout
 	var poems, otherPieces []*content.Piece
 	for _, p := range pieces {
-		if personaSlugs[p.Slug] {
+		if isPersonaPiece(p) {
 			continue // skip personas — they belong to /team
 		}
 		if p.Type == "poem" || p.Type == "essay" || p.Type == "note" {
