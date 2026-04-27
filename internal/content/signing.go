@@ -101,6 +101,36 @@ func piecePayload(p *Piece) []byte {
 	return hash[:]
 }
 
+// SignListing signs a listing's content with an Ed25519 key.
+// Payload: sha256(slug|type|title|body|price)
+func SignListing(l *Listing, kp *KeyPair) (string, error) {
+	canonical := l.Slug + "|" + string(l.Type) + "|" + l.Title + "|" + l.Body + "|" + l.Price
+	hash := sha256.Sum256([]byte(canonical))
+	sig := ed25519.Sign(kp.PrivateKey, hash[:])
+	return base64.StdEncoding.EncodeToString(sig), nil
+}
+
+// VerifyListing checks a listing's signature against a public key.
+func VerifyListing(l *Listing, pubKeyHex string) (bool, string) {
+	if l.Signature == "" {
+		return false, "unsigned"
+	}
+	pub, err := PublicKeyFromHex(pubKeyHex)
+	if err != nil {
+		return false, "invalid public key"
+	}
+	sigBytes, err := base64.StdEncoding.DecodeString(l.Signature)
+	if err != nil {
+		return false, "malformed signature"
+	}
+	canonical := l.Slug + "|" + string(l.Type) + "|" + l.Title + "|" + l.Body + "|" + l.Price
+	hash := sha256.Sum256([]byte(canonical))
+	if !ed25519.Verify(pub, hash[:], sigBytes) {
+		return false, "invalid — content may have been modified"
+	}
+	return true, "verified — signed by kapoost's key"
+}
+
 // --- OpenTimestamps Integration ---
 //
 // OpenTimestamps anchors a SHA256 hash into the Bitcoin blockchain,

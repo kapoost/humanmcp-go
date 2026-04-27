@@ -1,17 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
-	"strings"
 	"os"
-
+	"strings"
 	"time"
 
 	"github.com/kapoost/humanmcp-go/internal/auth"
 	"github.com/kapoost/humanmcp-go/internal/config"
 	"github.com/kapoost/humanmcp-go/internal/content"
 	"github.com/kapoost/humanmcp-go/internal/mcp"
+	"github.com/kapoost/humanmcp-go/internal/oauth"
 	"github.com/kapoost/humanmcp-go/internal/web"
 )
 
@@ -42,11 +43,28 @@ func main() {
 	memoryStore := content.NewMemoryStore(cfg.ContentDir)
 	skillStore := content.NewSkillStore(cfg.ContentDir)
 
-	mcpHandler := mcp.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore)
-	webHandler := web.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore)
+	// Listing + subscription stores
+	listingStore := content.NewListingStore(cfg.ContentDir)
+	subStore := content.NewSubscriptionStore(cfg.ContentDir)
+	statStore := content.NewStatStore(cfg.ContentDir)
+
+	// Notifier — delivers webhooks to subscribers
+	notifier := content.NewNotifier(listingStore, subStore, statStore, log.Default())
+	notifierInterval := parseDurationEnv("NOTIFIER_INTERVAL", time.Minute)
+	go notifier.Run(context.Background(), notifierInterval)
+
+	// OAuth 2.1 provider — consent screen uses edit_token as password
+	issuer := "https://" + cfg.Domain
+	oauthProvider := oauth.NewProvider(issuer, cfg.EditToken)
+
+	mcpHandler := mcp.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore, oauthProvider, listingStore, subStore)
+	webHandler := web.NewHandler(cfg, store, a, sessionCode, memoryStore, skillStore, listingStore, subStore)
 	webHandler.SetToolCounter(mcpHandler)
 
 	mux := http.NewServeMux()
+
+	// OAuth endpoints
+	oauthProvider.RegisterRoutes(mux)
 
 	// MCP endpoint
 	mux.Handle("/mcp", corsMiddleware(mcpHandler))
@@ -78,6 +96,18 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func parseDurationEnv(key string, def time.Duration) time.Duration {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return def
+	}
+	return d
 }
 
 // secureMiddleware adds security + cache headers to all responses

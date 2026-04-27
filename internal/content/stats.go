@@ -20,8 +20,12 @@ const (
 	EventUnlockFail EventType = "unlock_fail"
 	EventMessage    EventType = "message"
 	EventComment    EventType = "comment"
-	EventProfile    EventType = "profile"
-	EventAccess     EventType = "access"
+	EventProfile        EventType = "profile"
+	EventAccess         EventType = "access"
+	EventListingView    EventType = "listing_view"
+	EventListingResponse EventType = "listing_response"
+	EventSubscribeNew   EventType = "subscribe"
+	EventSubscribeMatch EventType = "subscribe_match"
 )
 
 type CallerType string
@@ -59,6 +63,9 @@ type Stats struct {
 	AgentCalls    int `json:"agent_calls"`
 	HumanVisits   int `json:"human_visits"`
 	UniqueVisitors int `json:"unique_visitors"`
+	TotalListings  int `json:"total_listings"`
+	TotalSubscribers int `json:"total_subscribers"`
+	ListingViews   int `json:"listing_views"`
 
 	// Breakdowns
 	ReadsBySlug    map[string]int `json:"reads_by_slug"`
@@ -66,7 +73,8 @@ type Stats struct {
 	TagReads       map[string]int `json:"tag_reads"`
 	TopAgents      map[string]int `json:"top_agents"`
 	TopReferrers   map[string]int `json:"top_referrers"`
-	Countries      map[string]int `json:"countries"`
+	Countries       map[string]int `json:"countries"`
+	ListingReadsBySlug map[string]int `json:"listing_reads_by_slug"`
 
 	// Challenge funnel per slug: [checked, attempted, succeeded]
 	ChallengeFunnel map[string][3]int `json:"challenge_funnel"`
@@ -143,7 +151,8 @@ func (ss *StatStore) Compute() (*Stats, error) {
 		TopAgents:       make(map[string]int),
 		TopReferrers:    make(map[string]int),
 		Countries:       make(map[string]int),
-		ChallengeFunnel: make(map[string][3]int),
+		ChallengeFunnel:    make(map[string][3]int),
+		ListingReadsBySlug: make(map[string]int),
 	}
 
 	data, err := os.ReadFile(ss.path)
@@ -237,6 +246,11 @@ func (ss *StatStore) Compute() (*Stats, error) {
 				f := s.ChallengeFunnel[e.Slug]
 				f[0]++
 				s.ChallengeFunnel[e.Slug] = f
+			}
+		case EventListingView:
+			s.ListingViews++
+			if e.Slug != "" {
+				s.ListingReadsBySlug[e.Slug]++
 			}
 		}
 	}

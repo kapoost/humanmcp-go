@@ -16,6 +16,8 @@ import (
 	"github.com/kapoost/humanmcp-go/internal/content"
 )
 
+var serverStartTime = time.Now()
+
 type Handler struct {
 	cfg      *config.Config
 	store    *content.Store
@@ -27,12 +29,14 @@ type Handler struct {
 	toolCounter func() int
 	tmpl  *template.Template
 	loginLimiter *loginRateLimiter
-	skillStore   *content.SkillStore
-	sessionCode  *content.SessionCode
-	memoryStore  *content.MemoryStore
+	skillStore    *content.SkillStore
+	sessionCode   *content.SessionCode
+	memoryStore   *content.MemoryStore
+	listingStore  *content.ListingStore
+	subStore      *content.SubscriptionStore
 }
 
-func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore) *Handler {
+func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore, listingStore *content.ListingStore, subStore *content.SubscriptionStore) *Handler {
 	h := &Handler{
 		cfg:          cfg,
 		store:        store,
@@ -43,6 +47,8 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		skillStore:   skillStore,
 		sessionCode:  sessionCode,
 		memoryStore:  memoryStore,
+		listingStore: listingStore,
+		subStore:     subStore,
 		loginLimiter: newLoginRateLimiter(),
 	}
 	if cfg.SigningPrivateKey != "" {
@@ -54,6 +60,10 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		"formatDate": func(t time.Time) string {
 			if t.IsZero() { return "" }
 			return t.Format("2 January 2006")
+		},
+		"formatTime": func(t time.Time) string {
+			if t.IsZero() { return "" }
+			return t.Format("2 Jan 15:04")
 		},
 		"lower": strings.ToLower,
 		"filenameFromRef": func(ref string) string {
@@ -185,8 +195,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Well-known MCP discovery
 	mux.HandleFunc("/.well-known/mcp-server.json", h.handleWellKnown)
 
-	// Dashboard (owner only)
+	// Dashboard (owner only — legacy)
 	mux.Handle("/dashboard", h.auth.RequireOwner(http.HandlerFunc(h.handleDashboard)))
+
+	// Mission Control (public — owner sees more)
+	mux.HandleFunc("/mc", h.handleMissionControl)
 
 	// Messages (owner only)
 	mux.Handle("/messages", h.auth.RequireOwner(http.HandlerFunc(h.handleMessages)))
@@ -230,6 +243,19 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Timestamp on demand (owner only, POST)
 	mux.Handle("/timestamp/", h.auth.RequireOwner(http.HandlerFunc(h.handleTimestamp)))
+
+	// Listings
+	mux.HandleFunc("/listings", h.handleListings)
+	mux.HandleFunc("/listings/", h.handleListingRoute)
+	mux.Handle("/listings/new", h.auth.RequireOwner(http.HandlerFunc(h.handleListingNew)))
+	mux.Handle("/listings/edit/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingEdit)))
+	mux.Handle("/listings/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingDelete)))
+	mux.HandleFunc("/listings/feed.json", h.handleListingsFeed)
+
+	// Subscriptions
+	mux.HandleFunc("/subscriptions/new", h.handleSubscribeForm)
+	mux.HandleFunc("/subscriptions/confirm", h.handleSubscribeConfirm)
+	mux.HandleFunc("/subscriptions/unsubscribe/", h.handleUnsubscribe)
 
 	// Login/logout for web UI
 	mux.HandleFunc("/login", h.handleLogin)
@@ -478,6 +504,8 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	pieces := h.store.List(false)
 	msgs, _ := h.msgStore.List()
+	stats.TotalListings = len(h.listingStore.List(false))
+	stats.TotalSubscribers = h.subStore.ActiveCount()
 code, expiry := h.sessionCode.Current()
 	h.render(w, "dashboard.html", map[string]interface{}{
 		"Author":      h.cfg.AuthorName,
@@ -488,6 +516,89 @@ code, expiry := h.sessionCode.Current()
 		"SessionCode": code,
 		"SessionExp":  expiry,
 	})
+}
+
+func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.statStore.Compute()
+	if err != nil {
+		http.Error(w, "stats error: "+err.Error(), 500)
+		return
+	}
+	if err := h.store.Load(); err != nil {
+		log.Printf("store load: %v", err)
+	}
+	pieces := h.store.List(false)
+	isOwner := h.auth.IsOwner(r)
+
+	stats.TotalListings = len(h.listingStore.List(false))
+	stats.TotalSubscribers = h.subStore.ActiveCount()
+
+	// Enrich stats with counts for the top bar
+	skills, _ := h.skillStore.ListSkills("")
+	personas, _ := h.skillStore.ListPersonas()
+
+	type enrichedStats struct {
+		*content.Stats
+		PieceCount   int
+		PersonaCount int
+		SkillCount   int
+	}
+	es := &enrichedStats{
+		Stats:        stats,
+		PieceCount:   len(pieces),
+		PersonaCount: len(personas),
+		SkillCount:   len(skills),
+	}
+
+	// Uptime
+	uptime := time.Since(serverStartTime)
+	var uptimeStr string
+	if uptime.Hours() >= 24 {
+		uptimeStr = fmt.Sprintf("%dd %dh", int(uptime.Hours())/24, int(uptime.Hours())%24)
+	} else if uptime.Hours() >= 1 {
+		uptimeStr = fmt.Sprintf("%dh %dm", int(uptime.Hours()), int(uptime.Minutes())%60)
+	} else {
+		uptimeStr = fmt.Sprintf("%dm %ds", int(uptime.Minutes()), int(uptime.Seconds())%60)
+	}
+
+	// Vault status
+	vaultOnline := false
+	if h.cfg.VaultURL != "" {
+		client := &http.Client{Timeout: 2 * time.Second}
+		if resp, err := client.Get(h.cfg.VaultURL + "/health"); err == nil {
+			resp.Body.Close()
+			vaultOnline = resp.StatusCode == 200
+		}
+	}
+
+	// Tool call count
+	toolCalls := 0
+	if h.toolCounter != nil {
+		toolCalls = h.toolCounter()
+	}
+
+	data := map[string]interface{}{
+		"Author":      h.cfg.AuthorName,
+		"IsOwner":     isOwner,
+		"Stats":       es,
+		"Pieces":      pieces,
+		"Uptime":      uptimeStr,
+		"VaultOnline": vaultOnline,
+		"ToolCalls":   toolCalls,
+	}
+
+	if isOwner {
+		msgs, _ := h.msgStore.List()
+		code, expiry := h.sessionCode.Current()
+		data["Messages"] = msgs
+		data["SessionCode"] = code
+		data["SessionExp"] = expiry
+	} else {
+		msgs, _ := h.msgStore.List()
+		data["Messages"] = msgs
+	}
+
+	h.render(w, "mc.html", data)
 }
 
 func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
@@ -790,6 +901,295 @@ func (h *Handler) handleImages(w http.ResponseWriter, r *http.Request) {
 }
 
 
+// --- Listings ---
+
+func (h *Handler) handleListings(w http.ResponseWriter, r *http.Request) {
+	filterType := r.URL.Query().Get("type")
+	listings := h.listingStore.List(h.auth.IsOwner(r))
+	if filterType != "" {
+		var filtered []*content.Listing
+		for _, l := range listings {
+			if string(l.Type) == filterType {
+				filtered = append(filtered, l)
+			}
+		}
+		listings = filtered
+	}
+	h.render(w, "listings.html", map[string]interface{}{
+		"Author":     h.cfg.AuthorName,
+		"IsOwner":    h.auth.IsOwner(r),
+		"Listings":   listings,
+		"FilterType": filterType,
+	})
+}
+
+func (h *Handler) handleListingRoute(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/listings/")
+	if slug == "" || slug == "new" || strings.HasPrefix(slug, "edit/") || strings.HasPrefix(slug, "delete/") || slug == "feed.json" {
+		http.NotFound(w, r)
+		return
+	}
+	l, err := h.listingStore.Get(slug)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	isOwner := h.auth.IsOwner(r)
+	if l.Access != content.AccessPublic && !isOwner {
+		http.NotFound(w, r)
+		return
+	}
+
+	if !isOwner {
+		ua := r.Header.Get("User-Agent")
+		ip := r.Header.Get("Fly-Client-IP")
+		if ip == "" { ip = r.RemoteAddr }
+		vh := content.VisitorHash(ip, time.Now().Format("2006-01-02"))
+		h.statStore.Record(content.Event{
+			Type:        content.EventListingView,
+			Caller:      content.CallerFromUA(ua),
+			Slug:        slug,
+			VisitorHash: vh,
+		})
+	}
+
+	h.render(w, "listing.html", map[string]interface{}{
+		"Author":  h.cfg.AuthorName,
+		"Listing": l,
+		"IsOwner": isOwner,
+		"Domain":  h.cfg.Domain,
+	})
+}
+
+func (h *Handler) handleListingNew(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		l := content.Listing{
+			Slug:   slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix())),
+			Type:   content.ListingType(r.FormValue("type")),
+			Title:  r.FormValue("title"),
+			Body:   r.FormValue("body"),
+			Price:  r.FormValue("price"),
+			Status: content.ListingStatus(r.FormValue("status")),
+			Access: content.AccessLevel(r.FormValue("access")),
+		}
+		if l.Status == "" { l.Status = content.ListingOpen }
+		if l.Access == "" { l.Access = content.AccessPublic }
+		if l.Type == "" { l.Type = content.ListingSell }
+		if ps := r.FormValue("price_sats"); ps != "" {
+			fmt.Sscanf(ps, "%d", &l.PriceSats)
+		}
+		if tags := r.FormValue("tags"); tags != "" {
+			for _, t := range strings.Split(tags, ",") {
+				if s := strings.TrimSpace(t); s != "" {
+					l.Tags = append(l.Tags, s)
+				}
+			}
+		}
+		if ea := r.FormValue("expires_at"); ea != "" {
+			if t, err := time.Parse("2006-01-02T15:04", ea); err == nil {
+				l.ExpiresAt = t
+			}
+		}
+		if h.signingKey != nil {
+			if sig, err := content.SignListing(&l, h.signingKey); err == nil {
+				l.Signature = sig
+			}
+		}
+		if err := h.listingStore.Save(&l); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		http.Redirect(w, r, "/listings/"+l.Slug, http.StatusSeeOther)
+		return
+	}
+	h.render(w, "listing-new.html", map[string]interface{}{
+		"Author":  h.cfg.AuthorName,
+		"IsOwner": true,
+	})
+}
+
+func (h *Handler) handleListingEdit(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/listings/edit/")
+	if slug == "" {
+		http.Redirect(w, r, "/listings/new", http.StatusSeeOther)
+		return
+	}
+	l, err := h.listingStore.Get(slug)
+	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		l.Type = content.ListingType(r.FormValue("type"))
+		l.Title = r.FormValue("title")
+		l.Body = r.FormValue("body")
+		l.Price = r.FormValue("price")
+		l.Status = content.ListingStatus(r.FormValue("status"))
+		l.Access = content.AccessLevel(r.FormValue("access"))
+		l.PriceSats = 0
+		if ps := r.FormValue("price_sats"); ps != "" {
+			fmt.Sscanf(ps, "%d", &l.PriceSats)
+		}
+		l.Tags = nil
+		if tags := r.FormValue("tags"); tags != "" {
+			for _, t := range strings.Split(tags, ",") {
+				if s := strings.TrimSpace(t); s != "" {
+					l.Tags = append(l.Tags, s)
+				}
+			}
+		}
+		if ea := r.FormValue("expires_at"); ea != "" {
+			if t, err := time.Parse("2006-01-02T15:04", ea); err == nil {
+				l.ExpiresAt = t
+			}
+		} else {
+			l.ExpiresAt = time.Time{}
+		}
+		if h.signingKey != nil {
+			if sig, err := content.SignListing(l, h.signingKey); err == nil {
+				l.Signature = sig
+			}
+		}
+		if err := h.listingStore.Save(l); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		http.Redirect(w, r, "/listings/"+slug, http.StatusSeeOther)
+		return
+	}
+
+	h.render(w, "listing-new.html", map[string]interface{}{
+		"Author":  h.cfg.AuthorName,
+		"IsOwner": true,
+		"Listing": l,
+	})
+}
+
+func (h *Handler) handleListingDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/listings", http.StatusSeeOther)
+		return
+	}
+	slug := strings.TrimPrefix(r.URL.Path, "/listings/delete/")
+	h.listingStore.Delete(slug)
+	http.Redirect(w, r, "/listings", http.StatusSeeOther)
+}
+
+func (h *Handler) handleListingsFeed(w http.ResponseWriter, r *http.Request) {
+	listings := h.listingStore.List(false)
+
+	// Apply filters
+	sinceStr := r.URL.Query().Get("since")
+	typeFilter := r.URL.Query().Get("type")
+	var filtered []*content.Listing
+	for _, l := range listings {
+		if l.Access != content.AccessPublic {
+			continue
+		}
+		if sinceStr != "" {
+			if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+				if !l.Published.After(t) {
+					continue
+				}
+			}
+		}
+		if typeFilter != "" && string(l.Type) != typeFilter {
+			continue
+		}
+		filtered = append(filtered, l)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"listings":  filtered,
+		"generated": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// --- Subscriptions ---
+
+func (h *Handler) handleSubscribeForm(w http.ResponseWriter, r *http.Request) {
+	h.render(w, "subscribe.html", map[string]interface{}{
+		"Author": h.cfg.AuthorName,
+	})
+}
+
+func (h *Handler) handleSubscribeConfirm(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/subscriptions/new", http.StatusSeeOther)
+		return
+	}
+	r.ParseForm()
+	ch := content.SubChannel(r.FormValue("channel"))
+	if ch != content.SubWebhook && ch != content.SubMCP {
+		http.Error(w, "invalid channel", 400)
+		return
+	}
+	callbackURL := r.FormValue("callback_url")
+	if ch == content.SubWebhook && (callbackURL == "" || !strings.HasPrefix(callbackURL, "https://")) {
+		http.Error(w, "webhook requires an https:// callback URL", 400)
+		return
+	}
+
+	var filterTypes []string
+	for _, ft := range r.Form["filter_types"] {
+		if ft != "" {
+			filterTypes = append(filterTypes, ft)
+		}
+	}
+	var filterTags []string
+	if tags := r.FormValue("filter_tags"); tags != "" {
+		for _, t := range strings.Split(tags, ",") {
+			if s := strings.TrimSpace(t); s != "" {
+				filterTags = append(filterTags, s)
+			}
+		}
+	}
+
+	sub := &content.Subscription{
+		Channel:     ch,
+		CallbackURL: callbackURL,
+		Email:       r.FormValue("email"),
+		FilterTypes: filterTypes,
+		FilterTags:  filterTags,
+	}
+	if err := h.subStore.Create(sub); err != nil {
+		http.Error(w, "failed to create subscription: "+err.Error(), 500)
+		return
+	}
+
+	h.statStore.Record(content.Event{Type: content.EventSubscribeNew, Caller: content.CallerHuman})
+
+	h.render(w, "subscribe-confirm.html", map[string]interface{}{
+		"Author":       h.cfg.AuthorName,
+		"Subscription": sub,
+		"Domain":       h.cfg.Domain,
+	})
+}
+
+func (h *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimPrefix(r.URL.Path, "/subscriptions/unsubscribe/")
+	if token == "" {
+		http.Error(w, "missing token", 400)
+		return
+	}
+	sub, err := h.subStore.GetByToken(token)
+	if err != nil {
+		http.Error(w, "subscription not found", 404)
+		return
+	}
+	sub.Active = false
+	h.subStore.Update(sub)
+	h.render(w, "subscribe-confirm.html", map[string]interface{}{
+		"Author":       h.cfg.AuthorName,
+		"Unsubscribed": true,
+	})
+}
+
 func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -844,6 +1244,32 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 					},
 					"responses": map[string]interface{}{
 						"200": map[string]interface{}{"description": "Blob data"},
+						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/listings/feed.json": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "listingsFeed",
+					"summary":     "JSON feed of active public listings",
+					"parameters": []map[string]interface{}{
+						{"name": "since", "in": "query", "schema": map[string]interface{}{"type": "string"}, "description": "RFC3339 timestamp filter"},
+						{"name": "type", "in": "query", "schema": map[string]interface{}{"type": "string"}, "description": "Listing type filter"},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "JSON with listings array and generated timestamp"},
+					},
+				},
+			},
+			"/listings/{slug}": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "readListing",
+					"summary":     "View a listing detail page",
+					"parameters": []map[string]interface{}{
+						{"name": "slug", "in": "path", "required": true, "schema": map[string]interface{}{"type": "string"}},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Listing HTML page"},
 						"404": map[string]interface{}{"description": "Not found"},
 					},
 				},
@@ -912,6 +1338,14 @@ func (h *Handler) handleSitemap(w http.ResponseWriter, r *http.Request) {
 		if p.Access == content.AccessPublic {
 			fmt.Fprintf(w, "  <url><loc>https://%s/p/%s</loc><lastmod>%s</lastmod></url>\n",
 				h.cfg.Domain, p.Slug, p.Published.Format("2006-01-02"))
+		}
+	}
+	fmt.Fprintf(w, "  <url><loc>https://%s/listings</loc></url>\n", h.cfg.Domain)
+	listings := h.listingStore.List(false)
+	for _, l := range listings {
+		if l.Access == content.AccessPublic {
+			fmt.Fprintf(w, "  <url><loc>https://%s/listings/%s</loc><lastmod>%s</lastmod></url>\n",
+				h.cfg.Domain, l.Slug, l.Published.Format("2006-01-02"))
 		}
 	}
 	fmt.Fprintf(w, "</urlset>\n")

@@ -39,7 +39,9 @@ func newTestHandler(t *testing.T) (*Handler, string) {
 	}
 	store := content.NewStore(dir)
 	a := auth.New("secret", "test-agent-token")
-	h := NewHandler(cfg, store, a, sc, ms, ss)
+	ls := content.NewListingStore(dir)
+	subs := content.NewSubscriptionStore(dir)
+	h := NewHandler(cfg, store, a, sc, ms, ss, ls, subs)
 	return h, dir
 }
 
@@ -82,6 +84,8 @@ func TestAllTemplatesDefined(t *testing.T) {
 		"index.html", "piece.html", "login.html", "dashboard.html",
 		"contact.html", "connect.html", "new.html", "images.html",
 		"messages.html",
+		"listings.html", "listing.html", "listing-new.html",
+		"subscribe.html", "subscribe-confirm.html",
 		"css", "header", "header-simple", "footer",
 	} {
 		if h.tmpl.Lookup(name) == nil {
@@ -404,5 +408,103 @@ func TestIndexTwoColumnLayout(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("index missing %q — two-column layout broken", want)
 		}
+	}
+}
+
+// ── listings ──────────────────────────────────────────────────────────────────
+
+func TestListingsIndexRenders(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/listings", nil))
+	if w.Code != 200 {
+		t.Fatalf("listings: got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Listings") {
+		t.Error("listings page should contain header")
+	}
+}
+
+func TestListingsIndexEmpty(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/listings", nil))
+	if !strings.Contains(w.Body.String(), "No listings yet") {
+		t.Error("empty listings should show empty state")
+	}
+}
+
+func TestListingsWithContent(t *testing.T) {
+	h, dir := newTestHandler(t)
+	h.listingStore.Save(&content.Listing{
+		Slug: "test-sell", Title: "Test Sell", Type: content.ListingSell,
+		Status: content.ListingOpen, Access: content.AccessPublic, Body: "Selling stuff.",
+	})
+	_ = dir
+	w := serve(h, httptest.NewRequest("GET", "/listings", nil))
+	if !strings.Contains(w.Body.String(), "Test Sell") {
+		t.Error("should show listing title")
+	}
+}
+
+func TestListingDetailRenders(t *testing.T) {
+	h, _ := newTestHandler(t)
+	h.listingStore.Save(&content.Listing{
+		Slug: "detail-test", Title: "Detail Test", Type: content.ListingOffer,
+		Status: content.ListingOpen, Access: content.AccessPublic, Body: "Full detail body.",
+	})
+	w := serve(h, httptest.NewRequest("GET", "/listings/detail-test", nil))
+	if w.Code != 200 {
+		t.Fatalf("listing detail: got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Full detail body") {
+		t.Error("should show listing body")
+	}
+}
+
+func TestListingNewRequiresOwner(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/listings/new", nil))
+	if w.Code != 302 && w.Code != 401 && w.Code != 303 {
+		t.Errorf("listings/new should require owner, got %d", w.Code)
+	}
+}
+
+func TestListingNewOwnerAccess(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, ownerGet("/listings/new"))
+	if w.Code != 200 {
+		t.Fatalf("owner should access listings/new, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "New Listing") {
+		t.Error("should show new listing form")
+	}
+}
+
+func TestSubscribeFormRenders(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/subscriptions/new", nil))
+	if w.Code != 200 {
+		t.Fatalf("subscribe form: got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Subscribe") {
+		t.Error("should show subscribe form")
+	}
+}
+
+func TestListingsFeedJSON(t *testing.T) {
+	h, _ := newTestHandler(t)
+	h.listingStore.Save(&content.Listing{
+		Slug: "feed-test", Title: "Feed Test", Type: content.ListingSell,
+		Status: content.ListingOpen, Access: content.AccessPublic,
+	})
+	w := serve(h, httptest.NewRequest("GET", "/listings/feed.json", nil))
+	if w.Code != 200 {
+		t.Fatalf("feed: got %d", w.Code)
+	}
+	ct := w.Header().Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		t.Errorf("feed content-type: %s", ct)
+	}
+	if !strings.Contains(w.Body.String(), "feed-test") {
+		t.Error("feed should contain listing")
 	}
 }
