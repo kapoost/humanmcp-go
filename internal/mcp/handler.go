@@ -553,12 +553,13 @@ func (h *Handler) buildTools() []Tool {
 		},
 		{
 			Name:        "get_skill",
-			Description: "Get the full body of a specific skill by slug. Read this before starting work with the author.",
+			Description: "Get the full body of a specific skill by slug. Requires session code from bootstrap_session.",
 			InputSchema: map[string]interface{}{
 				"type":     "object",
 				"required": []string{"slug"},
 				"properties": map[string]interface{}{
 					"slug": map[string]interface{}{"type": "string", "description": "Skill slug"},
+					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
 				},
 			},
 		},
@@ -595,12 +596,13 @@ func (h *Handler) buildTools() []Tool {
 		},
 		{
 			Name:        "get_persona",
-			Description: "Get the full system prompt for a persona by slug. Adopt this persona to assist the author in their preferred style.",
+			Description: "Get the full system prompt for a persona by slug. Requires session code from bootstrap_session.",
 			InputSchema: map[string]interface{}{
 				"type":     "object",
 				"required": []string{"slug"},
 				"properties": map[string]interface{}{
 					"slug": map[string]interface{}{"type": "string"},
+					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
 				},
 			},
 		},
@@ -1474,6 +1476,7 @@ func (h *Handler) toolListSkills(w http.ResponseWriter, req *Request, args json.
 func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Slug string `json:"slug"`
+		Code string `json:"code"`
 	}
 	json.Unmarshal(args, &a)
 	if a.Slug == "" {
@@ -1485,13 +1488,8 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Requ
 		writeError(w, req.ID, -32602, "skill not found: "+a.Slug)
 		return
 	}
-	// OAuth Bearer token — serve full body only when vault is online
-	if h.isOAuthAuthorized(r) {
-		if !h.vaultOnline() {
-			text := fmt.Sprintf("SKILL: %s [%s]\n\nVault offline — pełna treść niedostępna. Spróbuj gdy laptop jest włączony.", sk.Title, sk.Category)
-			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
-			return
-		}
+	// Authorized: session code, OAuth, or owner token
+	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("SKILL: %s [%s]\n", sk.Title, sk.Category))
 		sb.WriteString(fmt.Sprintf("updated: %s\n\n", sk.UpdatedAt.Format("2 January 2006")))
@@ -1570,6 +1568,7 @@ func (h *Handler) toolListPersonas(w http.ResponseWriter, req *Request, args jso
 func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Slug string `json:"slug"`
+		Code string `json:"code"`
 	}
 	json.Unmarshal(args, &a)
 	if a.Slug == "" {
@@ -1581,20 +1580,11 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Re
 		writeError(w, req.ID, -32602, "persona not found: "+a.Slug)
 		return
 	}
-	// Authorized (OAuth or bootstrap) — proxy full prompt from vault
-	if h.isOAuthAuthorized(r) {
-		vaultData, err := h.vaultGet("/persona/" + a.Slug)
-		if err != nil {
-			// Vault offline — metadata only
-			text := fmt.Sprintf("PERSONA: %s — %s\n\nVault offline — pełny prompt niedostępny. Spróbuj gdy laptop jest włączony.", p.Name, p.Role)
-			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
-			return
-		}
+	// Authorized: session code, OAuth, or owner token
+	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("PERSONA: %s — %s\n\n", p.Name, p.Role))
-		if prompt, ok := vaultData["prompt"].(string); ok {
-			sb.WriteString(prompt)
-		}
+		sb.WriteString(p.Prompt)
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 		return
 	}
@@ -1705,6 +1695,9 @@ func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills [
 		sb.WriteString(fmt.Sprintf("  %-24s [%s] %s\n", sk.Slug, sk.Category, sk.Title))
 	}
 
+	code, _ := h.sessionCode.Current()
+	sb.WriteString(fmt.Sprintf("\nTwój kod sesji: %s\n", code))
+	sb.WriteString("Przekazuj go jako parametr \"code\" w get_persona i get_skill aby odblokować pełne treści.\n")
 	sb.WriteString("\nNastępny krok: pobierz potrzebne persony i skille przed pierwszą odpowiedzią.")
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
