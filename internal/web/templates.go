@@ -244,7 +244,6 @@ const allTemplates = `
 .st-anchored{color:#1a3a8a;}
 .st-pending{color:#7a5c00;}
 .st-none{color:var(--muted);}
-@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
 .info-btn{font-size:.68rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;}
 .info-btn:hover{border-color:var(--accent);color:var(--accent);}
 .info-actions{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap;padding-top:.4rem;border-top:1px solid var(--border);}
@@ -640,17 +639,20 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 
 {{define "css"}}
 :root{--bg:#0c0c0c;--fg:#c0c0c0;--muted:#707070;--border:#333;--accent:#00cc00;--accent2:#00cccc;--accent3:#cccc00;--accent4:#cc00cc;--accent5:#cc0000;--locked:#cc0000;--locked-bg:#1a0000;--tag-bg:#1a1a1a;--tag-fg:#00cccc;--max:720px;--mono:'IBM Plex Mono','Cascadia Code','Fira Code','Courier New',monospace;}
+@media(prefers-color-scheme:light){:root{--bg:#f5f5f0;--fg:#1a1a1a;--muted:#666;--border:#ccc;--accent:#006600;--accent2:#006666;--accent3:#666600;--accent4:#660066;--accent5:#990000;--locked:#990000;--locked-bg:#fff0f0;--tag-bg:#e8e8e0;--tag-fg:#006666;}}
+[data-theme="light"]{--bg:#f5f5f0;--fg:#1a1a1a;--muted:#666;--border:#ccc;--accent:#006600;--accent2:#006666;--accent3:#666600;--accent4:#660066;--accent5:#990000;--locked:#990000;--locked-bg:#fff0f0;--tag-bg:#e8e8e0;--tag-fg:#006666;}
+[data-theme="dark"]{--bg:#0c0c0c;--fg:#c0c0c0;--muted:#707070;--border:#333;--accent:#00cc00;--accent2:#00cccc;--accent3:#cccc00;--accent4:#cc00cc;--accent5:#cc0000;--locked:#cc0000;--locked-bg:#1a0000;--tag-bg:#1a1a1a;--tag-fg:#00cccc;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:14px;line-height:1.7;}
 a{color:var(--accent);text-decoration:none;}
-a:hover{color:#00ff00;text-decoration:underline;}
+a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
 .container{max-width:var(--max);margin:0 auto;padding:0 1.25rem;}
 .section{margin-bottom:2rem;}
 .section-head{color:var(--accent3);margin-bottom:.5rem;font-size:.85rem;letter-spacing:.05em;}
 .section-head span{color:var(--muted);}
 .irc-line{display:flex;gap:.5rem;padding:2px 0;align-items:baseline;}
-.irc-line:hover{background:#111;}
-.irc-line.active{background:#1a1a0a;}
+.irc-line:hover{background:var(--tag-bg);}
+.irc-line.active{background:var(--tag-bg);}
 .irc-date{color:var(--accent4);min-width:3.5rem;font-size:.8rem;flex-shrink:0;}
 .irc-title a{color:var(--fg);}
 .irc-title a:hover{color:var(--accent);}
@@ -696,11 +698,11 @@ a:hover{color:#00ff00;text-decoration:underline;}
 .btn{display:inline-block;padding:.25rem .6rem;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-family:var(--mono);}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
 .btn-primary{border-color:var(--accent);color:var(--accent);}
-.btn-primary:hover{background:#001a00;color:#00ff00;}
+.btn-primary:hover{background:var(--tag-bg);filter:brightness(1.3);}
 .btn-sm{padding:.2rem .5rem;font-size:.78rem;}
 .edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 4px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:var(--mono);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.search-box{display:none;margin-bottom:1rem;padding:.5rem;border:1px solid var(--accent);background:#0a0a0a;}
+.search-box{display:none;margin-bottom:1rem;padding:.5rem;border:1px solid var(--accent);background:var(--bg);}
 .search-box.visible{display:block;}
 .search-box input{background:var(--bg);color:var(--fg);border:none;outline:none;font-family:var(--mono);font-size:.9rem;width:100%;}
 .help-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:100;justify-content:center;align-items:center;}
@@ -749,11 +751,29 @@ a:hover{color:#00ff00;text-decoration:underline;}
 {{define "footer"}}
 <footer style="border-top:1px solid var(--border);margin-top:2.5rem;padding:1rem 0;font-size:.75rem;color:var(--muted);">
   <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a></span>
+    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a> &middot; <span id="theme-toggle" style="cursor:pointer;" title="toggle light/dark [d]">&#9788;</span></span>
     <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
   </div>
-  <div style="margin-top:.4rem;color:#333;font-size:.7rem;"><span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate <span style="color:var(--accent2);">[?]</span> help</div>
+  <div style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;"><span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate <span style="color:var(--accent2);">[d]</span> theme <span style="color:var(--accent2);">[?]</span> help</div>
 </footer>
+<script>
+(function(){
+  var t=localStorage.getItem('theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);
+  var btn=document.getElementById('theme-toggle');
+  if(btn)btn.addEventListener('click',toggle);
+  function toggle(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='light'?'dark':(cur==='dark'?'light':(window.matchMedia('(prefers-color-scheme:light)').matches?'dark':'light'));
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('theme',next);
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    if(e.key==='d'){e.preventDefault();toggle();}
+  });
+})();
+</script>
 {{end}}
 
 
