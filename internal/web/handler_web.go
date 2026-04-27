@@ -61,6 +61,10 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 			if t.IsZero() { return "" }
 			return t.Format("2 January 2006")
 		},
+		"shortDate": func(t time.Time) string {
+			if t.IsZero() { return "" }
+			return t.Format("02 Jan")
+		},
 		"formatTime": func(t time.Time) string {
 			if t.IsZero() { return "" }
 			return t.Format("2 Jan 15:04")
@@ -257,6 +261,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/subscriptions/confirm", h.handleSubscribeConfirm)
 	mux.HandleFunc("/subscriptions/unsubscribe/", h.handleUnsubscribe)
 
+	// Team page (public)
+	mux.HandleFunc("/team", h.handleTeam)
+
+	// RSS feed
+	mux.HandleFunc("/rss.xml", h.handleRSS)
+
 	// Login/logout for web UI
 	mux.HandleFunc("/login", h.handleLogin)
 	mux.HandleFunc("/logout", h.handleLogout)
@@ -311,13 +321,44 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	for _, p := range pieces { slugTags[p.Slug] = p.Tags }
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
+
+	// Separate pieces by type for sectioned layout
+	var poems, otherPieces []*content.Piece
+	for _, p := range pieces {
+		if p.Type == "poem" || p.Type == "essay" || p.Type == "note" {
+			poems = append(poems, p)
+		} else if p.Type != "document" && p.Type != "capsule" {
+			otherPieces = append(otherPieces, p)
+		}
+	}
+
+	// Images for gallery section
+	blobs, _ := h.blobStore.Load()
+	var images []*content.Blob
+	for _, b := range blobs {
+		if b.BlobType == content.BlobImage && b.Access == content.AccessPublic {
+			images = append(images, b)
+		}
+	}
+
+	// Listings
+	listings := h.listingStore.List(false)
+
+	// Personas count
+	personas, _ := h.skillStore.ListPersonas()
+
 	h.render(w, "index.html", map[string]interface{}{
-		"Author":       h.cfg.AuthorName,
-		"Bio":          h.cfg.AuthorBio,
-		"Pieces":       pieces,
-		"IsOwner":      isOwner,
-		"Domain":       h.cfg.Domain,
-		"BlobImageMap": h.blobImageMap(),
+		"Author":        h.cfg.AuthorName,
+		"Bio":           h.cfg.AuthorBio,
+		"Pieces":        pieces,
+		"Poems":         poems,
+		"OtherPieces":   otherPieces,
+		"Images":        images,
+		"Listings":      listings,
+		"PersonaCount":  len(personas),
+		"IsOwner":       isOwner,
+		"Domain":        h.cfg.Domain,
+		"BlobImageMap":  h.blobImageMap(),
 	})
 }
 
@@ -900,6 +941,52 @@ func (h *Handler) handleImages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) handleTeam(w http.ResponseWriter, r *http.Request) {
+	personas, _ := h.skillStore.ListPersonas()
+	h.render(w, "team.html", map[string]interface{}{
+		"Author":   h.cfg.AuthorName,
+		"Personas": personas,
+	})
+}
+
+func (h *Handler) handleRSS(w http.ResponseWriter, r *http.Request) {
+	if err := h.store.Load(); err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	pieces := h.store.List(false)
+	w.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
+	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>%s — humanMCP</title>
+<link>https://%s</link>
+<description>Poems written by human</description>
+<atom:link href="https://%s/rss.xml" rel="self" type="application/rss+xml"/>
+`, h.cfg.AuthorName, h.cfg.Domain, h.cfg.Domain)
+	for _, p := range pieces {
+		if p.Type == "document" || p.Type == "capsule" {
+			continue
+		}
+		if p.Access != content.AccessPublic {
+			continue
+		}
+		title := template.HTMLEscapeString(p.Title)
+		body := template.HTMLEscapeString(p.Body)
+		if len([]rune(body)) > 300 {
+			body = string([]rune(body)[:300]) + "…"
+		}
+		fmt.Fprintf(w, `<item>
+<title>%s</title>
+<link>https://%s/p/%s</link>
+<guid>https://%s/p/%s</guid>
+<pubDate>%s</pubDate>
+<description>%s</description>
+</item>
+`, title, h.cfg.Domain, p.Slug, h.cfg.Domain, p.Slug, p.Published.Format(time.RFC1123Z), body)
+	}
+	fmt.Fprint(w, "</channel>\n</rss>")
+}
 
 // --- Listings ---
 

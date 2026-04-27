@@ -7,6 +7,7 @@ const allTemplates = `
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{.Author}} — humanMCP</title>
+<link rel="alternate" type="application/rss+xml" title="{{.Author}} RSS" href="/rss.xml">
 <style>{{template "css" .}}</style>
 </head>
 <body>
@@ -15,51 +16,217 @@ const allTemplates = `
 
 {{if .IsOwner}}
 <div class="owner-bar">
-  <a href="/new" class="btn btn-primary" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ post</a>
-  <a href="/new?type=image" class="btn" style="font-size:.9rem;padding:.4rem 1.1rem;text-decoration:none;">+ image</a>
-  <a href="/images" style="font-size:.78rem;color:var(--muted);text-decoration:none;">gallery</a>
-  <a href="/messages" style="font-size:.78rem;color:var(--muted);text-decoration:none;">messages</a>
-  <a href="/llms-edit" style="font-size:.78rem;color:var(--muted);text-decoration:none;">llms.txt</a>
-  <a href="/dashboard" style="font-size:.78rem;color:var(--muted);margin-left:auto;text-decoration:none;">stats</a>
+  <a href="/new" class="btn btn-primary">+ post</a>
+  <a href="/new?type=image" class="btn">+ image</a>
+  <a href="/images" style="color:var(--muted);">gallery</a>
+  <a href="/messages" style="color:var(--muted);">messages</a>
+  <a href="/listings/new" style="color:var(--muted);">+ listing</a>
+  <a href="/llms-edit" style="color:var(--muted);">llms.txt</a>
+  <span style="flex:1;"></span>
+  <a href="/dashboard" style="color:var(--muted);">stats</a>
 </div>
 {{end}}
 
-{{if .Pieces}}
-<ul class="pieces">
-{{range .Pieces}}
-{{$img := index $.BlobImageMap .Slug}}
-{{if or $.IsOwner (and (ne .Type "document") (ne .Type "capsule"))}}
-<li class="piece-item">
-  <div class="piece-row">
-    <div class="piece-left">
-      <div class="piece-meta">
-        <span>{{formatDate .Published}}</span>
-        {{if ne .Type "note"}}<span class="type-badge {{.Type}}">{{.Type}}</span>{{end}}
-        {{if ne (lower (print .Access)) "public"}}<span class="locked-badge">{{.Access}}</span>{{end}}
-        {{if and (or (eq .Type "document") (eq .Type "capsule")) $.IsOwner}}<span class="hidden-badge">&#128268; agents only</span>{{end}}
-        {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
-        {{if eq (otsStatus .OTSProof) "anchored"}}<span class="ots-badge ots-anchored">&#x20BF; anchored</span>{{else if eq (otsStatus .OTSProof) "pending"}}<span class="ots-badge ots-pending">&#x20BF; pending</span>{{end}}
-      </div>
-      <div class="piece-title">
-        <a href="/p/{{.Slug}}">{{.Title}}</a>
-        {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
-      </div>
-      {{if .Description}}<div class="piece-desc">{{.Description}}</div>{{end}}
-      {{if and (not $img) .Body (ne .Type "image")}}<div class="piece-excerpt">{{truncate .Body 120}}</div>{{end}}
-      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
-    </div>
-    {{if $img}}<div class="piece-right"><a href="/p/{{.Slug}}"><img class="piece-thumb" src="{{$img}}" alt="{{.Title}}" loading="lazy"></a></div>{{end}}
-  </div>
-</li>
+<div id="search-box" class="search-box">
+  <span style="color:var(--accent);">/</span> <input type="text" id="search-input" placeholder="search..." autocomplete="off">
+</div>
+
+<!-- wiersze -->
+<div class="section" id="wiersze">
+<div class="section-head">--- #wiersze <span>[1]</span> ─────────────────────────────────────</div>
+{{if .Poems}}
+<div id="poem-list">
+{{range .Poems}}
+<div class="irc-line navigable" data-href="/p/{{.Slug}}">
+  <span class="irc-date">{{shortDate .Published}}</span>
+  <span class="irc-title"><a href="/p/{{.Slug}}">{{.Title}}</a></span>
+  {{if .Signature}}<span class="irc-signed">✓</span>{{end}}
+  {{if ne (lower (print .Access)) "public"}}<span class="irc-locked">{{.Access}}</span>{{end}}
+  {{if .Tags}}<span class="irc-tags">{{range .Tags}}#{{.}} {{end}}</span>{{end}}
+  {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+</div>
 {{end}}
-{{end}}
-</ul>
+</div>
 {{else}}
-<div class="empty">Nothing here yet.{{if .IsOwner}} Click &ldquo;+ share&rdquo; to post something.{{end}}</div>
+<div class="empty">no poems yet</div>
+{{end}}
+</div>
+
+<!-- obrazy -->
+<div class="section" id="obrazy">
+<div class="section-head">--- #obrazy <span>[2]</span> ──────────────────────────────────────</div>
+{{if .Images}}
+<div class="gallery-row">
+{{range .Images}}
+<a href="/p/{{.Slug}}"><img class="gallery-thumb" src="/files/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>
+{{end}}
+</div>
+{{else}}
+<div class="empty">no images yet</div>
+{{end}}
+</div>
+
+<!-- ogłoszenia -->
+<div class="section" id="ogloszenia">
+<div class="section-head">--- #ogłoszenia <span>[3]</span> ──────────────────────────────────</div>
+{{if .Listings}}
+{{range .Listings}}
+<div class="listing-line">
+  <span class="listing-type {{.Type}}">{{.Type}}</span>
+  <a href="/listings/{{.Slug}}">{{.Title}}</a>
+  {{if .Price}}<span style="color:var(--accent3);">{{.Price}}</span>{{end}}
+</div>
+{{end}}
+{{else}}
+<div class="empty">no active listings</div>
+{{end}}
+</div>
+
+<!-- team hint -->
+{{if gt .PersonaCount 0}}
+<div style="margin:1.5rem 0;font-size:.82rem;color:var(--muted);">
+  <span style="color:var(--accent2);">{{.PersonaCount}}</span> AI personas available &middot; <a href="/team">meet the team</a> &middot; <a href="/connect">connect via MCP</a>
+</div>
 {{end}}
 
 {{template "footer" .}}
 </div>
+
+<!-- help overlay -->
+<div class="help-overlay" id="help-overlay">
+<div class="help-box">
+  <h3>keyboard shortcuts</h3>
+  <div class="help-row"><span class="help-key">j / ↓</span><span>next item</span></div>
+  <div class="help-row"><span class="help-key">k / ↑</span><span>previous item</span></div>
+  <div class="help-row"><span class="help-key">Enter</span><span>open selected</span></div>
+  <div class="help-row"><span class="help-key">/</span><span>search</span></div>
+  <div class="help-row"><span class="help-key">1</span><span>wiersze</span></div>
+  <div class="help-row"><span class="help-key">2</span><span>obrazy</span></div>
+  <div class="help-row"><span class="help-key">3</span><span>ogłoszenia</span></div>
+  <div class="help-row"><span class="help-key">t</span><span>team</span></div>
+  <div class="help-row"><span class="help-key">c</span><span>connect</span></div>
+  <div class="help-row"><span class="help-key">m</span><span>contact</span></div>
+  <div class="help-row"><span class="help-key">Tab</span><span>next section</span></div>
+  <div class="help-row"><span class="help-key">Esc / ?</span><span>close help</span></div>
+</div>
+</div>
+
+<script>
+(function(){
+  var items = document.querySelectorAll('.navigable');
+  var cur = -1;
+  var sections = ['wiersze','obrazy','ogloszenia'];
+  var secIdx = 0;
+
+  function highlight(i){
+    if(cur>=0 && cur<items.length) items[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(i, items.length-1));
+    if(items[cur]){
+      items[cur].classList.add('active');
+      items[cur].scrollIntoView({block:'nearest'});
+    }
+  }
+
+  function isInput(e){ return e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'; }
+
+  document.addEventListener('keydown', function(e){
+    var help = document.getElementById('help-overlay');
+    var search = document.getElementById('search-box');
+    var input = document.getElementById('search-input');
+
+    // Close help/search on Escape
+    if(e.key==='Escape'){
+      help.classList.remove('visible');
+      if(search.classList.contains('visible')){
+        search.classList.remove('visible');
+        input.value='';
+        filterItems('');
+        input.blur();
+      }
+      return;
+    }
+
+    // When search is focused
+    if(document.activeElement===input){
+      if(e.key==='Enter'){
+        e.preventDefault();
+        // Navigate to first visible item
+        var first = document.querySelector('.irc-line.navigable:not([style*="display:none"])');
+        if(first) window.location = first.dataset.href;
+      }
+      filterItems(input.value);
+      return;
+    }
+
+    if(isInput(e)) return;
+
+    switch(e.key){
+      case '?':
+        e.preventDefault();
+        help.classList.toggle('visible');
+        break;
+      case '/':
+        e.preventDefault();
+        search.classList.add('visible');
+        input.focus();
+        break;
+      case 'j': case 'ArrowDown':
+        e.preventDefault();
+        highlight(cur+1);
+        break;
+      case 'k': case 'ArrowUp':
+        e.preventDefault();
+        highlight(cur<0?0:cur-1);
+        break;
+      case 'Enter':
+        if(cur>=0 && items[cur]) window.location = items[cur].dataset.href;
+        break;
+      case '1':
+        document.getElementById('wiersze').scrollIntoView({behavior:'smooth'});
+        break;
+      case '2':
+        document.getElementById('obrazy').scrollIntoView({behavior:'smooth'});
+        break;
+      case '3':
+        document.getElementById('ogloszenia').scrollIntoView({behavior:'smooth'});
+        break;
+      case 'Tab':
+        e.preventDefault();
+        secIdx = (secIdx + (e.shiftKey ? sections.length-1 : 1)) % sections.length;
+        document.getElementById(sections[secIdx]).scrollIntoView({behavior:'smooth'});
+        break;
+      case 't':
+        window.location='/team';
+        break;
+      case 'c':
+        window.location='/connect';
+        break;
+      case 'm':
+        window.location='/contact';
+        break;
+    }
+  });
+
+  // Search filter
+  function filterItems(q){
+    q = q.toLowerCase();
+    items.forEach(function(el){
+      var text = el.textContent.toLowerCase();
+      el.style.display = (!q || text.indexOf(q)!==-1) ? '' : 'none';
+    });
+  }
+
+  document.getElementById('search-input').addEventListener('input', function(){
+    filterItems(this.value);
+  });
+
+  // Help trigger button
+  var trigger = document.getElementById('help-trigger');
+  if(trigger) trigger.addEventListener('click', function(){
+    document.getElementById('help-overlay').classList.toggle('visible');
+  });
+})();
+</script>
 </body></html>
 {{end}}
 
@@ -474,76 +641,98 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 {{end}}
 
 {{define "css"}}
-:root{--bg:#fdfcfa;--fg:#1a1a1a;--muted:#6b6b6b;--border:#e2e0db;--accent:#2a6496;--accent-light:#e8f1f8;--locked:#7a5c00;--locked-bg:#fef9ec;--tag-bg:#f0ede8;--tag-fg:#555;--max:660px;--serif:Georgia,'Times New Roman',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
-@media(prefers-color-scheme:dark){:root{--bg:#141412;--fg:#e8e6e1;--muted:#888;--border:#2e2c28;--accent:#6baed6;--accent-light:#1a2a36;--locked:#d4a017;--locked-bg:#1e1800;--tag-bg:#252320;--tag-fg:#aaa;}}
+:root{--bg:#0c0c0c;--fg:#c0c0c0;--muted:#707070;--border:#333;--accent:#00cc00;--accent2:#00cccc;--accent3:#cccc00;--accent4:#cc00cc;--accent5:#cc0000;--locked:#cc0000;--locked-bg:#1a0000;--tag-bg:#1a1a1a;--tag-fg:#00cccc;--max:720px;--mono:'IBM Plex Mono','Cascadia Code','Fira Code','Courier New',monospace;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.6;}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:14px;line-height:1.7;}
 a{color:var(--accent);text-decoration:none;}
-a:hover{text-decoration:underline;}
+a:hover{color:#00ff00;text-decoration:underline;}
 .container{max-width:var(--max);margin:0 auto;padding:0 1.25rem;}
+.section{margin-bottom:2rem;}
+.section-head{color:var(--accent3);margin-bottom:.5rem;font-size:.85rem;letter-spacing:.05em;}
+.section-head span{color:var(--muted);}
+.irc-line{display:flex;gap:.5rem;padding:2px 0;align-items:baseline;}
+.irc-line:hover{background:#111;}
+.irc-line.active{background:#1a1a0a;}
+.irc-date{color:var(--accent4);min-width:3.5rem;font-size:.8rem;flex-shrink:0;}
+.irc-title a{color:var(--fg);}
+.irc-title a:hover{color:var(--accent);}
+.irc-tags{color:var(--accent2);font-size:.75rem;}
+.irc-badge{font-size:.7rem;color:var(--accent3);}
+.irc-locked{color:var(--accent5);font-size:.7rem;}
+.irc-signed{color:var(--accent);font-size:.7rem;}
+.gallery-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:.4rem;}
+.gallery-thumb{width:80px;height:60px;object-fit:cover;border:1px solid var(--border);opacity:.8;}
+.gallery-thumb:hover{opacity:1;border-color:var(--accent);}
+.listing-line{display:flex;gap:.5rem;padding:2px 0;font-size:.85rem;}
+.listing-type{min-width:3.5rem;flex-shrink:0;}
+.listing-type.sell{color:#00cc00;}.listing-type.buy{color:#00cccc;}.listing-type.offer{color:#cc00cc;}.listing-type.request{color:#cccc00;}.listing-type.trade{color:#cc6600;}
+.empty{color:var(--muted);padding:1rem 0;}
 .pieces{list-style:none;}
 .piece-item{padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .piece-item:last-child{border-bottom:none;}
 .piece-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;}
 .piece-left{flex:1;min-width:0;}
 .piece-right{flex-shrink:0;}
-.piece-thumb{width:120px;height:80px;object-fit:cover;border-radius:4px;display:block;}
-.piece-excerpt{font-size:.85rem;color:var(--muted);margin-top:.25rem;line-height:1.5;font-style:italic;}
+.piece-thumb{width:120px;height:80px;object-fit:cover;border:1px solid var(--border);display:block;}
+.piece-excerpt{font-size:.82rem;color:var(--muted);margin-top:.25rem;line-height:1.5;font-style:italic;}
 .piece-meta{font-size:.78rem;color:var(--muted);margin-bottom:.25rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
-.type-badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;background:var(--tag-bg);color:var(--tag-fg);padding:1px 5px;border-radius:3px;}
-.type-badge.image{background:#e8f4e8;color:#2d6a2d;}
-.type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
-.type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
-.type-badge.contact{background:#fef0e8;color:#7a3a1a;}
-.type-badge.sell{background:#e8f5e9;color:#2e7d32;}.type-badge.buy{background:#e3f2fd;color:#1565c0;}.type-badge.offer{background:#f3e5f5;color:#7b1fa2;}.type-badge.request{background:#fff3e0;color:#e65100;}.type-badge.trade{background:#fce4ec;color:#c2185b;}
-@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}.type-badge.sell{background:#1a2e1a;color:#6abf6a;}.type-badge.buy{background:#1a2a3a;color:#6aaee0;}.type-badge.offer{background:#2a1a3a;color:#b06ae0;}.type-badge.request{background:#2e1a0a;color:#e0906a;}.type-badge.trade{background:#2e0a1a;color:#e06a8a;}}
-.signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
-.hidden-badge{font-size:.65rem;background:#f0f0f0;color:#666;padding:1px 5px;border-radius:3px;border:1px solid #ccc;}
-@media(prefers-color-scheme:dark){.hidden-badge{background:#222;color:#888;border-color:#444;}}
-.ots-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;}
-.ots-anchored{background:#e8f0fe;color:#1a3a8a;border:1px solid #6488d0;}
-.ots-pending{background:#fef9e8;color:#7a5c00;border:1px solid #c9a96e;}
-@media(prefers-color-scheme:dark){.signed-badge{background:#0d2b0d;color:#6abf6a;border-color:#2d6b2d;}.ots-anchored{background:#0d1229;color:#8899e0;border-color:#2d3d8a;}.ots-pending{background:#1e1800;color:#d4a017;border-color:#7a5c00;}}
-.st-active{color:#2e7d32;}.st-anchored{color:#1a3a8a;}.st-pending{color:#7a5c00;}.st-none{color:var(--muted);}
-@media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
-.locked-badge{font-size:.68rem;background:var(--locked-bg);color:var(--locked);padding:1px 5px;border-radius:3px;border:1px solid var(--locked);}
-.piece-title{font-size:1.05rem;font-weight:500;margin-bottom:.2rem;}
+.type-badge{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent3);}
+.type-badge.image{color:var(--accent);}.type-badge.poem{color:var(--accent4);}.type-badge.essay{color:var(--accent2);}.type-badge.contact{color:#cc6600;}
+.type-badge.sell{color:#00cc00;}.type-badge.buy{color:#00cccc;}.type-badge.offer{color:#cc00cc;}.type-badge.request{color:#cccc00;}.type-badge.trade{color:#cc6600;}
+.signed-badge{font-size:.7rem;color:var(--accent);}
+.hidden-badge{font-size:.7rem;color:var(--muted);}
+.ots-badge{font-size:.7rem;}
+.ots-anchored{color:#6699ff;}
+.ots-pending{color:var(--accent3);}
+.st-active{color:var(--accent);}.st-anchored{color:#6699ff;}.st-pending{color:var(--accent3);}.st-none{color:var(--muted);}
+.locked-badge{font-size:.7rem;color:var(--accent5);}
+.piece-title{font-size:1rem;margin-bottom:.2rem;}
 .piece-title a{color:var(--fg);}
-.piece-title a:hover{color:var(--accent);text-decoration:none;}
-.piece-desc{font-size:.88rem;color:var(--muted);}
+.piece-title a:hover{color:var(--accent);}
+.piece-desc{font-size:.82rem;color:var(--muted);}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
-.tag{font-size:.72rem;color:var(--muted);background:var(--tag-bg);padding:1px 6px;border-radius:10px;}
-.empty{color:var(--muted);padding:2rem 0;text-align:center;}
-.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.6rem .8rem;background:var(--accent-light);border:1px solid var(--accent);border-radius:6px;flex-wrap:wrap;}
-.btn{display:inline-block;padding:.35rem .8rem;border-radius:4px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);}
-.btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-.btn-primary:hover{opacity:.9;background:var(--accent);color:#fff;}
-.btn-sm{padding:.25rem .6rem;font-size:.78rem;}
-.edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 5px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);}
+.tag{font-size:.72rem;color:var(--accent2);background:none;padding:0;}
+.owner-bar{display:flex;gap:.7rem;align-items:center;margin-bottom:1.5rem;padding:.4rem .6rem;border:1px solid var(--border);flex-wrap:wrap;font-size:.82rem;}
+.btn{display:inline-block;padding:.25rem .6rem;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-family:var(--mono);}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{border-color:var(--accent);color:var(--accent);}
+.btn-primary:hover{background:#001a00;color:#00ff00;}
+.btn-sm{padding:.2rem .5rem;font-size:.78rem;}
+.edit-btn{font-size:.7rem;margin-left:.4rem;padding:1px 4px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:var(--mono);}
 .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+.search-box{display:none;margin-bottom:1rem;padding:.5rem;border:1px solid var(--accent);background:#0a0a0a;}
+.search-box.visible{display:block;}
+.search-box input{background:var(--bg);color:var(--fg);border:none;outline:none;font-family:var(--mono);font-size:.9rem;width:100%;}
+.help-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:100;justify-content:center;align-items:center;}
+.help-overlay.visible{display:flex;}
+.help-box{border:1px solid var(--accent);background:var(--bg);padding:1.5rem 2rem;max-width:400px;font-size:.85rem;}
+.help-box h3{color:var(--accent);margin-bottom:.75rem;}
+.help-row{display:flex;justify-content:space-between;padding:2px 0;}
+.help-key{color:var(--accent3);min-width:6rem;}
 {{end}}
 
 {{define "header"}}
-<header style="border-bottom:1px solid var(--border);padding:1.25rem 0 .9rem;margin-bottom:1.75rem;">
+<header style="border-bottom:1px solid var(--border);padding:1rem 0 .7rem;margin-bottom:1.5rem;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.4rem;">
     <div>
-      <div style="font-size:1.15rem;font-weight:600;display:flex;align-items:center;gap:.5rem;">
-        <a href="/" style="color:var(--fg);">{{.Author}}</a>
-        <span style="font-size:.68rem;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:3px;border:1px solid var(--accent);">humanMCP</span>
+      <div style="font-size:1rem;display:flex;align-items:center;gap:.5rem;">
+        <span style="color:var(--accent);">[</span><a href="/" style="color:var(--accent);">{{.Author}}</a><span style="color:var(--accent);">]</span>
+        {{if .Bio}}<span style="font-size:.82rem;color:var(--muted);">{{.Bio}}</span>{{end}}
       </div>
-      {{if .Bio}}<div style="font-size:.82rem;color:var(--muted);margin-top:.2rem;">{{.Bio}}</div>{{end}}
     </div>
-    <nav style="font-size:.8rem;color:var(--muted);display:flex;gap:.9rem;align-items:center;padding-top:.15rem;">
+    <nav style="font-size:.8rem;color:var(--muted);display:flex;gap:.7rem;align-items:center;">
       {{if .IsOwner}}
-        <a href="/llms-edit" style="color:var(--muted);" title="Edit your llms.txt agent preferences">llms.txt</a>
+        <a href="/llms-edit" style="color:var(--muted);">llms.txt</a>
         <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
-        <a href="/images" style="color:var(--muted);">images</a>
-        <a href="/listings" style="color:var(--muted);">listings</a>
+        <a href="#wiersze" style="color:var(--accent2);">wiersze</a>
+        <a href="#obrazy" style="color:var(--accent2);">obrazy</a>
+        <a href="#ogloszenia" style="color:var(--accent2);">ogłoszenia</a>
+        <a href="/team" style="color:var(--muted);">team</a>
         <a href="/contact" style="color:var(--muted);">contact</a>
-        <a href="/connect" style="color:var(--accent);font-weight:500;">+ connect</a>
+        <a href="/connect" style="color:var(--accent);">+connect</a>
+        <span style="color:var(--muted);cursor:pointer;" id="help-trigger" title="keyboard shortcuts [?]">?</span>
       {{end}}
     </nav>
   </div>
@@ -551,15 +740,20 @@ a:hover{text-decoration:underline;}
 {{end}}
 
 {{define "header-simple"}}
-<header style="border-bottom:1px solid var(--border);padding:1rem 0 .75rem;margin-bottom:1.5rem;">
-  <div style="font-size:1rem;font-weight:600;"><a href="/" style="color:var(--fg);">{{.Author}}</a></div>
+<header style="border-bottom:1px solid var(--border);padding:.75rem 0;margin-bottom:1.5rem;">
+  <div style="font-size:1rem;display:flex;align-items:center;gap:.5rem;">
+    <span style="color:var(--accent);">[</span><a href="/" style="color:var(--accent);">{{.Author}}</a><span style="color:var(--accent);">]</span>
+  </div>
 </header>
 {{end}}
 
 {{define "footer"}}
-<footer style="border-top:1px solid var(--border);margin-top:3.5rem;padding:1.25rem 0;font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-  <span><a href="/connect" style="color:var(--muted);">connect MCP</a> &middot; <a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a></span>
-  <span>humanMCP v0.1 &middot; {{.Author}}</span>
+<footer style="border-top:1px solid var(--border);margin-top:2.5rem;padding:1rem 0;font-size:.75rem;color:var(--muted);">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/team" style="color:var(--muted);">team</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a></span>
+    <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
+  </div>
+  <div style="margin-top:.4rem;color:#333;font-size:.7rem;"><span style="color:var(--accent2);">[/]</span> search <span style="color:var(--accent2);">[j/k]</span> navigate <span style="color:var(--accent2);">[?]</span> help</div>
 </footer>
 {{end}}
 
@@ -1094,6 +1288,40 @@ function loadStarter(){
 {{else}}
 <div class="empty">No skills defined yet.</div>
 {{end}}
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "team.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<a href="/" style="font-size:.82rem;color:var(--muted);">&#8592; back</a>
+<div style="margin:1.5rem 0;">
+<div class="section-head">--- #team ─────────────────────────────────────────────</div>
+<p style="font-size:.85rem;color:var(--muted);margin:.75rem 0 1.25rem;">
+AI personas that assist {{.Author}}. Connect via <a href="/connect">MCP</a> to work with them.
+</p>
+{{if .Personas}}
+{{range .Personas}}
+<div class="irc-line" style="padding:4px 0;">
+  <span style="color:var(--accent);min-width:1rem;">&#9632;</span>
+  <span style="color:var(--accent);min-width:10rem;">{{.Name}}</span>
+  <span style="color:var(--muted);">{{.Role}}</span>
+</div>
+{{end}}
+{{else}}
+<div class="empty">no personas defined</div>
+{{end}}
+</div>
 {{template "footer" .}}
 </div>
 </body></html>
