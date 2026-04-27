@@ -227,11 +227,11 @@ const allTemplates = `
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{.Piece.Title}} — {{.Author}}</title>
 <style>{{template "css" .}}
-.poem-body{font-family:var(--serif);font-size:1.1rem;line-height:2;white-space:pre-wrap;margin:2rem 0;}
-.essay-body{font-size:1rem;line-height:1.85;margin:2rem 0;}
+.poem-body{font-family:var(--mono);font-size:.9rem;line-height:1.9;white-space:pre-wrap;margin:2rem 0;}
+.essay-body{font-family:var(--mono);font-size:.9rem;line-height:1.85;margin:2rem 0;}
 .piece-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
 .piece-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;}
-.piece-h1{font-size:1.6rem;font-weight:500;line-height:1.3;margin-bottom:.4rem;font-family:var(--serif);}
+.piece-h1{font-size:1.3rem;font-weight:400;line-height:1.3;margin-bottom:.4rem;font-family:var(--mono);}
 .piece-info{margin-top:.9rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;}
 .status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.4rem .6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
 .status-row:last-of-type{border-bottom:none;}
@@ -445,7 +445,7 @@ const allTemplates = `
 {{if .SessionCode}}
 <div class="section" style="background:var(--accent-light);border:1px solid var(--accent);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.75rem;">
   <div class="section-title" style="color:var(--accent);margin-bottom:.5rem;">hasło sesji</div>
-  <div style="font-family:var(--serif);font-size:1.15rem;font-weight:500;color:var(--fg);margin-bottom:.5rem;letter-spacing:.02em;">
+  <div style="font-family:var(--mono);font-size:1rem;font-weight:400;color:var(--fg);margin-bottom:.5rem;letter-spacing:.02em;">
     &bdquo;{{.SessionCode}}&rdquo;
   </div>
   <div style="font-size:.72rem;color:var(--muted);margin-bottom:.75rem;">
