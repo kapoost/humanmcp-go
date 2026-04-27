@@ -5,3 +5,7 @@ humanmcp
 config.json
 .env
 .DS_Store
+listings.json
+subscriptions.json
+stats.ndjson
+messages/

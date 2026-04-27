@@ -8,11 +8,13 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kapoost/humanmcp-go/internal/auth"
 	"github.com/kapoost/humanmcp-go/internal/config"
 	"github.com/kapoost/humanmcp-go/internal/content"
+	"github.com/kapoost/humanmcp-go/internal/oauth"
 )
 
 type Request struct {
@@ -53,6 +55,12 @@ type ContentBlock struct {
 	Text string `json:"text"`
 }
 
+// rateBucket tracks request counts per IP.
+type rateBucket struct {
+	count    int
+	windowStart time.Time
+}
+
 type Handler struct {
 	cfg       *config.Config
 	store     *content.Store
@@ -60,23 +68,95 @@ type Handler struct {
 	msgStore  *content.MessageStore
 	statStore *content.StatStore
 	blobStore  *content.BlobStore
-	skillStore  *content.SkillStore
-	sessionCode *content.SessionCode
-	memoryStore *content.MemoryStore
+	skillStore    *content.SkillStore
+	sessionCode   *content.SessionCode
+	memoryStore   *content.MemoryStore
+	oauthProvider *oauth.Provider
+	listingStore  *content.ListingStore
+	subStore      *content.SubscriptionStore
+
+	rateMu   sync.Mutex
+	rateMap  map[string]*rateBucket
 }
 
-func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore) *Handler {
-	return &Handler{
-		cfg:         cfg,
-		store:       store,
-		auth:        a,
-		msgStore:    content.NewMessageStore(cfg.ContentDir),
-		statStore:   content.NewStatStore(cfg.ContentDir),
-		blobStore:   content.NewBlobStore(cfg.ContentDir),
-		skillStore:  skillStore,
-		sessionCode: sessionCode,
-		memoryStore: memoryStore,
+func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore, oauthProvider *oauth.Provider, listingStore *content.ListingStore, subStore *content.SubscriptionStore) *Handler {
+	h := &Handler{
+		cfg:           cfg,
+		store:         store,
+		auth:          a,
+		msgStore:      content.NewMessageStore(cfg.ContentDir),
+		statStore:     content.NewStatStore(cfg.ContentDir),
+		blobStore:     content.NewBlobStore(cfg.ContentDir),
+		skillStore:    skillStore,
+		sessionCode:   sessionCode,
+		memoryStore:   memoryStore,
+		oauthProvider: oauthProvider,
+		listingStore:  listingStore,
+		subStore:      subStore,
+		rateMap:       make(map[string]*rateBucket),
 	}
+	go h.rateCleanup()
+	return h
+}
+
+const (
+	rateWindow = 1 * time.Minute
+	rateLimit  = 60 // requests per window per IP
+)
+
+// clientIP extracts IP from Fly-Client-IP header or RemoteAddr.
+func clientIP(r *http.Request) string {
+	if ip := r.Header.Get("Fly-Client-IP"); ip != "" {
+		return ip
+	}
+	addr := r.RemoteAddr
+	if i := strings.LastIndex(addr, ":"); i != -1 {
+		return addr[:i]
+	}
+	return addr
+}
+
+// checkRate returns true if the request is within rate limits.
+func (h *Handler) checkRate(r *http.Request) bool {
+	ip := clientIP(r)
+	now := time.Now()
+
+	h.rateMu.Lock()
+	defer h.rateMu.Unlock()
+
+	b, exists := h.rateMap[ip]
+	if !exists || now.Sub(b.windowStart) > rateWindow {
+		h.rateMap[ip] = &rateBucket{count: 1, windowStart: now}
+		return true
+	}
+	b.count++
+	return b.count <= rateLimit
+}
+
+// rateCleanup removes stale entries every 2 minutes.
+func (h *Handler) rateCleanup() {
+	for {
+		time.Sleep(2 * time.Minute)
+		now := time.Now()
+		h.rateMu.Lock()
+		for ip, b := range h.rateMap {
+			if now.Sub(b.windowStart) > rateWindow {
+				delete(h.rateMap, ip)
+			}
+		}
+		h.rateMu.Unlock()
+	}
+}
+
+// isOAuthAuthorized checks if the HTTP request carries a valid OAuth Bearer token.
+func (h *Handler) isOAuthAuthorized(r *http.Request) bool {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return false
+	}
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	_, ok := h.oauthProvider.ValidateBearer(token)
+	return ok
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +166,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !h.checkRate(r) {
+		log.Printf("[MCP] rate limit hit for %s", clientIP(r))
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte(`{"jsonrpc":"2.0","error":{"code":-32000,"message":"rate limit exceeded — max 60 requests/minute"}}`))
 		return
 	}
 	var req Request
@@ -542,6 +630,68 @@ func (h *Handler) buildTools() []Tool {
 				},
 			},
 		},
+		{
+			Name:        "list_listings",
+			Description: "List active public listings (classified ads). Filter by type, tag, or date. Supports pull-based subscription via since parameter.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"type":  map[string]interface{}{"type": "string", "description": "Filter by listing type: sell, buy, offer, request, trade"},
+					"tag":   map[string]interface{}{"type": "string", "description": "Filter by tag"},
+					"since": map[string]interface{}{"type": "string", "description": "RFC3339 timestamp — only return listings published after this time"},
+					"limit": map[string]interface{}{"type": "integer", "description": "Max results (default 20, max 100)"},
+				},
+			},
+		},
+		{
+			Name:        "read_listing",
+			Description: "Read the full details of a listing by slug, including signature. Returns 404 if not active or not public.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug"},
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string", "description": "Listing slug"},
+				},
+			},
+		},
+		{
+			Name:        "respond_to_listing",
+			Description: "Send a response to a listing. The message is delivered to kapoost. Max 2000 chars.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"slug", "from", "message"},
+				"properties": map[string]interface{}{
+					"slug":    map[string]interface{}{"type": "string", "description": "Listing slug"},
+					"from":    map[string]interface{}{"type": "string", "description": "Your name or handle"},
+					"message": map[string]interface{}{"type": "string", "description": "Your response (max 2000 chars)"},
+				},
+			},
+		},
+		{
+			Name:        "subscribe_listings",
+			Description: "Subscribe to new listings. Webhook subscribers receive POST notifications; MCP subscribers poll list_listings(since=...). Returns subscription ID and unsubscribe token.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"channel"},
+				"properties": map[string]interface{}{
+					"channel":      map[string]interface{}{"type": "string", "description": "Delivery channel: webhook or mcp", "enum": []string{"webhook", "mcp"}},
+					"callback_url": map[string]interface{}{"type": "string", "description": "Webhook URL (required for webhook channel, must be absolute https://)"},
+					"filter_types": map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Filter by listing types (empty = any)"},
+					"filter_tags":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Filter by tags (empty = any, OR-match)"},
+				},
+			},
+		},
+		{
+			Name:        "unsubscribe_listings",
+			Description: "Unsubscribe from listing notifications using the token received at subscription time.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"token"},
+				"properties": map[string]interface{}{
+					"token": map[string]interface{}{"type": "string", "description": "Unsubscribe token from subscribe_listings"},
+				},
+			},
+		},
 	}
 }
 
@@ -598,7 +748,7 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 	case "list_skills":
 		h.toolListSkills(w, req, params.Arguments)
 	case "get_skill":
-		h.toolGetSkill(w, req, params.Arguments)
+		h.toolGetSkill(w, r, req, params.Arguments)
 	case "upsert_skill":
 		h.toolUpsertSkill(w, r, req, params.Arguments)
 	case "delete_skill":
@@ -606,11 +756,21 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 	case "list_personas":
 		h.toolListPersonas(w, req, params.Arguments)
 	case "get_persona":
-		h.toolGetPersona(w, req, params.Arguments)
+		h.toolGetPersona(w, r, req, params.Arguments)
 	case "upsert_persona":
 		h.toolUpsertPersona(w, r, req, params.Arguments)
 	case "delete_persona":
 		h.toolDeletePersona(w, r, req, params.Arguments)
+	case "list_listings":
+		h.toolListListings(w, req, params.Arguments)
+	case "read_listing":
+		h.toolReadListing(w, req, params.Arguments)
+	case "respond_to_listing":
+		h.toolRespondToListing(w, req, params.Arguments)
+	case "subscribe_listings":
+		h.toolSubscribeListings(w, req, params.Arguments)
+	case "unsubscribe_listings":
+		h.toolUnsubscribeListings(w, req, params.Arguments)
 	default:
 		writeError(w, req.ID, -32602, "unknown tool: "+params.Name)
 	}
@@ -1311,7 +1471,7 @@ func (h *Handler) toolListSkills(w http.ResponseWriter, req *Request, args json.
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
-func (h *Handler) toolGetSkill(w http.ResponseWriter, req *Request, args json.RawMessage) {
+func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Slug string `json:"slug"`
 	}
@@ -1325,7 +1485,21 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, req *Request, args json.Ra
 		writeError(w, req.ID, -32602, "skill not found: "+a.Slug)
 		return
 	}
-	text := fmt.Sprintf("SKILL: %s\ncategory: %s\nupdated: %s\n\nPełna treść dostępna po autoryzacji. Wywołaj bootstrap_session z hasłem sesji widocznym w panelu właściciela.", sk.Title, sk.Category, sk.UpdatedAt.Format("2 January 2006"))
+	// OAuth Bearer token — serve full body only when vault is online
+	if h.isOAuthAuthorized(r) {
+		if !h.vaultOnline() {
+			text := fmt.Sprintf("SKILL: %s [%s]\n\nVault offline — pełna treść niedostępna. Spróbuj gdy laptop jest włączony.", sk.Title, sk.Category)
+			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+			return
+		}
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("SKILL: %s [%s]\n", sk.Title, sk.Category))
+		sb.WriteString(fmt.Sprintf("updated: %s\n\n", sk.UpdatedAt.Format("2 January 2006")))
+		sb.WriteString(sk.Body)
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+		return
+	}
+	text := fmt.Sprintf("SKILL: %s\ncategory: %s\n\nPełna treść dostępna po autoryzacji. Wywołaj bootstrap_session z hasłem sesji widocznym w panelu właściciela.", sk.Title, sk.Category)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
@@ -1393,7 +1567,7 @@ func (h *Handler) toolListPersonas(w http.ResponseWriter, req *Request, args jso
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
-func (h *Handler) toolGetPersona(w http.ResponseWriter, req *Request, args json.RawMessage) {
+func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Slug string `json:"slug"`
 	}
@@ -1407,7 +1581,24 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, req *Request, args json.
 		writeError(w, req.ID, -32602, "persona not found: "+a.Slug)
 		return
 	}
-	text := fmt.Sprintf("PERSONA: %s\nrole: %s\nupdated: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z hasłem sesji.", p.Name, p.Role, p.UpdatedAt.Format("2 January 2006"))
+	// Authorized (OAuth or bootstrap) — proxy full prompt from vault
+	if h.isOAuthAuthorized(r) {
+		vaultData, err := h.vaultGet("/persona/" + a.Slug)
+		if err != nil {
+			// Vault offline — metadata only
+			text := fmt.Sprintf("PERSONA: %s — %s\n\nVault offline — pełny prompt niedostępny. Spróbuj gdy laptop jest włączony.", p.Name, p.Role)
+			writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+			return
+		}
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("PERSONA: %s — %s\n\n", p.Name, p.Role))
+		if prompt, ok := vaultData["prompt"].(string); ok {
+			sb.WriteString(prompt)
+		}
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+		return
+	}
+	text := fmt.Sprintf("PERSONA: %s\nrole: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z hasłem sesji.", p.Name, p.Role)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
@@ -1467,7 +1658,7 @@ func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, r
 	}
 	json.Unmarshal(args, &a)
 
-	if !h.sessionCode.Verify(a.Code) {
+	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{
 			Type: "text",
 			Text: "Niepoprawne hasło sesji. Sprawdź aktualne hasło w panelu humanMCP (/dashboard) i podaj je dokładnie tak jak widnieje na ekranie.",
@@ -1482,6 +1673,12 @@ func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, r
 
 	skills, _ := h.skillStore.ListSkills("")
 	personas, _ := h.skillStore.ListPersonas()
+
+	// full/system_prompt require vault online — sensitive data stays local
+	if format != "minimal" && !h.vaultOnline() {
+		format = "minimal"
+		log.Printf("[MCP] bootstrap: vault offline, downgrading to minimal")
+	}
 
 	switch format {
 	case "minimal":
@@ -1596,7 +1793,7 @@ func (h *Handler) toolRemember(w http.ResponseWriter, r *http.Request, req *Requ
 	}
 	json.Unmarshal(args, &a)
 
-	if !h.sessionCode.Verify(a.Code) {
+	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
 			Text: "Niepoprawne hasło sesji. Obserwacja nie została zapisana."}}})
 		return
@@ -1606,13 +1803,27 @@ func (h *Handler) toolRemember(w http.ResponseWriter, r *http.Request, req *Requ
 		return
 	}
 
-	m, err := h.memoryStore.Save(a.Body, a.AgentHint, a.Tags)
-	if err != nil {
-		writeError(w, req.ID, -32603, err.Error())
+	// Proxy to vault — memories live locally, not on Fly
+	if h.cfg.VaultURL == "" || !h.vaultOnline() {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "Vault offline — obserwacja nie może być zapisana. Spróbuj gdy laptop jest włączony."}}})
 		return
 	}
+	payload, _ := json.Marshal(map[string]interface{}{
+		"body": a.Body, "tags": a.Tags, "agent_hint": a.AgentHint,
+	})
+	resp, err := h.vaultClient().Post(h.cfg.VaultURL+"/memory", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: fmt.Sprintf("Vault niedostępny: %v", err)}}})
+		return
+	}
+	defer resp.Body.Close()
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+	id, _ := result["id"].(string)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
-		Text: fmt.Sprintf("✓ Obserwacja zapisana (ID: %s)\n%s", m.ID, m.Body)}}})
+		Text: fmt.Sprintf("✓ Obserwacja zapisana w vault (ID: %s)\n%s", id, a.Body)}}})
 }
 
 func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
@@ -1623,7 +1834,7 @@ func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Reques
 	}
 	json.Unmarshal(args, &a)
 
-	if !h.sessionCode.Verify(a.Code) {
+	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
 			Text: "Niepoprawne hasło sesji."}}})
 		return
@@ -1634,8 +1845,26 @@ func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Reques
 		limit = 10
 	}
 
-	memories, err := h.memoryStore.List(a.Tag, limit)
-	if err != nil || len(memories) == 0 {
+	// Proxy to vault — memories live locally
+	if h.cfg.VaultURL == "" || !h.vaultOnline() {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "Vault offline — obserwacje niedostępne. Spróbuj gdy laptop jest włączony."}}})
+		return
+	}
+	url := fmt.Sprintf("%s/memory?limit=%d", h.cfg.VaultURL, limit)
+	if a.Tag != "" {
+		url += "&tag=" + a.Tag
+	}
+	resp, err := h.vaultClient().Get(url)
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
+			Text: "Vault niedostępny."}}})
+		return
+	}
+	defer resp.Body.Close()
+	var memories []map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&memories)
+	if len(memories) == 0 {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
 			Text: "Brak zapisanych obserwacji."}}})
 		return
@@ -1644,14 +1873,21 @@ func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Reques
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Obserwacje (%d):\n\n", len(memories)))
 	for _, m := range memories {
-		sb.WriteString(fmt.Sprintf("— %s", m.CreatedAt.Format("2 Jan 2006, 15:04")))
-		if m.AgentHint != "" {
-			sb.WriteString(fmt.Sprintf(" [%s]", m.AgentHint))
+		createdAt, _ := m["created_at"].(string)
+		body, _ := m["body"].(string)
+		agentHint, _ := m["agent_hint"].(string)
+		sb.WriteString(fmt.Sprintf("— %s", createdAt))
+		if agentHint != "" {
+			sb.WriteString(fmt.Sprintf(" [%s]", agentHint))
 		}
-		if len(m.Tags) > 0 {
-			sb.WriteString(fmt.Sprintf(" #%s", strings.Join(m.Tags, " #")))
+		if tags, ok := m["tags"].([]interface{}); ok && len(tags) > 0 {
+			for _, t := range tags {
+				if ts, ok := t.(string); ok {
+					sb.WriteString(fmt.Sprintf(" #%s", ts))
+				}
+			}
 		}
-		sb.WriteString(fmt.Sprintf("\n%s\n\n", m.Body))
+		sb.WriteString(fmt.Sprintf("\n%s\n\n", body))
 	}
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
@@ -1698,6 +1934,40 @@ Discovery: https://` + h.cfg.Domain + `/.well-known/mcp-server.json`
 
 func (h *Handler) vaultClient() *http.Client {
 	return &http.Client{Timeout: 15 * time.Second}
+}
+
+// vaultGet fetches JSON from vault and returns parsed result. Returns nil if vault offline.
+func (h *Handler) vaultGet(path string) (map[string]interface{}, error) {
+	if h.cfg.VaultURL == "" {
+		return nil, fmt.Errorf("VAULT_URL not configured")
+	}
+	resp, err := h.vaultClient().Get(h.cfg.VaultURL + path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("vault returned %d", resp.StatusCode)
+	}
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// vaultOnline checks if the vault server is reachable.
+func (h *Handler) vaultOnline() bool {
+	if h.cfg.VaultURL == "" {
+		return false
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(h.cfg.VaultURL + "/health")
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == 200
 }
 
 func (h *Handler) toolQueryVault(w http.ResponseWriter, req *Request, args json.RawMessage) {
@@ -1792,4 +2062,195 @@ func (h *Handler) toolListVault(w http.ResponseWriter, req *Request) {
 			slug, docType, title, int(chunks)))
 	}
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+// --- Listing tools ---
+
+func (h *Handler) toolListListings(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Type  string `json:"type"`
+		Tag   string `json:"tag"`
+		Since string `json:"since"`
+		Limit int    `json:"limit"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Limit <= 0 {
+		a.Limit = 20
+	}
+	if a.Limit > 100 {
+		a.Limit = 100
+	}
+
+	var listings []*content.Listing
+	if a.Since != "" {
+		t, err := time.Parse(time.RFC3339, a.Since)
+		if err != nil {
+			writeError(w, req.ID, -32602, "invalid since: must be RFC3339")
+			return
+		}
+		listings = h.listingStore.ListSince(t)
+	} else {
+		listings = h.listingStore.List(false)
+	}
+
+	var filtered []*content.Listing
+	for _, l := range listings {
+		if l.Access != content.AccessPublic {
+			continue
+		}
+		if a.Type != "" && string(l.Type) != a.Type {
+			continue
+		}
+		if a.Tag != "" && !hasTag(l.Tags, a.Tag) {
+			continue
+		}
+		filtered = append(filtered, l)
+		if len(filtered) >= a.Limit {
+			break
+		}
+	}
+
+	if len(filtered) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "No listings found."}}})
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("kapoost — %d listing(s):\n\n", len(filtered)))
+	for _, l := range filtered {
+		sb.WriteString(fmt.Sprintf("slug:   %s\n", l.Slug))
+		sb.WriteString(fmt.Sprintf("type:   %s\n", l.Type))
+		sb.WriteString(fmt.Sprintf("title:  %s\n", l.Title))
+		if l.Price != "" {
+			sb.WriteString(fmt.Sprintf("price:  %s\n", l.Price))
+		}
+		sb.WriteString(fmt.Sprintf("status: %s\n", l.Status))
+		if len(l.Tags) > 0 {
+			sb.WriteString(fmt.Sprintf("tags:   %s\n", strings.Join(l.Tags, ", ")))
+		}
+		sb.WriteString(fmt.Sprintf("date:   %s\n", l.Published.Format("2 January 2006")))
+		sb.WriteString("\n")
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolReadListing(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Slug string `json:"slug"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Slug == "" {
+		writeError(w, req.ID, -32602, "slug is required")
+		return
+	}
+
+	l, err := h.listingStore.Get(a.Slug)
+	if err != nil || !l.IsActive() || l.Access != content.AccessPublic {
+		writeError(w, req.ID, -32602, "listing not found or not active: "+a.Slug)
+		return
+	}
+
+	h.statStore.Record(content.Event{Type: content.EventListingView, Caller: content.CallerAgent, Slug: a.Slug})
+
+	data, _ := json.MarshalIndent(l, "", "  ")
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: string(data)}}})
+}
+
+func (h *Handler) toolRespondToListing(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Slug    string `json:"slug"`
+		From    string `json:"from"`
+		Message string `json:"message"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Slug == "" || a.From == "" || a.Message == "" {
+		writeError(w, req.ID, -32602, "slug, from, and message are required")
+		return
+	}
+	if len(a.Message) > 2000 {
+		a.Message = a.Message[:2000]
+	}
+
+	l, err := h.listingStore.Get(a.Slug)
+	if err != nil || !l.IsActive() {
+		writeError(w, req.ID, -32602, "listing not found or not active: "+a.Slug)
+		return
+	}
+
+	_, err = h.msgStore.Save(a.From, a.Message, "listing:"+a.Slug)
+	if err != nil {
+		writeError(w, req.ID, -32000, "failed to save response: "+err.Error())
+		return
+	}
+
+	h.statStore.Record(content.Event{Type: content.EventListingResponse, Caller: content.CallerAgent, Slug: a.Slug, From: a.From})
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: `{"status":"sent"}`}}})
+}
+
+func (h *Handler) toolSubscribeListings(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Channel     string   `json:"channel"`
+		CallbackURL string   `json:"callback_url"`
+		FilterTypes []string `json:"filter_types"`
+		FilterTags  []string `json:"filter_tags"`
+	}
+	json.Unmarshal(args, &a)
+
+	ch := content.SubChannel(a.Channel)
+	if ch != content.SubWebhook && ch != content.SubMCP {
+		writeError(w, req.ID, -32602, "channel must be 'webhook' or 'mcp'")
+		return
+	}
+	if ch == content.SubWebhook {
+		if a.CallbackURL == "" {
+			writeError(w, req.ID, -32602, "callback_url is required for webhook channel")
+			return
+		}
+		if !strings.HasPrefix(a.CallbackURL, "https://") {
+			writeError(w, req.ID, -32602, "callback_url must be absolute https://")
+			return
+		}
+	}
+
+	sub := &content.Subscription{
+		Channel:     ch,
+		CallbackURL: a.CallbackURL,
+		FilterTypes: a.FilterTypes,
+		FilterTags:  a.FilterTags,
+	}
+	if err := h.subStore.Create(sub); err != nil {
+		writeError(w, req.ID, -32000, "failed to create subscription: "+err.Error())
+		return
+	}
+
+	h.statStore.Record(content.Event{Type: content.EventSubscribeNew})
+
+	result := map[string]string{
+		"id":              sub.ID,
+		"token":           sub.Token,
+		"unsubscribe_url": "https://" + h.cfg.Domain + "/subscriptions/unsubscribe/" + sub.Token,
+	}
+	data, _ := json.Marshal(result)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: string(data)}}})
+}
+
+func (h *Handler) toolUnsubscribeListings(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Token string `json:"token"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Token == "" {
+		writeError(w, req.ID, -32602, "token is required")
+		return
+	}
+
+	sub, err := h.subStore.GetByToken(a.Token)
+	if err != nil {
+		writeError(w, req.ID, -32602, "subscription not found")
+		return
+	}
+
+	sub.Active = false
+	h.subStore.Update(sub)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: `{"status":"unsubscribed"}`}}})
 }

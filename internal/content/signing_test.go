@@ -85,6 +85,66 @@ func TestKeyPairRoundTrip(t *testing.T) {
 	if !ok { t.Error("should verify with loaded key") }
 }
 
+func TestSignAndVerifyListing(t *testing.T) {
+	kp, _ := GenerateKeyPair()
+	l := &Listing{
+		Slug:  "listing-1",
+		Type:  ListingSell,
+		Title: "Test Listing",
+		Body:  "Selling something.",
+		Price: "100 PLN",
+	}
+
+	sig, err := SignListing(l, kp)
+	if err != nil {
+		t.Fatalf("SignListing: %v", err)
+	}
+	l.Signature = sig
+
+	ok, status := VerifyListing(l, kp.PublicKeyHex())
+	if !ok {
+		t.Errorf("valid listing signature should verify: %s", status)
+	}
+}
+
+func TestVerifyListingFailsOnModifiedBody(t *testing.T) {
+	kp, _ := GenerateKeyPair()
+	l := &Listing{Slug: "l", Type: ListingSell, Title: "T", Body: "Original", Price: "10"}
+	sig, _ := SignListing(l, kp)
+	l.Signature = sig
+
+	l.Body = "Modified"
+	ok, _ := VerifyListing(l, kp.PublicKeyHex())
+	if ok {
+		t.Error("modified listing body should fail verification")
+	}
+}
+
+func TestVerifyListingUnsigned(t *testing.T) {
+	kp, _ := GenerateKeyPair()
+	l := &Listing{Slug: "l", Type: ListingSell, Title: "T", Body: "B"}
+	ok, status := VerifyListing(l, kp.PublicKeyHex())
+	if ok {
+		t.Error("unsigned listing should not verify")
+	}
+	if status != "unsigned" {
+		t.Errorf("expected 'unsigned', got '%s'", status)
+	}
+}
+
+func TestVerifyListingWrongKey(t *testing.T) {
+	kp1, _ := GenerateKeyPair()
+	kp2, _ := GenerateKeyPair()
+	l := &Listing{Slug: "l", Type: ListingSell, Title: "T", Body: "B", Price: "5"}
+	sig, _ := SignListing(l, kp1)
+	l.Signature = sig
+
+	ok, _ := VerifyListing(l, kp2.PublicKeyHex())
+	if ok {
+		t.Error("wrong key should fail verification")
+	}
+}
+
 func TestInvalidPrivateKey(t *testing.T) {
 	_, err := KeyPairFromBase64("notvalidbase64!!!")
 	if err == nil { t.Error("invalid base64 should return error") }

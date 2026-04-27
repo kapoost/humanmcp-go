@@ -13,6 +13,7 @@ import (
 	"github.com/kapoost/humanmcp-go/internal/auth"
 	"github.com/kapoost/humanmcp-go/internal/config"
 	"github.com/kapoost/humanmcp-go/internal/content"
+	"github.com/kapoost/humanmcp-go/internal/oauth"
 )
 
 // --- test helpers ---
@@ -75,7 +76,9 @@ Future content.`), 0644)
 	store := content.NewStore(dir)
 	store.Load()
 	a := auth.New("testtoken", "test-agent-token")
-	h := NewHandler(cfg, store, a, sc, ms, ss)
+	ls := content.NewListingStore(dir)
+	subs := content.NewSubscriptionStore(dir)
+	h := NewHandler(cfg, store, a, sc, ms, ss, oauth.NewProvider("https://test.example.com", "testtoken"), ls, subs)
 	return h, dir
 }
 
@@ -362,7 +365,7 @@ func TestVerifySignedContent(t *testing.T) {
 	}
 	store2 := content.NewStore(dir)
 	store2.Load()
-	h := NewHandler(cfg, store2, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(dir), content.NewSkillStore(dir))
+	h := NewHandler(cfg, store2, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(dir), content.NewSkillStore(dir), oauth.NewProvider("https://test.example.com", ""), content.NewListingStore(dir), content.NewSubscriptionStore(dir))
 
 	text := tool(t, h, "verify_content", map[string]interface{}{"slug": "signed"})
 	if !bytes.Contains([]byte(text), []byte("VERIFIED")) {
@@ -395,7 +398,7 @@ func TestListBlobsWithContent(t *testing.T) {
 		Audience: []content.AudienceEntry{{Kind: "agent", ID: "claude"}},
 	})
 
-	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
+	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir), oauth.NewProvider("https://test.example.com", ""), content.NewListingStore(contentDir), content.NewSubscriptionStore(contentDir))
 
 	// Agent:claude can see it
 	text := tool(t, h, "list_blobs", map[string]interface{}{
@@ -421,7 +424,7 @@ func TestReadBlobAccessDenied(t *testing.T) {
 		Audience: []content.AudienceEntry{{Kind: "human", ID: "alice"}},
 		TextData: "secret data",
 	})
-	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
+	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir), oauth.NewProvider("https://test.example.com", ""), content.NewListingStore(contentDir), content.NewSubscriptionStore(contentDir))
 
 	// Bob should be denied
 	text := tool(t, h, "read_blob", map[string]interface{}{
@@ -448,7 +451,7 @@ func TestReadBlobAccessGranted(t *testing.T) {
 		TextData:  `{"email":"alice@example.com"}`,
 		MimeType:  "application/json",
 	})
-	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir))
+	h := NewHandler(cfg, store, auth.New("", "test-agent-token"), content.NewSessionCode(24*time.Hour), content.NewMemoryStore(contentDir), content.NewSkillStore(contentDir), oauth.NewProvider("https://test.example.com", ""), content.NewListingStore(contentDir), content.NewSubscriptionStore(contentDir))
 
 	// Alice should get access
 	text := tool(t, h, "read_blob", map[string]interface{}{
@@ -733,6 +736,172 @@ func TestAgentGetsCertificateForPublicPiece(t *testing.T) {
 	result := tool(t, h, "get_certificate", map[string]interface{}{"slug": "public"})
 	if strings.Contains(result, "error") && !strings.Contains(result, "hash") {
 		t.Error("get_certificate failed for public piece")
+	}
+}
+
+// --- listing tools ---
+
+func TestListListingsEmpty(t *testing.T) {
+	h, _ := newTestHandler(t)
+	text := tool(t, h, "list_listings", map[string]interface{}{})
+	if !strings.Contains(text, "No listings") {
+		t.Errorf("expected no listings message, got: %s", text)
+	}
+}
+
+func TestListListingsWithContent(t *testing.T) {
+	h, dir := newTestHandler(t)
+	ls := content.NewListingStore(dir)
+	ls.Save(&content.Listing{
+		Slug: "s2000-parts", Title: "S2000 Parts", Type: content.ListingSell,
+		Status: content.ListingOpen, Access: content.AccessPublic,
+		Tags: []string{"cars"}, Price: "500 PLN",
+	})
+	h.listingStore = ls
+
+	text := tool(t, h, "list_listings", map[string]interface{}{})
+	if !strings.Contains(text, "s2000-parts") {
+		t.Errorf("should list the listing, got: %s", text)
+	}
+	if !strings.Contains(text, "500 PLN") {
+		t.Errorf("should show price, got: %s", text)
+	}
+}
+
+func TestListListingsTypeFilter(t *testing.T) {
+	h, dir := newTestHandler(t)
+	ls := content.NewListingStore(dir)
+	ls.Save(&content.Listing{Slug: "a", Title: "A", Type: content.ListingSell, Status: content.ListingOpen, Access: content.AccessPublic})
+	ls.Save(&content.Listing{Slug: "b", Title: "B", Type: content.ListingBuy, Status: content.ListingOpen, Access: content.AccessPublic})
+	h.listingStore = ls
+
+	text := tool(t, h, "list_listings", map[string]interface{}{"type": "buy"})
+	if strings.Contains(text, "slug:   a") {
+		t.Error("sell listing should be filtered out")
+	}
+	if !strings.Contains(text, "slug:   b") {
+		t.Error("buy listing should be included")
+	}
+}
+
+func TestReadListing(t *testing.T) {
+	h, dir := newTestHandler(t)
+	ls := content.NewListingStore(dir)
+	ls.Save(&content.Listing{
+		Slug: "test-read", Title: "Test Read", Type: content.ListingSell,
+		Body: "Full body text.", Status: content.ListingOpen, Access: content.AccessPublic,
+	})
+	h.listingStore = ls
+
+	text := tool(t, h, "read_listing", map[string]interface{}{"slug": "test-read"})
+	if !strings.Contains(text, "Full body text") {
+		t.Errorf("should return full listing, got: %s", text)
+	}
+}
+
+func TestReadListingNotFound(t *testing.T) {
+	h, _ := newTestHandler(t)
+	raw := toolRaw(t, h, "read_listing", map[string]interface{}{"slug": "nonexistent"})
+	if !strings.Contains(raw, "error") {
+		t.Errorf("should return error for nonexistent listing")
+	}
+}
+
+func TestRespondToListing(t *testing.T) {
+	h, dir := newTestHandler(t)
+	ls := content.NewListingStore(dir)
+	ls.Save(&content.Listing{
+		Slug: "respond-test", Title: "Respond", Type: content.ListingSell,
+		Status: content.ListingOpen, Access: content.AccessPublic,
+	})
+	h.listingStore = ls
+
+	text := tool(t, h, "respond_to_listing", map[string]interface{}{
+		"slug": "respond-test", "from": "claude", "message": "I'm interested",
+	})
+	if !strings.Contains(text, "sent") {
+		t.Errorf("should confirm sent, got: %s", text)
+	}
+}
+
+func TestSubscribeListingsWebhook(t *testing.T) {
+	h, _ := newTestHandler(t)
+	text := tool(t, h, "subscribe_listings", map[string]interface{}{
+		"channel":      "webhook",
+		"callback_url": "https://example.com/hook",
+		"filter_types": []string{"sell"},
+	})
+	if !strings.Contains(text, "id") || !strings.Contains(text, "token") {
+		t.Errorf("should return id and token, got: %s", text)
+	}
+}
+
+func TestSubscribeListingsMCP(t *testing.T) {
+	h, _ := newTestHandler(t)
+	text := tool(t, h, "subscribe_listings", map[string]interface{}{
+		"channel": "mcp",
+	})
+	if !strings.Contains(text, "id") {
+		t.Errorf("should return id, got: %s", text)
+	}
+}
+
+func TestSubscribeListingsInvalidChannel(t *testing.T) {
+	h, _ := newTestHandler(t)
+	raw := toolRaw(t, h, "subscribe_listings", map[string]interface{}{
+		"channel": "smoke-signals",
+	})
+	if !strings.Contains(raw, "error") {
+		t.Error("invalid channel should return error")
+	}
+}
+
+func TestSubscribeListingsWebhookMissingCallback(t *testing.T) {
+	h, _ := newTestHandler(t)
+	raw := toolRaw(t, h, "subscribe_listings", map[string]interface{}{
+		"channel": "webhook",
+	})
+	if !strings.Contains(raw, "error") {
+		t.Error("webhook without callback should return error")
+	}
+}
+
+func TestSubscribeListingsWebhookHttpCallback(t *testing.T) {
+	h, _ := newTestHandler(t)
+	raw := toolRaw(t, h, "subscribe_listings", map[string]interface{}{
+		"channel":      "webhook",
+		"callback_url": "http://insecure.com/hook",
+	})
+	if !strings.Contains(raw, "error") {
+		t.Error("http:// callback should return error")
+	}
+}
+
+func TestUnsubscribeListings(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// First subscribe
+	subText := tool(t, h, "subscribe_listings", map[string]interface{}{
+		"channel": "mcp",
+	})
+	var subResult map[string]string
+	json.Unmarshal([]byte(subText), &subResult)
+
+	// Then unsubscribe
+	text := tool(t, h, "unsubscribe_listings", map[string]interface{}{
+		"token": subResult["token"],
+	})
+	if !strings.Contains(text, "unsubscribed") {
+		t.Errorf("should confirm unsubscribed, got: %s", text)
+	}
+}
+
+func TestUnsubscribeListingsNotFound(t *testing.T) {
+	h, _ := newTestHandler(t)
+	raw := toolRaw(t, h, "unsubscribe_listings", map[string]interface{}{
+		"token": "nonexistent-token",
+	})
+	if !strings.Contains(raw, "error") {
+		t.Error("nonexistent token should return error")
 	}
 }
 

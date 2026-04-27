@@ -32,7 +32,10 @@ humanmcp-go/
 │   │   ├── signing.go, copyright.go, frontmatter.go, cache.go
 │   │   ├── skill.go            — SkillStore + PersonaStore
 │   │   ├── session.go          — SessionCode z polskiej poezji
-│   │   └── memory.go           — MemoryStore z GC (limit 500)
+│   │   ├── memory.go           — MemoryStore z GC (limit 500)
+│   │   ├── listing.go          — ListingStore (listings.json)
+│   │   ├── subscription.go     — SubscriptionStore (subscriptions.json)
+│   │   └── notifier.go         — Webhook delivery worker
 │   ├── mcp/handler.go          — MCP tools, vault tools
 │   └── web/
 │       ├── handler_web.go      ← THE REAL FILE (not handler.go)
@@ -74,6 +77,7 @@ fly logs --app kapoost-humanmcp
 | SIGNING_PRIVATE_KEY | Ed25519 private key (base64) |
 | SIGNING_PUBLIC_KEY | Ed25519 public key (hex) |
 | VAULT_URL | URL myśloodsiewni lokalnej |
+| NOTIFIER_INTERVAL | Webhook check interval (default `60s`) |
 | AUTHOR_BIO, AUTHOR_NAME, DOMAIN | Author data |
 
 ---
@@ -85,8 +89,37 @@ Publiczne: `get_author_profile`, `list_content`, `read_content`, `list_skills`,
 `leave_comment`, `leave_message`, `about_humanmcp`, `list_blobs`, `read_blob`,
 `request_access`, `submit_answer`, **`query_vault`**, **`list_vault`**
 
+Listings: `list_listings`, `read_listing`, `respond_to_listing`,
+`subscribe_listings`, `unsubscribe_listings`
+
 Po haśle sesji: `bootstrap_session`, `recall`, `remember`,
 `get_skill`, `get_persona`, `upsert_skill`, `upsert_persona`
+
+---
+
+## Web Routes (listings)
+
+| Route | Auth | Description |
+|---|---|---|
+| `/listings` | public | Browse active listings |
+| `/listings/<slug>` | public | Listing detail |
+| `/listings/new` | owner | Create listing form |
+| `/listings/edit/<slug>` | owner | Edit listing |
+| `/listings/delete/<slug>` | owner | Delete listing (POST) |
+| `/listings/feed.json` | public | JSON feed (?since=, ?type=) |
+| `/subscriptions/new` | public | Subscribe form |
+| `/subscriptions/confirm` | public | Confirm subscription (POST) |
+| `/subscriptions/unsubscribe/<token>` | public | Unsubscribe |
+
+## Content types
+
+| Type | Storage | Description |
+|---|---|---|
+| **Piece** | `content/*.md` | Poems, essays, notes |
+| **Blob** | `blobs/*.blob` | Images, contacts, vectors, datasets |
+| **Listing** | `listings.json` | Classified ads (sell/buy/offer/request/trade) |
+| **Subscription** | `subscriptions.json` | Webhook/MCP notification subscriptions |
+| **Message** | `messages/*.txt` | Contact messages |
 
 ---
 
@@ -145,3 +178,19 @@ vault & && python -m pytest test_e2e.py -v --headed
 Kategorie: `tech`, `workflow`, `security`, `cars`, `business`, `writing`, `roadmap`
 
 Skille są jedynym źródłem prawdy o aktualnym stanie projektu.
+
+---
+
+## Changelog
+
+### v0.3 — Listings + Subscriptions
+
+- **Listing data model**: sell/buy/offer/request/trade with expiry, price, status, signing
+- **Subscription system**: webhook push + MCP pull, type/tag filters, auto-deactivate after 10 failures
+- **Notifier worker**: background goroutine delivers webhooks on configurable interval
+- **5 new MCP tools**: `list_listings`, `read_listing`, `respond_to_listing`, `subscribe_listings`, `unsubscribe_listings`
+- **Web UI**: listings feed, detail page, owner CRUD, subscribe form
+- **Stats**: listing_view, listing_response, subscribe, subscribe_match events; dashboard cards
+- **JSON feed**: `/listings/feed.json` with `?since=` and `?type=` filters
+- **Sitemap**: includes `/listings` and individual listing URLs
+- **Env var**: `NOTIFIER_INTERVAL` (default `60s`)

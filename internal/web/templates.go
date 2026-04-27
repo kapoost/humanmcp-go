@@ -312,6 +312,8 @@ const allTemplates = `
   <div class="card"><div class="card-num">{{.TotalMessages}}</div><div class="card-label">messages</div></div>
   <div class="card"><div class="card-num">{{.TotalUnlocks}}</div><div class="card-label">unlocks</div></div>
   <div class="card"><div class="card-num">{{.TotalInterest}}</div><div class="card-label">gate checks</div></div>
+  <div class="card"><div class="card-num">{{.TotalListings}}</div><div class="card-label">listings</div></div>
+  <div class="card"><div class="card-num">{{.TotalSubscribers}}</div><div class="card-label">subscribers</div></div>
 </div>
 
 {{if .HourlyReads}}
@@ -333,6 +335,7 @@ const allTemplates = `
 <div class="two-col">
 <div>
   {{if .ReadsBySlug}}<div class="section"><div class="section-title">reads per piece</div>{{range $s,$n := .ReadsBySlug}}<div class="row"><span>{{$s}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
+  {{if .ListingReadsBySlug}}<div class="section"><div class="section-title">listing reads per slug</div>{{range $s,$n := .ListingReadsBySlug}}<div class="row"><span>{{$s}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
   {{if .TagReads}}<div class="section"><div class="section-title">reads per tag</div>{{range $t,$n := .TagReads}}<div class="row"><span>#{{$t}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
 </div>
 <div>
@@ -453,6 +456,11 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
     <div class="tool-card"><strong>leave_comment</strong><span>React to a piece</span></div>
     <div class="tool-card"><strong>leave_message</strong><span>Send a direct note</span></div>
     <div class="tool-card"><strong>get_author_profile</strong><span>Who is {{.Author}}</span></div>
+    <div class="tool-card"><strong>list_listings</strong><span>Browse classified ads</span></div>
+    <div class="tool-card"><strong>read_listing</strong><span>Full listing details</span></div>
+    <div class="tool-card"><strong>respond_to_listing</strong><span>Reply to a listing</span></div>
+    <div class="tool-card"><strong>subscribe_listings</strong><span>Get new listing notifications</span></div>
+    <div class="tool-card"><strong>unsubscribe_listings</strong><span>Cancel subscription</span></div>
   </div>
 </div>
 <div class="connect-section">
@@ -487,7 +495,8 @@ a:hover{text-decoration:underline;}
 .type-badge.poem{background:#f0e8f8;color:#5a2d7a;}
 .type-badge.essay{background:#e8f0f8;color:#1a3a6a;}
 .type-badge.contact{background:#fef0e8;color:#7a3a1a;}
-@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}}
+.type-badge.sell{background:#e8f5e9;color:#2e7d32;}.type-badge.buy{background:#e3f2fd;color:#1565c0;}.type-badge.offer{background:#f3e5f5;color:#7b1fa2;}.type-badge.request{background:#fff3e0;color:#e65100;}.type-badge.trade{background:#fce4ec;color:#c2185b;}
+@media(prefers-color-scheme:dark){.type-badge.image{background:#1a2e1a;color:#6abf6a;}.type-badge.poem{background:#2a1a3a;color:#b06ae0;}.type-badge.essay{background:#1a2a3a;color:#6aaee0;}.type-badge.contact{background:#2e1a0a;color:#e0906a;}.type-badge.sell{background:#1a2e1a;color:#6abf6a;}.type-badge.buy{background:#1a2a3a;color:#6aaee0;}.type-badge.offer{background:#2a1a3a;color:#b06ae0;}.type-badge.request{background:#2e1a0a;color:#e0906a;}.type-badge.trade{background:#2e0a1a;color:#e06a8a;}}
 .signed-badge{font-size:.65rem;background:#e8f5e9;color:#2e7d32;padding:1px 5px;border-radius:3px;border:1px solid #4caf50;}
 .hidden-badge{font-size:.65rem;background:#f0f0f0;color:#666;padding:1px 5px;border-radius:3px;border:1px solid #ccc;}
 @media(prefers-color-scheme:dark){.hidden-badge{background:#222;color:#888;border-color:#444;}}
@@ -532,6 +541,7 @@ a:hover{text-decoration:underline;}
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
         <a href="/images" style="color:var(--muted);">images</a>
+        <a href="/listings" style="color:var(--muted);">listings</a>
         <a href="/contact" style="color:var(--muted);">contact</a>
         <a href="/connect" style="color:var(--accent);font-weight:500;">+ connect</a>
       {{end}}
@@ -1191,6 +1201,559 @@ Store your team, your skills, your content.
 Deploy in 10 minutes on Fly.io.
 Your data. Your rules. Your server.</div>
 </div>
+
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "mc.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Author}} — MISSION CONTROL</title>
+<style>
+:root{--mc-bg:#0c1117;--mc-fg:#c9d1d9;--mc-muted:#484f58;--mc-border:#21262d;--mc-accent:#58a6ff;--mc-accent-dim:#1a3a5c;--mc-green:#3fb950;--mc-orange:#d29922;--mc-red:#f85149;--mc-surface:#161b22;--mc-mono:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;--mc-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--mc-bg);color:var(--mc-fg);font-family:var(--mc-mono);font-size:13px;line-height:1.5;min-height:100vh}
+a{color:var(--mc-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.mc-top{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;border-bottom:1px solid var(--mc-border);background:var(--mc-surface)}
+.mc-title{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mc-muted)}
+.mc-status{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.1em}
+.mc-dot{width:7px;height:7px;border-radius:50%;background:var(--mc-green);display:inline-block}
+.mc-clock{color:var(--mc-muted);font-variant-numeric:tabular-nums}
+
+.mc-stats{display:flex;gap:0;border-bottom:1px solid var(--mc-border)}
+.mc-stat{flex:1;text-align:center;padding:14px 8px;border-right:1px solid var(--mc-border)}
+.mc-stat:last-child{border-right:none}
+.mc-stat-num{font-size:28px;font-weight:500;color:var(--mc-fg);line-height:1}
+.mc-stat-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mc-muted);margin-top:4px}
+
+.mc-body{display:grid;grid-template-columns:1fr 1fr 1fr;min-height:calc(100vh - 120px)}
+.mc-col{padding:16px 20px;border-right:1px solid var(--mc-border)}
+.mc-col:last-child{border-right:none}
+.mc-section{margin-bottom:20px}
+.mc-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mc-muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.mc-label span{color:var(--mc-accent)}
+
+.mc-session{background:var(--mc-surface);border:1px solid var(--mc-border);padding:14px 16px;margin-bottom:16px}
+.mc-session-title{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mc-orange);margin-bottom:6px}
+.mc-session-code{font-family:var(--mc-sans);font-size:16px;color:var(--mc-fg);font-weight:500;margin-bottom:6px}
+.mc-session-meta{font-size:11px;color:var(--mc-muted)}
+.mc-session-hint{font-size:11px;color:var(--mc-muted);margin-top:6px}
+.mc-session-hint em{color:var(--mc-fg);font-style:normal;font-weight:500}
+.mc-btn{font-family:var(--mc-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;background:var(--mc-bg);border:1px solid var(--mc-border);color:var(--mc-muted);cursor:pointer;margin-top:8px}
+.mc-btn:hover{border-color:var(--mc-accent);color:var(--mc-accent)}
+
+.mc-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--mc-border);font-size:12px}
+.mc-row:last-child{border-bottom:none}
+.mc-row-val{color:var(--mc-accent);font-weight:500}
+
+.mc-hour{display:flex;align-items:flex-end;gap:2px;height:50px;margin-top:6px}
+.mc-hb{flex:1;background:var(--mc-accent-dim);border-radius:1px 1px 0 0;min-height:1px}
+.mc-hour-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--mc-muted);margin-top:2px}
+
+.mc-ev{padding:3px 0;border-bottom:1px solid var(--mc-border);font-size:11px;color:var(--mc-muted);display:flex;gap:8px;flex-wrap:wrap}
+.mc-ev:last-child{border-bottom:none}
+.mc-ev-type{color:var(--mc-fg)}
+.mc-badge-a{font-size:9px;background:var(--mc-accent-dim);color:var(--mc-accent);padding:1px 5px;border-radius:2px;border:1px solid var(--mc-accent)}
+.mc-badge-h{font-size:9px;background:var(--mc-surface);color:var(--mc-muted);padding:1px 5px;border-radius:2px;border:1px solid var(--mc-border)}
+
+.mc-msg{padding:8px 0;border-bottom:1px solid var(--mc-border)}
+.mc-msg:last-child{border-bottom:none}
+.mc-msg-head{font-size:10px;color:var(--mc-muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.mc-msg-head strong{color:var(--mc-fg);font-size:11px}
+.mc-msg-tag{font-size:9px;background:var(--mc-accent-dim);color:var(--mc-accent);padding:1px 6px;border-radius:8px;border:1px solid var(--mc-accent)}
+.mc-msg-body{font-size:12px;line-height:1.5;color:var(--mc-fg)}
+.mc-msg-del{font-size:9px;color:var(--mc-muted);cursor:pointer;margin-left:auto;border:none;background:none}
+.mc-msg-del:hover{color:var(--mc-red)}
+
+.mc-foot{font-size:9px;color:var(--mc-muted);letter-spacing:.08em;padding:8px 20px;border-top:1px solid var(--mc-border);display:flex;justify-content:space-between}
+
+.mc-funnel{font-size:11px;padding:4px 0;border-bottom:1px solid var(--mc-border)}
+.mc-fp{font-size:9px;padding:1px 5px;border-radius:2px;margin-right:4px}
+.mc-fp-c{background:#0d2b1a;color:var(--mc-green);border:1px solid #1a4a2a}
+.mc-fp-t{background:#2a1a00;color:var(--mc-orange);border:1px solid #4a3a1a}
+.mc-fp-u{background:#1a2a1a;color:var(--mc-green);border:1px solid #2a4a2a}
+
+.mc-transmit{background:var(--mc-surface);border:1px solid var(--mc-border);padding:14px 16px;margin-bottom:16px}
+.mc-transmit input,.mc-transmit textarea,.mc-transmit select{width:100%;padding:6px 8px;background:var(--mc-bg);border:1px solid var(--mc-border);color:var(--mc-fg);font-family:var(--mc-mono);font-size:12px;margin-bottom:8px}
+.mc-transmit input:focus,.mc-transmit textarea:focus{outline:none;border-color:var(--mc-accent)}
+.mc-transmit textarea{resize:vertical;min-height:60px}
+.mc-transmit select{cursor:pointer}
+
+@media(max-width:900px){.mc-body{grid-template-columns:1fr}.mc-col{border-right:none;border-bottom:1px solid var(--mc-border)}}
+@media(max-width:600px){.mc-stats{flex-wrap:wrap}.mc-stat{min-width:25%}}
+</style>
+</head>
+<body>
+
+<div class="mc-top">
+  <div class="mc-title">HUMANMCP — MISSION CONTROL</div>
+  <div class="mc-status">
+    <span class="mc-dot"></span>
+    <span style="color:var(--mc-green);text-transform:uppercase;letter-spacing:.1em">online</span>
+    <span class="mc-clock" id="mc-clock"></span>
+    {{if .IsOwner}}<a href="/" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mc-muted)">← site</a>{{end}}
+  </div>
+</div>
+
+{{with .Stats}}
+<div class="mc-stats">
+  <div class="mc-stat"><div class="mc-stat-num">{{.PieceCount}}</div><div class="mc-stat-label">pieces</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.PersonaCount}}</div><div class="mc-stat-label">personas</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.SkillCount}}</div><div class="mc-stat-label">skills</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.TotalReads}}</div><div class="mc-stat-label">reads</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.TotalMessages}}</div><div class="mc-stat-label">messages</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.UniqueVisitors}}</div><div class="mc-stat-label">visitors</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.AgentCalls}}</div><div class="mc-stat-label">agents</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.HumanVisits}}</div><div class="mc-stat-label">humans</div></div>
+</div>
+{{end}}
+
+<div class="mc-body">
+
+<!-- COL 1: metrics -->
+<div class="mc-col">
+{{if .IsOwner}}
+<div class="mc-section">
+  <div class="mc-label">SYSTEM METRICS</div>
+  {{with .Stats}}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalComments}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">comments</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalUnlocks}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">unlocks</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalInterest}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">gate checks</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{$.Uptime}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">uptime</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalListings}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">listings</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalSubscribers}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">subscribers</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{$.ToolCalls}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">mcp tool calls</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500;{{if $.VaultOnline}}color:var(--mc-green){{else}}color:var(--mc-red){{end}}">{{if $.VaultOnline}}ONLINE{{else}}OFFLINE{{end}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">vault</div></div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+{{with .Stats}}
+{{if .HourlyReads}}
+<div class="mc-section">
+  <div class="mc-label">HOURLY ACTIVITY <span>(UTC)</span></div>
+  <div class="mc-hour" id="mc-hour"></div>
+  <div class="mc-hour-labels"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+</div>
+<script>
+(function(){var d=[{{range .HourlyReads}}{{.}},{{end}}];var mx=Math.max.apply(null,d)||1;var b=document.getElementById('mc-hour');d.forEach(function(v,i){var e=document.createElement('div');e.className='mc-hb';e.style.height=Math.max(1,Math.round(v/mx*48))+'px';e.title='Hour '+i+': '+v;b.appendChild(e)})})();
+</script>
+{{end}}
+
+{{if .ReadsBySlug}}
+<div class="mc-section">
+  <div class="mc-label">READS / PIECE</div>
+  {{range $s,$n := .ReadsBySlug}}<div class="mc-row"><span>{{$s}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .ListingReadsBySlug}}
+<div class="mc-section">
+  <div class="mc-label">LISTING READS / SLUG</div>
+  {{range $s,$n := .ListingReadsBySlug}}<div class="mc-row"><span>{{$s}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .TopAgents}}
+<div class="mc-section">
+  <div class="mc-label">TOP VISITORS</div>
+  {{range $n,$c := .TopAgents}}<div class="mc-row"><span>{{$n}}</span><span class="mc-row-val">{{$c}}</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .Countries}}
+<div class="mc-section">
+  <div class="mc-label">BY REGION</div>
+  {{range $c,$n := .Countries}}<div class="mc-row"><span>{{$c}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+{{end}}
+</div>
+
+<!-- COL 2: session + transmit + events -->
+<div class="mc-col">
+{{if .IsOwner}}
+{{if .SessionCode}}
+<div class="mc-session">
+  <div class="mc-session-title">SESSION KEY</div>
+  <div class="mc-session-code">&bdquo;{{.SessionCode}}&rdquo;</div>
+  <div class="mc-session-meta">expires {{formatDate .SessionExp}} &middot; rotation hourly</div>
+  <div class="mc-session-hint">Tell agent: <em>bootstrap_session, code: {{.SessionCode}}</em></div>
+  <form method="POST" action="/api/session/rotate" style="display:inline"><button type="submit" class="mc-btn">↻ rotate now</button></form>
+</div>
+{{end}}
+{{end}}
+
+<div class="mc-transmit">
+  <div class="mc-label">TRANSMIT MESSAGE</div>
+  <form method="POST" action="/contact">
+    <input type="text" name="from" placeholder="name or handle" maxlength="32">
+    {{if .Pieces}}<select name="regarding"><option value="">— GENERAL —</option>{{range .Pieces}}<option value="{{.Slug}}">{{.Title}}</option>{{end}}</select>{{end}}
+    <textarea name="text" placeholder="message payload..." maxlength="2000"></textarea>
+    <button type="submit" class="mc-btn" style="border-color:var(--mc-accent);color:var(--mc-accent)">TRANSMIT</button>
+  </form>
+</div>
+
+{{with .Stats}}
+{{if .RecentEvents}}
+<div class="mc-section">
+  <div class="mc-label">RECENT EVENTS <span>LAST 30</span></div>
+  {{range .RecentEvents}}<div class="mc-ev"><span>{{formatTime .At}}</span><span class="mc-ev-type">{{.Type}}</span>{{if eq (print .Caller) "agent"}}<span class="mc-badge-a">AGT</span>{{else if eq (print .Caller) "human"}}<span class="mc-badge-h">HMN</span>{{end}}{{if .Slug}}<span style="color:var(--mc-fg)">{{.Slug}}</span>{{end}}{{if .Country}}<span>{{.Country}}</span>{{end}}</div>{{end}}
+</div>
+{{end}}
+{{end}}
+</div>
+
+<!-- COL 3: messages + funnel -->
+<div class="mc-col">
+{{if .Messages}}
+<div class="mc-section">
+  <div class="mc-label">INCOMING MESSAGES <span>{{len .Messages}}</span></div>
+  {{range .Messages}}<div class="mc-msg">
+    <div class="mc-msg-head">
+      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
+      <span>{{formatTime .At}}</span>
+      {{if .Regarding}}<span class="mc-msg-tag">re: {{.Regarding}}</span>{{end}}
+    </div>
+    <div class="mc-msg-body">{{.Text}}</div>
+  </div>{{end}}
+</div>
+{{else}}
+<div class="mc-section"><div class="mc-label">INCOMING MESSAGES</div><div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div></div>
+{{end}}
+
+{{with .Stats}}
+{{if .ChallengeFunnel}}
+<div class="mc-section">
+  <div class="mc-label">CHALLENGE FUNNEL</div>
+  {{range $s,$f := .ChallengeFunnel}}<div class="mc-funnel"><div style="font-weight:500;margin-bottom:3px">{{$s}}</div><span class="mc-fp mc-fp-c">{{index $f 0}} checked</span><span class="mc-fp mc-fp-t">{{index $f 1}} tried</span><span class="mc-fp mc-fp-u">{{index $f 2}} unlocked</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .TopReferrers}}
+<div class="mc-section">
+  <div class="mc-label">REFERRERS</div>
+  {{range $r,$n := .TopReferrers}}<div class="mc-row"><span>{{$r}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .TagReads}}
+<div class="mc-section">
+  <div class="mc-label">READS / TAG</div>
+  {{range $t,$n := .TagReads}}<div class="mc-row"><span>#{{$t}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+{{end}}
+</div>
+
+</div>
+
+<div class="mc-foot">
+  <span>humanMCP · {{.Author}} · MISSION CONTROL v0.3</span>
+  <span>{{with .Stats}}{{.PieceCount}} PIECES · {{.SkillCount}} SKILLS · {{.PersonaCount}} PERSONAS{{end}}</span>
+</div>
+
+<script>
+(function(){
+  function tick(){var d=new Date();document.getElementById('mc-clock').textContent=d.toUTCString().slice(17,25)+' UTC'}
+  tick();setInterval(tick,1000);
+})();
+</script>
+
+</body></html>
+{{end}}
+
+{{define "listings.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listings — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header" .}}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <h2 style="margin:0;font-size:1.3rem;">Listings</h2>
+  <div style="display:flex;gap:.6rem;align-items:center;">
+    <a href="/subscriptions/new" style="font-size:.8rem;color:var(--accent);">+ subscribe</a>
+    {{if .IsOwner}}<a href="/listings/new" class="btn btn-primary" style="font-size:.85rem;padding:.35rem .9rem;text-decoration:none;">+ new listing</a>{{end}}
+  </div>
+</div>
+
+<div style="display:flex;gap:.5rem;margin-bottom:1.2rem;flex-wrap:wrap;">
+  <a href="/listings" style="font-size:.78rem;padding:3px 10px;border-radius:12px;text-decoration:none;{{if not .FilterType}}background:var(--accent);color:#fff;{{else}}background:var(--tag-bg);color:var(--tag-fg);{{end}}">all</a>
+  {{range $t := slice "sell" "buy" "offer" "request" "trade"}}
+  <a href="/listings?type={{$t}}" style="font-size:.78rem;padding:3px 10px;border-radius:12px;text-decoration:none;{{if eq $.FilterType $t}}background:var(--accent);color:#fff;{{else}}background:var(--tag-bg);color:var(--tag-fg);{{end}}">{{$t}}</a>
+  {{end}}
+</div>
+
+{{if .Listings}}
+<ul class="pieces">
+{{range .Listings}}
+<li class="piece-item">
+  <div class="piece-row">
+    <div class="piece-left">
+      <div class="piece-meta">
+        <span>{{formatDate .Published}}</span>
+        <span class="type-badge {{.Type}}">{{.Type}}</span>
+        {{if .Price}}<span style="font-size:.75rem;font-weight:500;color:var(--accent);">{{.Price}}</span>{{end}}
+        {{if ne .Status "open"}}<span class="locked-badge">{{.Status}}</span>{{end}}
+        {{if not .ExpiresAt.IsZero}}<span style="font-size:.68rem;color:var(--muted);">expires {{formatDate .ExpiresAt}}</span>{{end}}
+        {{if .Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
+      </div>
+      <div class="piece-title">
+        <a href="/listings/{{.Slug}}">{{.Title}}</a>
+        {{if $.IsOwner}}<a href="/listings/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+      </div>
+      {{if .Body}}<div class="piece-excerpt">{{truncate .Body 120}}</div>{{end}}
+      {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+    </div>
+  </div>
+</li>
+{{end}}
+</ul>
+{{else}}
+<p style="color:var(--muted);text-align:center;padding:3rem 0;">No listings yet.</p>
+{{end}}
+
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "listing.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Listing.Title}} — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header" .}}
+
+<article style="max-width:680px;">
+  <div class="piece-meta" style="margin-bottom:.5rem;">
+    <span class="type-badge {{.Listing.Type}}">{{.Listing.Type}}</span>
+    <span>{{formatDate .Listing.Published}}</span>
+    {{if ne .Listing.Status "open"}}<span class="locked-badge">{{.Listing.Status}}</span>{{end}}
+    {{if .Listing.Signature}}<span class="signed-badge">&#10003; signed</span>{{end}}
+  </div>
+
+  <h1 style="font-size:1.6rem;margin:.5rem 0;">{{.Listing.Title}}</h1>
+
+  {{if .Listing.Price}}<div style="font-size:1.1rem;font-weight:500;color:var(--accent);margin:.5rem 0;">{{.Listing.Price}}{{if .Listing.PriceSats}} ({{.Listing.PriceSats}} sats){{end}}</div>{{end}}
+
+  {{if not .Listing.ExpiresAt.IsZero}}<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem;">Expires: {{formatDate .Listing.ExpiresAt}}</div>{{end}}
+
+  <div class="body" style="white-space:pre-wrap;margin:1.5rem 0;">{{.Listing.Body}}</div>
+
+  {{if .Listing.Tags}}<div class="tags" style="margin:1rem 0;">{{range .Listing.Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+
+  <div style="margin-top:2rem;display:flex;gap:1rem;align-items:center;">
+    <a href="/contact?regarding=listing:{{.Listing.Slug}}" class="btn btn-primary" style="text-decoration:none;">Respond</a>
+    <a href="/listings" style="font-size:.85rem;color:var(--muted);">back to listings</a>
+    {{if .IsOwner}}
+      <a href="/listings/edit/{{.Listing.Slug}}" style="font-size:.85rem;color:var(--muted);">edit</a>
+      <form method="POST" action="/listings/delete/{{.Listing.Slug}}" style="display:inline;" onsubmit="return confirm('Delete this listing?')">
+        <button type="submit" style="font-size:.8rem;color:#c33;background:none;border:none;cursor:pointer;">delete</button>
+      </form>
+    {{end}}
+  </div>
+
+  {{if .Listing.Signature}}
+  <div style="margin-top:2rem;padding:1rem;background:var(--tag-bg);border-radius:6px;font-size:.75rem;">
+    <div style="font-weight:500;margin-bottom:.3rem;">Signed by kapoost</div>
+    <div style="color:var(--muted);word-break:break-all;">sig: {{.Listing.Signature}}</div>
+  </div>
+  {{end}}
+</article>
+
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "listing-new.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if .Listing}}Edit Listing{{else}}New Listing{{end}} — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header" .}}
+<h2 style="font-size:1.2rem;">{{if .Listing}}Edit Listing{{else}}New Listing{{end}}</h2>
+
+<form method="POST" style="max-width:600px;">
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Type</label>
+    <select name="type" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+      {{$lt := ""}}{{if .Listing}}{{$lt = (print .Listing.Type)}}{{end}}
+      <option value="sell" {{if eq $lt "sell"}}selected{{end}}>sell</option>
+      <option value="buy" {{if eq $lt "buy"}}selected{{end}}>buy</option>
+      <option value="offer" {{if eq $lt "offer"}}selected{{end}}>offer</option>
+      <option value="request" {{if eq $lt "request"}}selected{{end}}>request</option>
+      <option value="trade" {{if eq $lt "trade"}}selected{{end}}>trade</option>
+    </select>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Title</label>
+    <input name="title" value="{{if .Listing}}{{.Listing.Title}}{{end}}" required style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Body</label>
+    <textarea name="body" rows="8" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);font-family:inherit;">{{if .Listing}}{{.Listing.Body}}{{end}}</textarea>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Price (free-form)</label>
+      <input name="price" value="{{if .Listing}}{{.Listing.Price}}{{end}}" placeholder="e.g. 200 PLN, trade only" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+    </div>
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Price (sats)</label>
+      <input name="price_sats" type="number" value="{{if .Listing}}{{.Listing.PriceSats}}{{end}}" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+    </div>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Tags (comma-separated)</label>
+    <input name="tags" value="{{if .Listing}}{{join .Listing.Tags ", "}}{{end}}" placeholder="sailing, parts, s2000" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Status</label>
+      <select name="status" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+        {{$ls := "open"}}{{if .Listing}}{{$ls = (print .Listing.Status)}}{{end}}
+        <option value="open" {{if eq $ls "open"}}selected{{end}}>open</option>
+        <option value="paused" {{if eq $ls "paused"}}selected{{end}}>paused</option>
+        <option value="closed" {{if eq $ls "closed"}}selected{{end}}>closed</option>
+        <option value="fulfilled" {{if eq $ls "fulfilled"}}selected{{end}}>fulfilled</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Access</label>
+      <select name="access" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+        {{$la := "public"}}{{if .Listing}}{{$la = (print .Listing.Access)}}{{end}}
+        <option value="public" {{if eq $la "public"}}selected{{end}}>public</option>
+        <option value="members" {{if eq $la "members"}}selected{{end}}>members</option>
+        <option value="locked" {{if eq $la "locked"}}selected{{end}}>locked</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Expires</label>
+      <input name="expires_at" type="datetime-local" value="{{if .Listing}}{{isoDate .Listing.ExpiresAt}}{{end}}" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary" style="padding:.6rem 1.5rem;">{{if .Listing}}Save{{else}}Publish{{end}}</button>
+  <a href="/listings" style="margin-left:1rem;font-size:.85rem;color:var(--muted);">cancel</a>
+</form>
+
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "subscribe.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscribe — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header" .}}
+<h2 style="font-size:1.2rem;">Subscribe to Listings</h2>
+<p style="color:var(--muted);font-size:.85rem;margin-bottom:1.5rem;">Get notified when new listings are published that match your filters.</p>
+
+<form method="POST" action="/subscriptions/confirm" style="max-width:500px;">
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Channel</label>
+    <select name="channel" id="channel-select" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);" onchange="document.getElementById('webhook-field').style.display=this.value==='webhook'?'block':'none'">
+      <option value="webhook">Webhook (push)</option>
+      <option value="mcp">MCP (pull)</option>
+    </select>
+  </div>
+  <div id="webhook-field" style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Webhook URL</label>
+    <input name="callback_url" type="url" placeholder="https://your-endpoint.example.com/webhook" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.5rem;">Filter by type</label>
+    <div style="display:flex;gap:.8rem;flex-wrap:wrap;">
+      <label style="font-size:.82rem;"><input type="checkbox" name="filter_types" value="sell"> sell</label>
+      <label style="font-size:.82rem;"><input type="checkbox" name="filter_types" value="buy"> buy</label>
+      <label style="font-size:.82rem;"><input type="checkbox" name="filter_types" value="offer"> offer</label>
+      <label style="font-size:.82rem;"><input type="checkbox" name="filter_types" value="request"> request</label>
+      <label style="font-size:.82rem;"><input type="checkbox" name="filter_types" value="trade"> trade</label>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Leave all unchecked to match any type.</div>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Filter by tags (comma-separated)</label>
+    <input name="filter_tags" placeholder="sailing, s2000" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+  </div>
+  <button type="submit" class="btn btn-primary" style="padding:.6rem 1.5rem;">Subscribe</button>
+  <a href="/listings" style="margin-left:1rem;font-size:.85rem;color:var(--muted);">cancel</a>
+</form>
+
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "subscribe-confirm.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{if .Unsubscribed}}Unsubscribed{{else}}Subscribed{{end}} — {{.Author}}</title>
+<style>{{template "css" .}}</style>
+</head>
+<body>
+<div class="container">
+{{template "header" .}}
+
+{{if .Unsubscribed}}
+<h2 style="font-size:1.2rem;">Unsubscribed</h2>
+<p style="color:var(--muted);">You have been unsubscribed from listing notifications.</p>
+{{else}}
+<h2 style="font-size:1.2rem;">Subscribed!</h2>
+<div style="background:var(--tag-bg);padding:1.2rem;border-radius:6px;max-width:500px;margin:1rem 0;">
+  <div style="font-size:.82rem;margin-bottom:.5rem;"><strong>Subscription ID:</strong> {{.Subscription.ID}}</div>
+  <div style="font-size:.82rem;margin-bottom:.5rem;"><strong>Channel:</strong> {{.Subscription.Channel}}</div>
+  {{if .Subscription.CallbackURL}}<div style="font-size:.82rem;margin-bottom:.5rem;"><strong>Callback:</strong> {{.Subscription.CallbackURL}}</div>{{end}}
+  <div style="font-size:.82rem;margin-bottom:.8rem;"><strong>Unsubscribe token:</strong> <code style="background:var(--bg);padding:2px 6px;border-radius:3px;font-size:.78rem;">{{.Subscription.Token}}</code></div>
+  <div style="font-size:.75rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.6rem;">
+    Save this token — it's the only way to unsubscribe.<br>
+    Unsubscribe URL: <code>https://{{.Domain}}/subscriptions/unsubscribe/{{.Subscription.Token}}</code>
+  </div>
+  {{if eq (print .Subscription.Channel) "mcp"}}
+  <div style="font-size:.75rem;color:var(--muted);margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem;">
+    <strong>MCP polling:</strong> Use <code>list_listings(since="{{.Subscription.Created.Format "2006-01-02T15:04:05Z07:00"}}")</code> to poll for new listings.
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+<a href="/listings" style="font-size:.85rem;color:var(--accent);">back to listings</a>
 
 {{template "footer" .}}
 </div>
