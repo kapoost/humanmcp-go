@@ -322,9 +322,20 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	h.statStore.UpdateSlugTags(slugTags)
 	isOwner := h.auth.IsOwner(r)
 
+	// Build persona slug set to exclude from poems
+	personaSlugs := make(map[string]bool)
+	if personas, err := h.skillStore.ListPersonas(); err == nil {
+		for _, p := range personas {
+			personaSlugs[p.Slug] = true
+		}
+	}
+
 	// Separate pieces by type for sectioned layout
 	var poems, otherPieces []*content.Piece
 	for _, p := range pieces {
+		if personaSlugs[p.Slug] {
+			continue // skip personas — they belong to /team
+		}
 		if p.Type == "poem" || p.Type == "essay" || p.Type == "note" {
 			poems = append(poems, p)
 		} else if p.Type != "document" && p.Type != "capsule" {
