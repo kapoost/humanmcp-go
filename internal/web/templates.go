@@ -227,13 +227,13 @@ const allTemplates = `
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{.Piece.Title}} — {{.Author}}</title>
 <style>{{template "css" .}}
-.poem-body{font-family:var(--mono);font-size:.9rem;line-height:1.9;white-space:pre-wrap;margin:2rem 0;}
-.essay-body{font-family:var(--mono);font-size:.9rem;line-height:1.85;margin:2rem 0;}
-.piece-header{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
-.piece-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;}
-.piece-h1{font-size:1.3rem;font-weight:400;line-height:1.3;margin-bottom:.4rem;font-family:var(--mono);}
-.piece-info{margin-top:.9rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;}
-.status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.4rem .6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
+.poem-body{font-family:var(--mono);font-size:.9rem;line-height:1.9;white-space:pre-wrap;margin:1.5rem 0;}
+.essay-body{font-family:var(--mono);font-size:.9rem;line-height:1.85;margin:1.5rem 0;}
+.piece-header{margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border);}
+.piece-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.3rem;}
+.piece-h1{font-size:1.3rem;font-weight:400;line-height:1.3;margin-bottom:.3rem;font-family:var(--mono);}
+.piece-info{margin-top:1.5rem;padding:.6rem .8rem;border:1px solid var(--border);border-radius:6px;background:var(--tag-bg);display:flex;flex-direction:column;gap:0;font-size:.75rem;}
+.status-row{display:grid;grid-template-columns:1.2rem 5.5rem 1fr auto;align-items:start;gap:.3rem .5rem;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.75rem;}
 .status-row:last-of-type{border-bottom:none;}
 .status-icon{font-size:.85rem;line-height:1.4;text-align:center;}
 .status-key{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding-top:.15rem;font-weight:500;}
@@ -247,7 +247,9 @@ const allTemplates = `
 @media(prefers-color-scheme:dark){.st-active{color:#6abf6a;}.st-anchored{color:#8899e0;}.st-pending{color:#d4a017;}}
 .info-btn{font-size:.68rem;padding:1px 7px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--muted);cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;}
 .info-btn:hover{border-color:var(--accent);color:var(--accent);}
-.info-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border);}
+.info-actions{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap;padding-top:.4rem;border-top:1px solid var(--border);}
+.piece-back{font-size:.8rem;color:var(--muted);display:inline-block;margin-bottom:.8rem;text-decoration:none;}
+.piece-back:hover{color:var(--accent);}
 .gate-box{background:var(--locked-bg);border:1px solid var(--locked);border-radius:6px;padding:1.25rem;margin:2rem 0;}
 .gate-box h3{color:var(--locked);margin-bottom:.75rem;font-size:.95rem;}
 .gate-box input[type=text]{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);margin-bottom:.5rem;font-size:1rem;}
@@ -257,12 +259,43 @@ const allTemplates = `
 <body>
 <div class="container">
 {{template "header-simple" .}}
-<a href="/" style="font-size:.85rem;color:var(--muted);display:inline-block;margin-bottom:1.5rem;">&#8592; all pieces</a>
+<a href="/" class="piece-back" id="back-link">&#8592; all pieces <span style="font-size:.65rem;color:var(--muted);">[b]</span></a>
 {{with .Piece}}
 <div class="piece-header">
   <div class="piece-type">{{.Type}} &middot; {{formatDate .Published}}</div>
   <h1 class="piece-h1">{{.Title}}</h1>
   {{if .Tags}}<div class="tags">{{range .Tags}}<span class="tag">#{{.}}</span>{{end}}</div>{{end}}
+</div>
+{{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
+{{if $.IsLocked}}
+  {{if .Description}}<p style="color:var(--muted);margin-bottom:1rem;">{{.Description}}</p>{{end}}
+  <div class="gate-box">
+    <h3>&#128274; This content requires {{.Access}} access</h3>
+    {{if eq (print .Gate) "challenge"}}
+      <p style="margin-bottom:.75rem;font-size:.9rem;">Answer to read this piece:</p>
+      <p style="font-weight:500;margin-bottom:1rem;">{{.Challenge}}</p>
+      {{if .Description}}<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem;font-style:italic;">Hint: {{.Description}}</p>{{end}}
+      {{if $.WrongAnswer}}<p style="color:#c0392b;font-size:.85rem;margin-bottom:.5rem;">&#10007; Wrong answer, try again.</p>{{end}}
+      <form method="POST" action="/unlock/{{.Slug}}">
+        <input type="text" name="answer" placeholder="Your answer..." autocomplete="off" autofocus>
+        <button type="submit" class="btn btn-primary">Unlock</button>
+      </form>
+    {{else if eq (print .Gate) "manual"}}
+      <p style="font-size:.9rem;margin-bottom:1rem;">This piece requires approval. Leave a message explaining why.</p>
+      <a href="/contact?regarding={{.Slug}}" class="btn btn-primary">Leave a message</a>
+    {{else if eq (print .Gate) "time"}}
+      <p style="font-size:.9rem;">This piece is time-locked.</p>
+      {{if $.UnlockDate}}<p style="font-weight:500;margin-top:.5rem;">Unlocks: {{$.UnlockDate}}</p>{{end}}
+    {{else if eq (print .Gate) "trade"}}
+      <p style="font-size:.9rem;margin-bottom:1rem;">Available in exchange for content from your humanMCP server.</p>
+      <a href="/contact?regarding={{.Slug}}" class="btn btn-primary">Propose a trade</a>
+    {{else}}
+      <p style="font-size:.9rem;">Members-only. Contact directly for access.</p>
+    {{end}}
+  </div>
+{{else}}
+  <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
+{{end}}
   <div class="piece-info">
     {{/* ── Signature row ── */}}
     <div class="status-row">
@@ -340,40 +373,15 @@ const allTemplates = `
       <a href="/connect" class="info-btn" style="color:var(--muted);">how to verify &#8599;</a>
     </div>
   </div>
-</div>
-{{if $.Unlocked}}<div class="unlock-success">&#10003; Correct answer &mdash; content unlocked</div>{{end}}
-{{if $.IsLocked}}
-  {{if .Description}}<p style="color:var(--muted);margin-bottom:1.5rem;">{{.Description}}</p>{{end}}
-  <div class="gate-box">
-    <h3>&#128274; This content requires {{.Access}} access</h3>
-    {{if eq (print .Gate) "challenge"}}
-      <p style="margin-bottom:.75rem;font-size:.9rem;">Answer to read this piece:</p>
-      <p style="font-weight:500;margin-bottom:1rem;">{{.Challenge}}</p>
-      {{if .Description}}<p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem;font-style:italic;">Hint: {{.Description}}</p>{{end}}
-      {{if $.WrongAnswer}}<p style="color:#c0392b;font-size:.85rem;margin-bottom:.5rem;">&#10007; Wrong answer, try again.</p>{{end}}
-      <form method="POST" action="/unlock/{{.Slug}}">
-        <input type="text" name="answer" placeholder="Your answer..." autocomplete="off" autofocus>
-        <button type="submit" class="btn btn-primary">Unlock</button>
-      </form>
-    {{else if eq (print .Gate) "manual"}}
-      <p style="font-size:.9rem;margin-bottom:1rem;">This piece requires approval. Leave a message explaining why.</p>
-      <a href="/contact?regarding={{.Slug}}" class="btn btn-primary">Leave a message</a>
-    {{else if eq (print .Gate) "time"}}
-      <p style="font-size:.9rem;">This piece is time-locked.</p>
-      {{if $.UnlockDate}}<p style="font-weight:500;margin-top:.5rem;">Unlocks: {{$.UnlockDate}}</p>{{end}}
-    {{else if eq (print .Gate) "trade"}}
-      <p style="font-size:.9rem;margin-bottom:1rem;">Available in exchange for content from your humanMCP server.</p>
-      <a href="/contact?regarding={{.Slug}}" class="btn btn-primary">Propose a trade</a>
-    {{else}}
-      <p style="font-size:.9rem;">Members-only. Contact directly for access.</p>
-    {{end}}
-  </div>
-{{else}}
-  <div class="{{if eq .Type "poem"}}poem-body{{else}}essay-body{{end}}">{{nl2br .Body}}</div>
-{{end}}
 {{end}}
 {{template "footer" .}}
 </div>
+<script>
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if(e.key==='b'||e.key==='Backspace'){e.preventDefault();window.location='/';}
+});
+</script>
 </body></html>
 {{end}}
 
