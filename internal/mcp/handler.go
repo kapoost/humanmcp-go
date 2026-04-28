@@ -347,6 +347,20 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "search_content",
+			Description: "Search across all kapoost's pieces — poems, essays, notes, images. Matches query against title, body, tags, and description. Returns matching pieces with a preview snippet. Use this instead of reading every piece when looking for specific themes, words, or topics.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"query"},
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{
+						"type":        "string",
+						"description": "Search query — a word, phrase, or topic (e.g. 'morze', 'sailing', 'AI', 'Irlandia')",
+					},
+				},
+			},
+		},
+		{
 			Name:        "list_blobs",
 			Description: "List all typed data artifacts: images, contacts, vectors, documents, datasets. Shows type, access level, schema hints, and audience. Use this to discover what structured data kapoost has made available.",
 			InputSchema: map[string]interface{}{
@@ -719,6 +733,8 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolRequestAccess(w, req, params.Arguments)
 	case "submit_answer":
 		h.toolSubmitAnswer(w, req, params.Arguments)
+	case "search_content":
+		h.toolSearchContent(w, req, params.Arguments)
 	case "list_blobs":
 		h.toolListBlobs(w, req, params.Arguments)
 	case "read_blob":
@@ -877,6 +893,95 @@ func (h *Handler) toolListContent(w http.ResponseWriter, req *Request, args json
 	sb.WriteString("— read_content <slug> for public pieces\n")
 	sb.WriteString("— request_access <slug> for locked pieces\n")
 
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolSearchContent(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Query string `json:"query"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Query == "" {
+		writeError(w, req.ID, -32602, "query is required")
+		return
+	}
+	h.statStore.Record(content.Event{Type: content.EventList, Caller: content.CallerAgent})
+
+	q := strings.ToLower(a.Query)
+	terms := strings.Fields(q)
+	pieces := h.store.List(false)
+
+	type match struct {
+		piece   *content.Piece
+		snippet string
+	}
+	var matches []match
+
+	for _, p := range pieces {
+		title := strings.ToLower(p.Title)
+		body := strings.ToLower(p.Body)
+		desc := strings.ToLower(p.Description)
+		tags := strings.ToLower(strings.Join(p.Tags, " "))
+		all := title + " " + body + " " + desc + " " + tags
+
+		found := true
+		for _, t := range terms {
+			if !strings.Contains(all, t) {
+				found = false
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+
+		// Extract snippet from body around first match
+		snippet := ""
+		if p.Body != "" {
+			idx := strings.Index(body, terms[0])
+			if idx >= 0 {
+				start := idx - 60
+				if start < 0 { start = 0 }
+				end := idx + len(terms[0]) + 60
+				if end > len(p.Body) { end = len(p.Body) }
+				snippet = strings.TrimSpace(p.Body[start:end])
+				if start > 0 { snippet = "…" + snippet }
+				if end < len(p.Body) { snippet = snippet + "…" }
+			} else {
+				// Match in title/tags/desc — show first line of body
+				if nl := strings.Index(p.Body, "\n"); nl > 0 && nl < 80 {
+					snippet = p.Body[:nl]
+				} else if len(p.Body) > 80 {
+					snippet = p.Body[:80] + "…"
+				} else {
+					snippet = p.Body
+				}
+			}
+		}
+		matches = append(matches, match{piece: p, snippet: snippet})
+	}
+
+	if len(matches) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("No pieces found matching '%s'. Try a different query or use list_content to browse all.", a.Query)}}})
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Found %d piece(s) matching '%s':\n\n", len(matches), a.Query))
+	for _, m := range matches {
+		sb.WriteString(fmt.Sprintf("slug:    %s\n", m.piece.Slug))
+		sb.WriteString(fmt.Sprintf("title:   %s\n", m.piece.Title))
+		sb.WriteString(fmt.Sprintf("type:    %s\n", m.piece.Type))
+		sb.WriteString(fmt.Sprintf("access:  %s\n", m.piece.Access))
+		if m.snippet != "" {
+			sb.WriteString(fmt.Sprintf("preview: %s\n", m.snippet))
+		}
+		if len(m.piece.Tags) > 0 {
+			sb.WriteString(fmt.Sprintf("tags:    %s\n", strings.Join(m.piece.Tags, ", ")))
+		}
+		sb.WriteString("\n")
+	}
+	sb.WriteString("— read_content <slug> to read the full text\n")
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
