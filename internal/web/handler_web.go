@@ -409,8 +409,27 @@ func (h *Handler) handlePiece(w http.ResponseWriter, r *http.Request) {
 	isOwner := h.auth.IsOwner(r)
 	p, err := h.store.Get(slug, isOwner)
 	if err != nil {
-		http.NotFound(w, r)
-		return
+		// Fallback: try blob store (gallery thumbnails link to blob slugs)
+		blobs, _ := h.blobStore.Load()
+		for _, b := range blobs {
+			if b.Slug == slug && b.BlobType == content.BlobImage && b.FileRef != "" {
+				// Render as a synthetic image piece
+				p = &content.Piece{
+					Slug:      b.Slug,
+					Title:     b.Title,
+					Type:      "image",
+					Access:    b.Access,
+					Body:      b.Description,
+					Signature: b.Signature,
+					Published: b.Published,
+				}
+				break
+			}
+		}
+		if p == nil {
+			http.NotFound(w, r)
+			return
+		}
 	}
 
 	if p.Access == content.AccessPublic && !isOwner {
