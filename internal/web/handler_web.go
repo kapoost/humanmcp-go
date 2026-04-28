@@ -798,6 +798,33 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
+
+		// Handle file upload — create blob for image/file pieces
+		if file, header, err := r.FormFile("file"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			mime := header.Header.Get("Content-Type")
+			if mime == "" { mime = "application/octet-stream" }
+			ref, err := h.blobStore.StoreFile(p.Slug, header.Filename, data)
+			if err == nil {
+				b := &content.Blob{
+					Slug:     p.Slug,
+					Title:    p.Title,
+					BlobType: content.BlobType(p.Type),
+					Access:   p.Access,
+					MimeType: mime,
+					FileRef:  ref,
+				}
+				if h.signingKey != nil {
+					if sig, err := content.SignBlob(b, h.signingKey); err == nil {
+						b.Signature = sig
+					}
+				}
+				h.blobStore.Save(b)
+			}
+		}
+
 		if h.signingKey != nil {
 			if sig, err := content.SignPiece(&p, h.signingKey); err == nil {
 				p.Signature = sig
@@ -844,6 +871,33 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if p.Title == "" { p.Title = firstLine(p.Body) }
+
+		// Handle image file upload — create/update blob with file
+		if file, header, err := r.FormFile("file"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			mime := header.Header.Get("Content-Type")
+			if mime == "" { mime = "image/jpeg" }
+			ref, err := h.blobStore.StoreFile(slug, header.Filename, data)
+			if err == nil {
+				b := &content.Blob{
+					Slug:     slug,
+					Title:    p.Title,
+					BlobType: content.BlobImage,
+					Access:   p.Access,
+					MimeType: mime,
+					FileRef:  ref,
+				}
+				if h.signingKey != nil {
+					if sig, err := content.SignBlob(b, h.signingKey); err == nil {
+						b.Signature = sig
+					}
+				}
+				h.blobStore.Save(b)
+			}
+		}
+
 		if h.signingKey != nil {
 			if sig, err := content.SignPiece(p, h.signingKey); err == nil {
 				p.Signature = sig
