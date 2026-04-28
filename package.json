@@ -1,0 +1,27 @@
+{
+  "name": "humanmcp",
+  "version": "1.0.0",
+  "description": "A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kapoost/humanmcp-go.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kapoost/humanmcp-go/issues"
+  },
+  "homepage": "https://github.com/kapoost/humanmcp-go#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

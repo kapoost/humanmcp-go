@@ -370,7 +370,7 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	blobs, _ := h.blobStore.Load()
 	var images []*content.Blob
 	for _, b := range blobs {
-		if b.BlobType == content.BlobImage && b.Access == content.AccessPublic {
+		if b.BlobType == content.BlobImage && b.Access == content.AccessPublic && b.FileRef != "" {
 			images = append(images, b)
 		}
 	}
@@ -964,7 +964,7 @@ func (h *Handler) handleImages(w http.ResponseWriter, r *http.Request) {
 	blobs, _ := h.blobStore.Load()
 	var images []*content.Blob
 	for _, b := range blobs {
-		if b.BlobType == content.BlobImage && b.Access == content.AccessPublic {
+		if b.BlobType == content.BlobImage && b.Access == content.AccessPublic && b.FileRef != "" {
 			images = append(images, b)
 		}
 	}
