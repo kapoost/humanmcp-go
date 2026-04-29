@@ -325,29 +325,6 @@ ots verify piece.ots</code><span data-en>Returns the Bitcoin block height and ti
   </div>
 </section>
 
-<section class="how-section" style="border-bottom:1px solid var(--faint);">
-  <div class="section-label"><span data-en>bitcoin timestamp — how to verify</span><span data-pl>znacznik bitcoin — jak weryfikować</span></div>
-  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;"><span data-en>Every piece carries an OpenTimestamps proof anchored in Bitcoin. Verify any piece independently — no trust in this server required.</span><span data-pl>Każdy utw&oacute;r niesie dow&oacute;d OpenTimestamps zakotwiczony w Bitcoin. Weryfikuj dowolny utw&oacute;r niezależnie — nie wymaga zaufania do tego serwera.</span></p>
-  <div class="feat-grid feat-grid-3" style="margin-bottom:1.5rem;">
-    <div class="feat">
-      <div class="feat-icon">&#8544;</div>
-      <div class="feat-title"><span data-en>get the proof</span><span data-pl>pobierz dow&oacute;d</span></div>
-      <div class="feat-body"><span data-en>Ask your agent: <em style="color:var(--gold)">upgrade_timestamp {slug}</em> after ~1hr. The <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> field in get_certificate is the base64 stub.</span><span data-pl>Poproś agenta: <em style="color:var(--gold)">upgrade_timestamp {slug}</em> po ~1h. Pole <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> w get_certificate to stub base64.</span></div>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">&#8545;</div>
-      <div class="feat-title"><span data-en>decode it</span><span data-pl>zdekoduj</span></div>
-      <div class="feat-body"><code style="font-family:var(--mono);font-size:.75em;color:var(--gold);display:block;line-height:1.8;">echo "{ots_proof}" | base64 -d &gt; piece.ots</code><span data-en>This gives you the raw OTS file, independent of this server.</span><span data-pl>To daje surowy plik OTS, niezależny od tego serwera.</span></div>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">&#8546;</div>
-      <div class="feat-title"><span data-en>verify offline</span><span data-pl>weryfikuj offline</span></div>
-      <div class="feat-body"><code style="font-family:var(--mono);font-size:.75em;color:var(--gold);display:block;line-height:1.8;">pip install opentimestamps-client
-ots verify piece.ots</code><span data-en>Returns Bitcoin block height and date. No account needed.</span><span data-pl>Zwraca wysokość bloku Bitcoin i datę. Nie wymaga konta.</span></div>
-    </div>
-  </div>
-</section>
-
 <section class="how-section">
   <div class="section-label"><span data-en>how it works</span><span data-pl>jak to działa</span></div>
   <div class="feat-grid feat-grid-3">
