@@ -127,10 +127,14 @@ p.lead{font-size:1.15rem;color:var(--fg);font-style:italic;}
 .mid-cta a:hover::after{opacity:1;}
 
 /* Network visualization */
-.network{position:relative;height:200px;margin:2rem 0;overflow:hidden;}
-.network-node{position:absolute;width:8px;height:8px;background:var(--gold);border-radius:50%;opacity:.6;}
-.network-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,var(--gold-border),transparent);transform-origin:left center;opacity:.3;}
-.network-label{position:absolute;font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.05em;}
+.network-svg{display:block;margin:2rem auto;max-width:100%;height:auto;}
+.network-svg .edge{stroke:var(--gold);stroke-width:1.5;opacity:0;transition:opacity .6s ease;}
+.network-svg .edge.visible{opacity:.45;}
+.network-svg .node-dot{fill:var(--gold);opacity:.7;}
+.network-svg .node-center{fill:var(--gold);opacity:1;}
+.network-svg .node-label{fill:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.04em;}
+.network-svg .node-label-center{fill:var(--gold);font-family:var(--mono);font-size:12px;letter-spacing:.06em;font-weight:500;}
+.network-svg .node-ring{fill:none;stroke:var(--gold-border);stroke-width:1;}
 
 /* Footer */
 footer{padding:3rem 0 4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);}
@@ -170,7 +174,7 @@ footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
   .hero{padding:5rem 0 3rem;}
   section{padding:3rem 0;}
   .breaker{padding:3.5rem 0;}
-  .network{height:140px;}
+  .network-svg{width:100%;}
 }
 </style>
 </head>
@@ -292,7 +296,36 @@ footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
   <p class="reveal"><span data-pl>Dotychczas każdy serwer humanMCP był jak samotna wyspa. Żeby znaleźć czyjeś wiersze, trzeba było znać adres. Żeby przeszukać oferty — wchodzić na każdy serwer osobno.</span><span data-en>Until now, every humanMCP server was a lonely island. To find someone's poems, you had to know the address. To search offers — visit each server one by one.</span></p>
 
   <!-- Network visualization -->
-  <div class="network reveal" id="network-viz"></div>
+  <svg class="network-svg reveal" id="network-viz" viewBox="0 0 600 320" width="600" height="320">
+    <!-- Edges (hub-and-spoke from marketplace center) -->
+    <line class="edge" x1="300" y1="160" x2="70" y2="80"/>
+    <line class="edge" x1="300" y1="160" x2="190" y2="40"/>
+    <line class="edge" x1="300" y1="160" x2="410" y2="40"/>
+    <line class="edge" x1="300" y1="160" x2="530" y2="80"/>
+    <line class="edge" x1="300" y1="160" x2="140" y2="270"/>
+    <line class="edge" x1="300" y1="160" x2="460" y2="270"/>
+    <!-- Peer-to-peer edges (some nodes also connect to each other) -->
+    <line class="edge" x1="70" y1="80" x2="190" y2="40"/>
+    <line class="edge" x1="410" y1="40" x2="530" y2="80"/>
+    <line class="edge" x1="140" y1="270" x2="460" y2="270"/>
+    <!-- Center node (marketplace) -->
+    <circle class="node-ring" cx="300" cy="160" r="18"/>
+    <circle class="node-center" cx="300" cy="160" r="8"/>
+    <text class="node-label-center" x="300" y="195" text-anchor="middle">marketplace</text>
+    <!-- Outer nodes -->
+    <circle class="node-dot" cx="70" cy="80" r="5"/>
+    <text class="node-label" x="70" y="105" text-anchor="middle">kapoost</text>
+    <circle class="node-dot" cx="190" cy="40" r="5"/>
+    <text class="node-label" x="190" y="65" text-anchor="middle">alice</text>
+    <circle class="node-dot" cx="410" cy="40" r="5"/>
+    <text class="node-label" x="410" y="65" text-anchor="middle">bob</text>
+    <circle class="node-dot" cx="530" cy="80" r="5"/>
+    <text class="node-label" x="530" y="105" text-anchor="middle">marta</text>
+    <circle class="node-dot" cx="140" cy="270" r="5"/>
+    <text class="node-label" x="140" y="295" text-anchor="middle">tomek</text>
+    <circle class="node-dot" cx="460" cy="270" r="5"/>
+    <text class="node-label" x="460" y="295" text-anchor="middle">ewa</text>
+  </svg>
 
   <p class="reveal"><span data-pl>Marketplace to ulica, która łączy wyspy.</span><span data-en>Marketplace is the street that connects the islands.</span></p>
 </section>
@@ -704,74 +737,22 @@ function animateCounter(el) {
   requestAnimationFrame(update);
 }
 
-// Network visualization
+// Network SVG edge animation
 (function(){
-  var container = document.getElementById('network-viz');
-  if (!container) return;
-  var w = container.offsetWidth;
-  var h = container.offsetHeight;
-
-  var nodes = [
-    { x: 0.12, y: 0.3, label: 'kapoost' },
-    { x: 0.38, y: 0.15, label: 'alice' },
-    { x: 0.62, y: 0.7, label: 'bob' },
-    { x: 0.85, y: 0.25, label: 'marta' },
-    { x: 0.28, y: 0.75, label: 'tomek' },
-    { x: 0.72, y: 0.35, label: 'ewa' },
-    { x: 0.5, y: 0.45, label: 'marketplace' }
-  ];
-
-  var center = nodes[nodes.length - 1]; // marketplace
-
-  // Draw lines from each node to marketplace
-  nodes.forEach(function(node, i) {
-    if (i === nodes.length - 1) return;
-    var line = document.createElement('div');
-    line.className = 'network-line';
-    var x1 = node.x * w, y1 = node.y * h;
-    var x2 = center.x * w, y2 = center.y * h;
-    var dx = x2 - x1, dy = y2 - y1;
-    var length = Math.sqrt(dx * dx + dy * dy);
-    var angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    line.style.cssText = 'left:' + x1 + 'px;top:' + y1 + 'px;width:' + length + 'px;transform:rotate(' + angle + 'deg);';
-    container.appendChild(line);
-  });
-
-  // Draw nodes
-  nodes.forEach(function(node, i) {
-    var dot = document.createElement('div');
-    dot.className = 'network-node';
-    var isCenter = i === nodes.length - 1;
-    if (isCenter) {
-      dot.style.cssText = 'left:' + (node.x * w - 6) + 'px;top:' + (node.y * h - 6) + 'px;width:12px;height:12px;opacity:1;background:var(--gold);';
-    } else {
-      dot.style.cssText = 'left:' + (node.x * w - 4) + 'px;top:' + (node.y * h - 4) + 'px;';
-    }
-    container.appendChild(dot);
-
-    var label = document.createElement('div');
-    label.className = 'network-label';
-    label.textContent = node.label;
-    label.style.cssText = 'left:' + (node.x * w - 10) + 'px;top:' + (node.y * h + (isCenter ? 12 : 8)) + 'px;' + (isCenter ? 'color:var(--gold);font-size:.7rem;' : '');
-    container.appendChild(label);
-  });
-
-  // Animate lines appearing
-  var lines = container.querySelectorAll('.network-line');
-  var lineObserver = new IntersectionObserver(function(entries) {
+  var svg = document.getElementById('network-viz');
+  if (!svg) return;
+  var edges = svg.querySelectorAll('.edge');
+  var edgeObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
-        lines.forEach(function(line, i) {
-          setTimeout(function() {
-            line.style.opacity = '0.4';
-            line.style.transition = 'opacity .6s ease';
-          }, i * 150);
+        edges.forEach(function(edge, i) {
+          setTimeout(function() { edge.classList.add('visible'); }, i * 120);
         });
-        lineObserver.disconnect();
+        edgeObserver.disconnect();
       }
     });
   }, { threshold: 0.3 });
-  lineObserver.observe(container);
+  edgeObserver.observe(svg);
 })();
 </script>
 </body>
