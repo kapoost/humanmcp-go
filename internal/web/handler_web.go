@@ -237,6 +237,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Blob upload (owner only)
 	mux.HandleFunc("/api/blobs", h.handleAPIBlobs)
 	mux.HandleFunc("/api/blobs/", h.handleAPIBlobs)
+	mux.HandleFunc("/api/search", h.handleAPISearch)
 
 	// OpenAPI spec for ChatGPT and REST agents
 	mux.HandleFunc("/openapi.json", h.handleOpenAPI)
@@ -517,6 +518,60 @@ func (h *Handler) handleAPIList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pieces)
 }
 
+func (h *Handler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "q parameter required", "example": "/api/search?q=morze"})
+		return
+	}
+	h.statStore.Record(content.Event{Type: content.EventSearch, Caller: content.CallerFromUA(r.Header.Get("User-Agent")), Query: q})
+	h.store.Load()
+	pieces := h.store.List(false)
+	terms := strings.Fields(strings.ToLower(q))
+
+	type result struct {
+		Slug    string   `json:"slug"`
+		Title   string   `json:"title"`
+		Type    string   `json:"type"`
+		Access  string   `json:"access"`
+		Preview string   `json:"preview,omitempty"`
+		Tags    []string `json:"tags,omitempty"`
+		Date    string   `json:"date"`
+	}
+	var results []result
+	for _, p := range pieces {
+		all := strings.ToLower(p.Title + " " + p.Body + " " + p.Description + " " + strings.Join(p.Tags, " "))
+		match := true
+		for _, t := range terms {
+			if !strings.Contains(all, t) { match = false; break }
+		}
+		if !match { continue }
+		preview := ""
+		body := strings.ToLower(p.Body)
+		if p.Body != "" {
+			idx := strings.Index(body, terms[0])
+			if idx >= 0 {
+				s, e := idx-60, idx+len(terms[0])+60
+				if s < 0 { s = 0 }
+				if e > len(p.Body) { e = len(p.Body) }
+				preview = strings.TrimSpace(p.Body[s:e])
+			} else if len(p.Body) > 80 {
+				preview = p.Body[:80] + "…"
+			} else {
+				preview = p.Body
+			}
+		}
+		results = append(results, result{
+			Slug: p.Slug, Title: p.Title, Type: p.Type,
+			Access: string(p.Access), Preview: preview,
+			Tags: p.Tags, Date: p.Published.Format("2006-01-02"),
+		})
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{"query": q, "count": len(results), "results": results})
+}
+
 func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimPrefix(r.URL.Path, "/api/content/")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -696,6 +751,7 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleAPIBlobs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	slug := strings.TrimPrefix(r.URL.Path, "/api/blobs/")
 
 	switch r.Method {
@@ -1468,6 +1524,18 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 			},
+			"/api/search": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "searchContent",
+					"summary":     "Full-text search across all pieces — matches title, body, tags, description",
+					"parameters": []map[string]interface{}{
+						{"name": "q", "in": "query", "required": true, "schema": map[string]interface{}{"type": "string"}, "description": "Search query (word, phrase, or topic)"},
+					},
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "JSON with query, count, and results array with slug, title, type, preview, tags, date"},
+					},
+				},
+			},
 			"/contact": map[string]interface{}{
 				"post": map[string]interface{}{
 					"operationId": "leaveMessage",
@@ -1754,6 +1822,7 @@ func (h *Handler) handleLLMSTxtEdit(w http.ResponseWriter, r *http.Request) {
 // ── Skills API ────────────────────────────────────────────────────────────────
 
 func (h *Handler) handleAPISkills(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	slug := strings.TrimPrefix(r.URL.Path, "/api/skills")
 	slug = strings.TrimPrefix(slug, "/")
 	switch r.Method {
@@ -1792,6 +1861,7 @@ func (h *Handler) handleAPISkills(w http.ResponseWriter, r *http.Request) {
 // ── Personas API ──────────────────────────────────────────────────────────────
 
 func (h *Handler) handleAPIPersonas(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	slug := strings.TrimPrefix(r.URL.Path, "/api/personas")
 	slug = strings.TrimPrefix(slug, "/")
 	switch r.Method {
@@ -1934,8 +2004,22 @@ func (h *Handler) handleAgentCard(w http.ResponseWriter, r *http.Request) {
 			"discovery":      "https://" + h.cfg.Domain + "/.well-known/mcp-server.json",
 			"auth":           "session_code",
 			"auth_hint":      "Ask the user for a short Polish poetry fragment from their dashboard",
-			"capabilities":   []string{"content", "skills", "personas", "memory", "bootstrap"},
+			"capabilities":   []string{"content", "search", "skills", "personas", "memory", "bootstrap"},
 			"for_agents":     "https://" + h.cfg.Domain + "/for-agents",
+		},
+		"restAPI": map[string]interface{}{
+			"description": "REST API for agents without MCP support (GPT, Gemini, etc.)",
+			"openapi":     "https://" + h.cfg.Domain + "/openapi.json",
+			"endpoints": map[string]interface{}{
+				"search":  "GET /api/search?q={query}",
+				"list":    "GET /api/content",
+				"read":    "GET /api/content/{slug}",
+				"blobs":   "GET /api/blobs",
+				"profile": "GET /api/profile",
+				"contact": "POST /contact (form: from, text, regarding)",
+			},
+			"cors":   "enabled on all /api/* endpoints",
+			"auth":   "none required for public content",
 		},
 		"project": map[string]interface{}{
 			"name":    "humanMCP",
@@ -1987,6 +2071,7 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 
 // handleAPINotes — agents mogą tworzyć/aktualizować notatki przez AGENT_TOKEN
 func (h *Handler) handleAPINotes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	// GET — publiczne
 	if r.Method == http.MethodGet {
 		slug := strings.TrimPrefix(r.URL.Path, "/api/notes/")
