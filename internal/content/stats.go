@@ -26,6 +26,7 @@ const (
 	EventListingResponse EventType = "listing_response"
 	EventSubscribeNew   EventType = "subscribe"
 	EventSubscribeMatch EventType = "subscribe_match"
+	EventSearch         EventType = "search"
 )
 
 type CallerType string
@@ -46,6 +47,7 @@ type Event struct {
 	Ref     string     `json:"ref,omitempty"`    // HTTP referrer
 	Country string     `json:"country,omitempty"` // from Fly-Client-IP geo header
 	VisitorHash string `json:"vh,omitempty"`     // hashed(ip+date) — never raw IP
+	Query       string `json:"query,omitempty"` // search query
 }
 
 type HourBucket struct {
@@ -66,6 +68,7 @@ type Stats struct {
 	TotalListings  int `json:"total_listings"`
 	TotalSubscribers int `json:"total_subscribers"`
 	ListingViews   int `json:"listing_views"`
+	TotalSearches  int `json:"total_searches"`
 
 	// Breakdowns
 	ReadsBySlug    map[string]int `json:"reads_by_slug"`
@@ -75,6 +78,7 @@ type Stats struct {
 	TopReferrers   map[string]int `json:"top_referrers"`
 	Countries       map[string]int `json:"countries"`
 	ListingReadsBySlug map[string]int `json:"listing_reads_by_slug"`
+	TopSearches        map[string]int `json:"top_searches"`
 
 	// Challenge funnel per slug: [checked, attempted, succeeded]
 	ChallengeFunnel map[string][3]int `json:"challenge_funnel"`
@@ -153,6 +157,7 @@ func (ss *StatStore) Compute() (*Stats, error) {
 		Countries:       make(map[string]int),
 		ChallengeFunnel:    make(map[string][3]int),
 		ListingReadsBySlug: make(map[string]int),
+		TopSearches:        make(map[string]int),
 	}
 
 	data, err := os.ReadFile(ss.path)
@@ -251,6 +256,11 @@ func (ss *StatStore) Compute() (*Stats, error) {
 			s.ListingViews++
 			if e.Slug != "" {
 				s.ListingReadsBySlug[e.Slug]++
+			}
+		case EventSearch:
+			s.TotalSearches++
+			if e.Query != "" {
+				s.TopSearches[strings.ToLower(e.Query)]++
 			}
 		}
 	}

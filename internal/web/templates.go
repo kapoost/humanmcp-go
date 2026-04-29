@@ -478,6 +478,7 @@ const allTemplates = `
   <div class="card"><div class="card-num">{{.TotalInterest}}</div><div class="card-label">gate checks</div></div>
   <div class="card"><div class="card-num">{{.TotalListings}}</div><div class="card-label">listings</div></div>
   <div class="card"><div class="card-num">{{.TotalSubscribers}}</div><div class="card-label">subscribers</div></div>
+  <div class="card"><div class="card-num">{{.TotalSearches}}</div><div class="card-label">searches</div></div>
 </div>
 
 {{if .HourlyReads}}
@@ -507,10 +508,11 @@ const allTemplates = `
   {{if .Countries}}<div class="section"><div class="section-title">by region</div>{{range $c,$n := .Countries}}<div class="row"><span>{{$c}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
   {{if .TopReferrers}}<div class="section"><div class="section-title">referrers</div>{{range $r,$n := .TopReferrers}}<div class="row"><span>{{$r}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
   {{if .TopAgents}}<div class="section"><div class="section-title">visitors</div>{{range $n,$c := .TopAgents}}<div class="row"><span>{{$n}}</span><span class="rv">{{$c}}</span></div>{{end}}</div>{{end}}
+  {{if .TopSearches}}<div class="section"><div class="section-title">top searches</div>{{range $q,$n := .TopSearches}}<div class="row"><span>&#128269; {{$q}}</span><span class="rv">{{$n}}</span></div>{{end}}</div>{{end}}
 </div>
 </div>
 
-{{if .RecentEvents}}<div class="section"><div class="section-title">recent activity</div><ul class="ev-list">{{range .RecentEvents}}<li class="ev-item"><span>{{formatDate .At}}</span><span class="ev-type">{{.Type}}</span>{{if eq (print .Caller) "agent"}}<span class="ba">agent</span>{{else if eq (print .Caller) "human"}}<span class="bh">human</span>{{end}}{{if .Slug}}<span style="color:var(--fg);">{{.Slug}}</span>{{end}}{{if .From}}<span>&#8212;{{.From}}</span>{{end}}{{if .Country}}<span>&#127760;{{.Country}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
+{{if .RecentEvents}}<div class="section"><div class="section-title">recent activity</div><ul class="ev-list">{{range .RecentEvents}}<li class="ev-item"><span>{{formatDate .At}}</span><span class="ev-type">{{.Type}}</span>{{if eq (print .Caller) "agent"}}<span class="ba">agent</span>{{else if eq (print .Caller) "human"}}<span class="bh">human</span>{{end}}{{if .Slug}}<span style="color:var(--fg);">{{.Slug}}</span>{{end}}{{if .Query}}<span>"{{.Query}}"</span>{{end}}{{if .From}}<span>&#8212;{{.From}}</span>{{end}}{{if .Country}}<span>&#127760;{{.Country}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
 {{end}}
 
 {{if .Messages}}<div class="section"><div class="section-title">messages &amp; comments ({{len .Messages}})</div>{{range .Messages}}<div class="msg-preview">
@@ -1566,6 +1568,7 @@ a:hover{text-decoration:underline}
   <div class="mc-stat"><div class="mc-stat-num">{{.UniqueVisitors}}</div><div class="mc-stat-label">visitors</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.AgentCalls}}</div><div class="mc-stat-label">agents</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.HumanVisits}}</div><div class="mc-stat-label">humans</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.TotalSearches}}</div><div class="mc-stat-label">searches</div></div>
 </div>
 {{end}}
 
@@ -1584,6 +1587,7 @@ a:hover{text-decoration:underline}
     <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{$.Uptime}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">uptime</div></div>
     <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalListings}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">listings</div></div>
     <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalSubscribers}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">subscribers</div></div>
+    <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{.TotalSearches}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">searches</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
     <div style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:10px"><div style="font-size:20px;font-weight:500">{{$.ToolCalls}}</div><div style="font-size:9px;color:var(--mc-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">mcp tool calls</div></div>
@@ -1630,6 +1634,13 @@ a:hover{text-decoration:underline}
 <div class="mc-section">
   <div class="mc-label">BY REGION</div>
   {{range $c,$n := .Countries}}<div class="mc-row"><span>{{$c}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
+</div>
+{{end}}
+
+{{if .TopSearches}}
+<div class="mc-section">
+  <div class="mc-label">TOP SEARCHES</div>
+  {{range $q,$n := .TopSearches}}<div class="mc-row"><span>&#128269; {{$q}}</span><span class="mc-row-val">{{$n}}</span></div>{{end}}
 </div>
 {{end}}
 {{end}}
