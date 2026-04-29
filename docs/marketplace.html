@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark" data-lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>humanMCP marketplace — przewodnik</title>
+<meta name="description" content="Otwarty marketplace łączący osobiste serwery humanMCP. Szukaj wierszy, esejów i ofert od ludzi — nie od algorytmów.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var t = localStorage.getItem('humanmcp-theme') || (window.matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-lang', localStorage.getItem('humanmcp-lang') || 'pl');
+})();
+</script>
+<style>
+:root{--bg:#0e0d0b;--bg2:#141210;--fg:#ede8df;--muted:#7a7268;--faint:#2a2720;--gold:#c9a96e;--gold-dim:rgba(201,169,110,.1);--gold-border:rgba(201,169,110,.22);--green:#6aab7e;--green-dim:rgba(106,171,126,.1);--blue:#7aade0;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;}
+[data-theme="light"]{--bg:#faf8f3;--bg2:#f0ede5;--fg:#1a1610;--muted:#7a7060;--faint:#e0dcd0;--gold:#7a5510;--gold-dim:rgba(122,85,16,.07);--gold-border:rgba(122,85,16,.18);--green:#1d5c30;--green-dim:rgba(29,92,48,.1);--blue:#1a4e8c;}
+[data-lang="en"] [data-pl]{display:none !important;}
+[data-lang="pl"] [data-en]{display:none !important;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--fg);font-family:var(--serif);font-size:19px;line-height:1.75;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:100;}
+[data-theme="light"] body::after{opacity:0;}
+.wrap{max-width:720px;margin:0 auto;padding:0 2rem;}
+a{color:var(--gold);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* Controls */
+.controls{position:fixed;top:1rem;right:1.5rem;display:flex;gap:.4rem;z-index:200;}
+.ctrl-btn{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;padding:4px 10px;border:1px solid var(--faint);background:var(--bg);color:var(--muted);cursor:pointer;border-radius:1px;transition:color .15s,border-color .15s,background .15s;}
+.ctrl-btn:hover{color:var(--gold);border-color:var(--gold-border);}
+
+/* Hero */
+.hero{padding:8rem 0 4rem;border-bottom:1px solid var(--faint);position:relative;}
+.hero-tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:.75rem;}
+.hero-tag::before{content:'';width:2.5rem;height:1px;background:var(--gold);flex-shrink:0;}
+h1{font-size:clamp(2.8rem,6vw,4.2rem);font-weight:300;font-style:italic;line-height:1.1;letter-spacing:-.02em;margin-bottom:1.5rem;}
+h1 strong{font-weight:600;font-style:normal;}
+.hero-sub{font-size:1.15rem;color:var(--muted);max-width:520px;line-height:1.8;font-weight:300;}
+.hero-cta{margin-top:2.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
+.hero-cta a{font-family:var(--mono);font-size:.8rem;padding:.75rem 1.8rem;text-decoration:none;border-radius:1px;transition:all .2s;}
+.hero-cta .primary{background:var(--gold);color:var(--bg);}
+.hero-cta .primary:hover{filter:brightness(1.15);text-decoration:none;}
+.hero-cta .secondary{border:1px solid var(--faint);color:var(--fg);}
+.hero-cta .secondary:hover{border-color:var(--gold-border);text-decoration:none;}
+
+/* Stats banner */
+.stats-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--faint);border:1px solid var(--faint);margin:0;}
+.stat-item{background:var(--bg);padding:2.5rem 1.5rem;text-align:center;}
+.stat-number{font-family:var(--serif);font-size:clamp(2.5rem,5vw,3.5rem);font-weight:300;color:var(--gold);line-height:1;margin-bottom:.5rem;font-style:italic;}
+.stat-number .unit{font-size:.5em;color:var(--gold);opacity:.7;}
+.stat-label{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+
+/* Breaker — bold typographic statement */
+.breaker{padding:5rem 0;text-align:center;border-bottom:1px solid var(--faint);}
+.breaker-text{font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;font-style:italic;line-height:1.35;color:var(--fg);max-width:580px;margin:0 auto;}
+.breaker-text strong{font-weight:600;color:var(--gold);}
+.breaker-sub{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--muted);margin-top:1.5rem;text-transform:uppercase;}
+
+/* Sections */
+section{padding:4rem 0;border-bottom:1px solid var(--faint);}
+.section-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:2rem;}
+h2{font-size:1.9rem;font-weight:400;margin-bottom:1.5rem;line-height:1.3;}
+h3{font-family:var(--mono);font-size:.92rem;color:var(--gold);margin:2.5rem 0 1rem;letter-spacing:.03em;}
+p{color:var(--muted);margin-bottom:1rem;max-width:600px;}
+p.lead{font-size:1.15rem;color:var(--fg);font-style:italic;}
+
+/* Terminal blocks */
+.terminal{font-family:var(--mono);font-size:.84rem;background:var(--bg2);border:1px solid var(--faint);padding:1.2rem 1.4rem;line-height:1.9;color:var(--fg);overflow-x:auto;white-space:pre;margin:1rem 0 1.5rem;border-radius:1px;}
+.terminal .c{color:var(--muted);}
+.terminal .k{color:var(--gold);}
+.terminal .s{color:var(--green);}
+.terminal .v{color:var(--blue);}
+
+/* Contrast blocks */
+.contrast{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--faint);border:1px solid var(--faint);margin:1.5rem 0 2rem;}
+.contrast-col{background:var(--bg);padding:1.5rem 1.3rem;}
+.contrast-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem;}
+.contrast-label.old{color:var(--muted);}
+.contrast-label.new{color:var(--green);}
+.contrast-col p{font-size:1rem;line-height:1.7;margin-bottom:.5rem;}
+
+/* Feature grid */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--faint);border:1px solid var(--faint);margin:1.5rem 0;}
+.feat{background:var(--bg);padding:1.5rem 1.3rem;}
+.feat-title{font-family:var(--mono);font-size:.85rem;color:var(--gold);margin-bottom:.4rem;letter-spacing:.03em;}
+.feat-body{font-size:1rem;color:var(--muted);line-height:1.7;}
+
+/* Comparison table */
+.comp-table{width:100%;border-collapse:collapse;font-size:.95rem;margin:1rem 0 1.5rem;}
+.comp-table td,.comp-table th{padding:.65rem .9rem;border-bottom:1px solid var(--faint);text-align:left;vertical-align:top;}
+.comp-table th{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;color:var(--muted);font-weight:400;}
+.comp-table td:first-child{color:var(--fg);font-style:italic;}
+.comp-table td:last-child{color:var(--muted);}
+
+/* Steps */
+.steps{counter-reset:step;}
+.step{counter-increment:step;position:relative;padding-left:3rem;margin-bottom:2rem;}
+.step::before{content:counter(step);position:absolute;left:0;top:.1rem;font-family:var(--mono);font-size:.75rem;color:var(--gold);width:2rem;height:2rem;border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;border-radius:1px;}
+.step-title{font-family:var(--mono);font-size:.9rem;color:var(--fg);margin-bottom:.3rem;}
+.step p{font-size:1rem;}
+
+/* Quote */
+.quote{font-size:clamp(1.3rem,3vw,1.8rem);font-weight:300;font-style:italic;line-height:1.45;border-left:2px solid var(--gold);padding-left:1.75rem;margin:2rem 0;color:var(--fg);}
+
+/* FAQ */
+.faq-item{border-bottom:1px solid var(--faint);padding:1.25rem 0;}
+.faq-q{font-family:var(--mono);font-size:.9rem;color:var(--fg);margin-bottom:.5rem;cursor:pointer;}
+.faq-q::before{content:'+ ';color:var(--gold);}
+.faq-a{font-size:1rem;color:var(--muted);line-height:1.75;max-width:600px;}
+
+/* Trust */
+.trust-item{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
+.trust-icon{font-family:var(--mono);font-size:.7rem;color:var(--gold);min-width:1.5rem;padding-top:.25rem;}
+.trust-text{font-size:1rem;color:var(--muted);line-height:1.75;}
+.trust-text strong{color:var(--fg);font-weight:400;}
+
+/* Mid-page CTA */
+.mid-cta{text-align:center;padding:4rem 0;border-bottom:1px solid var(--faint);}
+.mid-cta p{max-width:none;text-align:center;margin:0 auto 1.5rem;font-family:var(--mono);font-size:.8rem;color:var(--muted);letter-spacing:.08em;}
+.mid-cta a{display:inline-block;font-family:var(--mono);font-size:.85rem;padding:.85rem 2.5rem;background:var(--gold);color:var(--bg);text-decoration:none;border-radius:1px;position:relative;transition:all .2s;}
+.mid-cta a:hover{filter:brightness(1.15);text-decoration:none;transform:translateY(-1px);}
+.mid-cta a::after{content:'';position:absolute;inset:-4px;border:1px solid var(--gold-border);border-radius:2px;opacity:0;transition:opacity .3s;}
+.mid-cta a:hover::after{opacity:1;}
+
+/* Network visualization */
+.network{position:relative;height:200px;margin:2rem 0;overflow:hidden;}
+.network-node{position:absolute;width:8px;height:8px;background:var(--gold);border-radius:50%;opacity:.6;}
+.network-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,var(--gold-border),transparent);transform-origin:left center;opacity:.3;}
+.network-label{position:absolute;font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.05em;}
+
+/* Footer */
+footer{padding:3rem 0 4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
+
+/* Final CTA */
+.final-cta{border-bottom:none;text-align:center;padding:6rem 0;}
+.final-cta h2{text-align:center;font-weight:300;font-style:italic;margin:0 auto 1rem;max-width:520px;font-size:clamp(1.6rem,3vw,2.2rem);}
+.final-cta .final-sub{text-align:center;max-width:400px;margin:0 auto 2.5rem;font-family:var(--mono);font-size:.75rem;color:var(--muted);letter-spacing:.06em;}
+.final-cta .btn-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;}
+.final-cta .btn-row a{font-family:var(--mono);font-size:.8rem;padding:.75rem 1.8rem;text-decoration:none;border-radius:1px;transition:all .2s;}
+.final-cta .btn-row .primary{background:var(--gold);color:var(--bg);}
+.final-cta .btn-row .primary:hover{filter:brightness(1.15);text-decoration:none;}
+.final-cta .btn-row .secondary{border:1px solid var(--faint);color:var(--fg);}
+.final-cta .btn-row .secondary:hover{border-color:var(--gold-border);text-decoration:none;}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* Hero animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.hero>*{animation:fadeUp .6s ease both;}
+.hero>*:nth-child(1){animation-delay:.05s;}
+.hero>*:nth-child(2){animation-delay:.15s;}
+.hero>*:nth-child(3){animation-delay:.25s;}
+.hero>*:nth-child(4){animation-delay:.35s;}
+.hero>*:nth-child(5){animation-delay:.45s;}
+
+/* Counter animation */
+@keyframes countPulse{0%{transform:scale(1);}50%{transform:scale(1.03);}100%{transform:scale(1);}}
+.stat-number.counted{animation:countPulse .4s ease;}
+
+@media(max-width:560px){
+  .contrast,.feat-grid{grid-template-columns:1fr;}
+  .stats-banner{grid-template-columns:1fr;}
+  .hero{padding:5rem 0 3rem;}
+  section{padding:3rem 0;}
+  .breaker{padding:3.5rem 0;}
+  .network{height:140px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="controls">
+  <button onclick="toggleLang()" class="ctrl-btn" aria-label="Switch language"><span data-pl>EN</span><span data-en>PL</span></button>
+  <button onclick="toggleTheme()" class="ctrl-btn" aria-label="Toggle theme"><span class="theme-icon"></span></button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">humanMCP marketplace</div>
+  <h1><span data-pl>Znajdź ludzi.<br><strong>Nie algorytmy.</strong></span><span data-en>Find people.<br><strong>Not algorithms.</strong></span></h1>
+  <p class="hero-sub"><span data-pl>Otwarty katalog osobistych serwerów humanMCP. Szukaj wierszy, rękodzieła, usług i&nbsp;ofert od ludzi. Zero pośredników. Zero prowizji. Zero algorytmów.</span><span data-en>An open catalog of personal humanMCP servers. Search for poems, handicrafts, services and offers from people. No middlemen. No fees. No algorithms.</span></p>
+  <div class="hero-cta">
+    <a href="https://github.com/kapoost/humanmcp-go" class="primary"><span data-pl>postaw swój serwer</span><span data-en>run your own server</span></a>
+    <a href="./" class="secondary"><span data-pl>czym jest humanMCP</span><span data-en>what is humanMCP</span></a>
+  </div>
+</section>
+
+<!-- STATS BANNER -->
+<div class="stats-banner reveal">
+  <div class="stat-item">
+    <div class="stat-number"><span class="counter" data-target="0">0</span><span class="unit">%</span></div>
+    <div class="stat-label"><span data-pl>prowizji</span><span data-en>commission</span></div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number"><span class="counter" data-target="100">0</span><span class="unit">%</span></div>
+    <div class="stat-label"><span data-pl>Twoje</span><span data-en>yours</span></div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number"><span class="counter" data-target="15">0</span> <span class="unit">min</span></div>
+    <div class="stat-label">setup</div>
+  </div>
+</div>
+
+<!-- WHAT IS IT -->
+<section>
+  <div class="section-label reveal"><span data-pl>czym to jest</span><span data-en>what is it</span></div>
+  <h2 class="reveal"><span data-pl>Każdy człowiek, własny serwer</span><span data-en>Every person, their own server</span></h2>
+  <p class="lead reveal"><span data-pl>Wyobraź sobie internet, w którym każdy twórca ma swoje miejsce — nie profil na cudzej platformie, ale własny serwer. Twoje wiersze, eseje, oferty. Podpisane Twoim kluczem. Żadna firma nie może tego usunąć.</span><span data-en>Imagine an internet where every creator has their own place — not a profile on someone else's platform, but their own server. Your poems, essays, offers. Signed with your key. No company can take it down.</span></p>
+  <p class="reveal"><span data-pl><strong style="color:var(--fg)">humanMCP</strong> to taki serwer. <strong style="color:var(--fg)">Marketplace</strong> to katalog, który łączy te serwery w jedno przeszukiwalne miejsce.</span><span data-en><strong style="color:var(--fg)">humanMCP</strong> is that server. <strong style="color:var(--fg)">Marketplace</strong> is the catalog that connects these servers into one searchable place.</span></p>
+  <p class="reveal"><span data-pl>Coś jak rynek miejski — każdy ma swój stragan, ale nikt nie jest właścicielem rynku.</span><span data-en>Like a town square — everyone has their own stall, but no one owns the square.</span></p>
+
+  <div class="feat-grid reveal">
+    <div class="feat">
+      <div class="feat-title"><span data-pl>wiersze i eseje</span><span data-en>poems & essays</span></div>
+      <div class="feat-body"><span data-pl>Tekst z podpisem cyfrowym i&nbsp;licencją. Nikt nie może udawać, że to jego.</span><span data-en>Text with a digital signature and license. No one can pretend it's theirs.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>obrazy i fotografie</span><span data-en>images & photography</span></div>
+      <div class="feat-body"><span data-pl>Zdjęcia, grafiki, ilustracje — z pełnymi metadanymi i&nbsp;kontrolą dostępu.</span><span data-en>Photos, graphics, illustrations — with full metadata and access control.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>rękodzieło i rzemiosło</span><span data-en>handicrafts & artisan work</span></div>
+      <div class="feat-body"><span data-pl>Ceramika, biżuteria, tkactwo — galeria z opisem, ceną i&nbsp;kontaktem bezpośrednim.</span><span data-en>Ceramics, jewelry, weaving — gallery with description, price and direct contact.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>oferty i usługi</span><span data-en>offers & services</span></div>
+      <div class="feat-body"><span data-pl>Sprzedaż, wymiana, współpraca — bez prowizji, bez pośrednika, bez algorytmu.</span><span data-en>Sell, trade, collaborate — no fees, no middlemen, no algorithm.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>muzyka i audio</span><span data-en>music & audio</span></div>
+      <div class="feat-body"><span data-pl>Nagrania, sample, podcasty — z&nbsp;licencją i&nbsp;ochroną autorstwa.</span><span data-en>Recordings, samples, podcasts — with license and authorship protection.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>dane i narzędzia</span><span data-en>data & tools</span></div>
+      <div class="feat-body"><span data-pl>Datasety, szablony, skrypty — do pobrania lub udostępnienia agentom AI.</span><span data-en>Datasets, templates, scripts — for download or to share with AI agents.</span></div>
+    </div>
+  </div>
+
+  <div class="terminal reveal" data-pl><span class="c">--- marketplace ---</span>
+
+<span class="k">12</span> serwerów · <span class="k">147</span> tekstów · <span class="k">23</span> tagi
+
+<span class="c">--- ostatnie ---</span>
+29 kwi  <span class="s">"Suma człowieczeństwa"</span>   wiersz  <span class="v">kapoost</span>
+28 kwi  <span class="s">"On Recursion"</span>           esej    <span class="v">alice</span>
+27 kwi  <span class="s">"Miseczki wabi-sabi"</span>     ręko.   <span class="v">marta</span>
+26 kwi  <span class="s">"Neural Lullaby"</span>         wiersz  <span class="v">bob</span>
+
+<span class="c">--- autorzy ---</span>
+<span class="v">kapoost</span>    żeglarz, poeta, CTO        14 tekstów
+<span class="v">alice</span>      badaczka, pisarka           8 tekstów
+<span class="v">bob</span>        muzyk, programista         23 tekstów
+<span class="v">marta</span>      ceramiczka, Kazimierz       6 obiektów
+<span class="v">tomek</span>      fotograf, Bieszczady       31 zdjęć
+<span class="v">ewa</span>        spacery z psem, Warszawa    3 usługi</div>
+  <div class="terminal reveal" data-en><span class="c">--- marketplace ---</span>
+
+<span class="k">12</span> servers · <span class="k">147</span> pieces · <span class="k">23</span> tags
+
+<span class="c">--- recent ---</span>
+29 Apr  <span class="s">"Suma człowieczeństwa"</span>   poem    <span class="v">kapoost</span>
+28 Apr  <span class="s">"On Recursion"</span>           essay   <span class="v">alice</span>
+27 Apr  <span class="s">"Miseczki wabi-sabi"</span>     craft   <span class="v">marta</span>
+26 Apr  <span class="s">"Neural Lullaby"</span>         poem    <span class="v">bob</span>
+
+<span class="c">--- authors ---</span>
+<span class="v">kapoost</span>    sailor, poet, CTO          14 pieces
+<span class="v">alice</span>      researcher, writer          8 pieces
+<span class="v">bob</span>        musician, developer        23 pieces
+<span class="v">marta</span>      ceramicist, Kazimierz       6 objects
+<span class="v">tomek</span>      photographer, Bieszczady   31 photos
+<span class="v">ewa</span>        dog walker, Warsaw          3 services</div>
+</section>
+
+<!-- BREAKER 1 -->
+<div class="breaker reveal">
+  <div class="breaker-text"><span data-pl>Twoja praca. Twój serwer. <strong>Twoje zasady.</strong></span><span data-en>Your work. Your server. <strong>Your rules.</strong></span></div>
+</div>
+
+<!-- THE PROBLEM -->
+<section>
+  <div class="section-label reveal"><span data-pl>problem</span><span data-en>problem</span></div>
+  <h2 class="reveal"><span data-pl>Samotne wyspy</span><span data-en>Lonely islands</span></h2>
+  <p class="reveal"><span data-pl>Dotychczas każdy serwer humanMCP był jak samotna wyspa. Żeby znaleźć czyjeś wiersze, trzeba było znać adres. Żeby przeszukać oferty — wchodzić na każdy serwer osobno.</span><span data-en>Until now, every humanMCP server was a lonely island. To find someone's poems, you had to know the address. To search offers — visit each server one by one.</span></p>
+
+  <!-- Network visualization -->
+  <div class="network reveal" id="network-viz"></div>
+
+  <p class="reveal"><span data-pl>Marketplace to ulica, która łączy wyspy.</span><span data-en>Marketplace is the street that connects the islands.</span></p>
+</section>
+
+<!-- BEFORE / AFTER -->
+<section>
+  <div class="section-label reveal"><span data-pl>jak to zmienia codzienność</span><span data-en>how it changes everyday life</span></div>
+
+  <h3 class="reveal"><span data-pl>1. Social feed, który nie manipuluje</span><span data-en>1. A social feed that doesn't manipulate</span></h3>
+  <div class="contrast reveal">
+    <div class="contrast-col">
+      <div class="contrast-label old"><span data-pl>jak było</span><span data-en>before</span></div>
+      <p><span data-pl>Wchodzisz na Twitter/X. Algorytm decyduje, co widzisz. Twój wiersz ma 3 wyświetlenia, bo nie &ldquo;angażuje&rdquo;. Czyjeś trolle mają 30 tysięcy, bo generują gniew.</span><span data-en>You open Twitter/X. An algorithm decides what you see. Your poem gets 3 views because it doesn't "engage." Someone's trolls get 30 thousand because they generate rage.</span></p>
+    </div>
+    <div class="contrast-col">
+      <div class="contrast-label new"><span data-pl>jak jest teraz</span><span data-en>now</span></div>
+      <p><span data-pl>Marketplace pokazuje chronologicznie. Szukasz &ldquo;ceramika&rdquo; — dostajesz ceramikę. Nie reklamy.</span><span data-en>Marketplace shows things chronologically. You search "ceramics" — you get ceramics. Not ads.</span></p>
+    </div>
+  </div>
+
+  <div class="terminal reveal" data-pl><span class="c">--- ostatnie na marketplace ---</span>
+
+29 kwi  <span class="s">"Suma człowieczeństwa"</span>    wiersz      <span class="v">kapoost</span>
+28 kwi  <span class="s">"On Recursion"</span>            esej        <span class="v">alice</span>
+27 kwi  <span class="s">"Miseczki wabi-sabi"</span>      rękodzieło  <span class="v">marta</span>
+26 kwi  <span class="s">"Spacery z psem"</span>          usługa      <span class="v">ewa</span></div>
+  <div class="terminal reveal" data-en><span class="c">--- recent on marketplace ---</span>
+
+29 Apr  <span class="s">"Suma człowieczeństwa"</span>    poem        <span class="v">kapoost</span>
+28 Apr  <span class="s">"On Recursion"</span>            essay       <span class="v">alice</span>
+27 Apr  <span class="s">"Wabi-sabi bowls"</span>         handicraft  <span class="v">marta</span>
+26 Apr  <span class="s">"Dog walks"</span>               service     <span class="v">ewa</span></div>
+
+  <h3 class="reveal"><span data-pl>2. Oferty bez pośrednika</span><span data-en>2. Offers without a middleman</span></h3>
+
+  <div class="contrast reveal">
+    <div class="contrast-col">
+      <div class="contrast-label old"><span data-pl>jak było</span><span data-en>before</span></div>
+      <p><span data-pl>Chcesz sprzedać coś albo znaleźć współpracownika. Wrzucasz na OLX (prowizja), LinkedIn (algorytm) albo grupkę na FB (szum).</span><span data-en>You want to sell something or find a collaborator. You post on a marketplace (commission), LinkedIn (algorithm) or a Facebook group (noise).</span></p>
+    </div>
+    <div class="contrast-col">
+      <div class="contrast-label new"><span data-pl>jak jest teraz</span><span data-en>now</span></div>
+      <p><span data-pl>Publikujesz ofertę na swoim humanMCP. Marketplace ją indeksuje. Ktoś szuka — znajduje. Kontaktuje się bezpośrednio. Zero pośredników. Zero prowizji.</span><span data-en>You publish an offer on your humanMCP. Marketplace indexes it. Someone searches — finds it. Contacts you directly. No middlemen. No fees.</span></p>
+    </div>
+  </div>
+
+  <h3 class="reveal"><span data-pl>3. Portfolio, które naprawdę jest Twoje</span><span data-en>3. A portfolio that's truly yours</span></h3>
+  <div class="contrast reveal">
+    <div class="contrast-col">
+      <div class="contrast-label old"><span data-pl>jak było</span><span data-en>before</span></div>
+      <p><span data-pl>Twoje portfolio jest na Behance, Medium albo GitHub. Zamykają Ci konto — tracisz wszystko. Zmieniają regulamin — Twoja praca służy do trenowania AI bez pytania.</span><span data-en>Your portfolio is on Behance, Medium or GitHub. They close your account — you lose everything. They change the terms — your work is used to train AI without asking.</span></p>
+    </div>
+    <div class="contrast-col">
+      <div class="contrast-label new"><span data-pl>jak jest teraz</span><span data-en>now</span></div>
+      <p><span data-pl>Twój humanMCP to Twój serwer. Teksty podpisane kryptograficznie i zakotwiczone w Bitcoinie. Nawet gdyby marketplace zniknął — Twój serwer dalej działa.</span><span data-en>Your humanMCP is your server. Texts cryptographically signed and anchored in Bitcoin. Even if the marketplace disappeared — your server keeps running.</span></p>
+    </div>
+  </div>
+
+  <h3 class="reveal"><span data-pl>4. Rękodzieło bez Etsy</span><span data-en>4. Handicrafts without Etsy</span></h3>
+  <div class="contrast reveal">
+    <div class="contrast-col">
+      <div class="contrast-label old"><span data-pl>jak było</span><span data-en>before</span></div>
+      <p><span data-pl>Robisz ceramikę. Wystawiasz na Etsy — 6,5% prowizji + opłaty. Algorytm decyduje, czy ktoś Cię zobaczy. Recenzje są ważniejsze niż rzemiosło.</span><span data-en>You make ceramics. You list on Etsy — 6.5% commission + fees. An algorithm decides if anyone sees you. Reviews matter more than craftsmanship.</span></p>
+    </div>
+    <div class="contrast-col">
+      <div class="contrast-label new"><span data-pl>jak jest teraz</span><span data-en>now</span></div>
+      <p><span data-pl>Publikujesz zdjęcia swoich prac na własnym humanMCP. Marketplace indeksuje. Ktoś szuka „ceramika ręczna" — trafia prosto do Ciebie. Ty decydujesz o cenach, warunkach i kontakcie.</span><span data-en>You publish photos of your work on your own humanMCP. Marketplace indexes them. Someone searches "handmade ceramics" — they land directly on your page. You decide on prices, terms and contact.</span></p>
+    </div>
+  </div>
+
+  <div class="terminal reveal" data-pl><span class="c">szukaj:</span> <span class="s">"ceramika"</span>                       <span class="k">2 wyniki</span>
+
+<span class="v">marta</span> — <span class="s">"Miseczki wabi-sabi"</span>              rękodzieło
+<span class="c">Ręcznie toczone, szkliwione popiołem jabłoni...</span>
+→ marta-humanmcp.fly.dev/p/wabi-sabi
+
+<span class="v">marta</span> — <span class="s">"Zestaw do herbaty"</span>               rękodzieło
+<span class="c">Czarka, czajnik, podstawka. Glina z Kazimierza...</span>
+→ marta-humanmcp.fly.dev/p/tea-set</div>
+  <div class="terminal reveal" data-en><span class="c">search:</span> <span class="s">"ceramics"</span>                       <span class="k">2 results</span>
+
+<span class="v">marta</span> — <span class="s">"Wabi-sabi bowls"</span>                 handicraft
+<span class="c">Hand-thrown, glazed with apple wood ash...</span>
+→ marta-humanmcp.fly.dev/p/wabi-sabi
+
+<span class="v">marta</span> — <span class="s">"Tea set"</span>                         handicraft
+<span class="c">Cup, teapot, saucer. Clay from Kazimierz...</span>
+→ marta-humanmcp.fly.dev/p/tea-set</div>
+
+  <h3 class="reveal"><span data-pl>5. Usługi bez platformy</span><span data-en>5. Services without a platform</span></h3>
+  <div class="contrast reveal">
+    <div class="contrast-col">
+      <div class="contrast-label old"><span data-pl>jak było</span><span data-en>before</span></div>
+      <p><span data-pl>Wyprowadzasz psy, sprzątasz mieszkania, naprawiasz rowery. Żeby Cię ktoś znalazł — Fixly, OLX&nbsp;Usługi, grupa na FB. Platforma bierze prowizję i&nbsp;trzyma Twoje opinie jako zakładnika.</span><span data-en>You walk dogs, clean apartments, fix bikes. To be found — gig platforms, Facebook groups. They take a cut and hold your reviews hostage.</span></p>
+    </div>
+    <div class="contrast-col">
+      <div class="contrast-label new"><span data-pl>jak jest teraz</span><span data-en>now</span></div>
+      <p><span data-pl>Publikujesz ofertę na swoim humanMCP — opis, cenę, kontakt. Ktoś szuka &bdquo;sprzątanie Kraków&rdquo; — trafia do Ciebie. Ty ustalasz warunki. Zero prowizji.</span><span data-en>You publish on your humanMCP — description, price, contact. Someone searches "cleaning Krakow" — lands on your page. You set the terms. No fees.</span></p>
+    </div>
+  </div>
+
+  <div class="terminal reveal" data-pl><span class="c">szukaj:</span> <span class="s">"wyprowadzanie psów Warszawa"</span>      <span class="k">2 wyniki</span>
+
+<span class="v">ewa</span>     — <span class="s">"Spacery z psem — Mokotów i okolice"</span>   usługa
+<span class="c">Codzienne spacery, 30/60 min. Doświadczenie z dużymi rasami.</span>
+→ ewa-humanmcp.fly.dev/listings/dog-walking
+
+<span class="v">janek</span>   — <span class="s">"Opieka nad zwierzętami"</span>              usługa
+<span class="c">Spacery, karmienie, wizyty u weterynarza. Warszawa-Południe.</span>
+→ janek-humanmcp.fly.dev/listings/pet-care</div>
+  <div class="terminal reveal" data-en><span class="c">search:</span> <span class="s">"dog walking Warsaw"</span>              <span class="k">2 results</span>
+
+<span class="v">ewa</span>     — <span class="s">"Dog walks — Mokotów area"</span>            service
+<span class="c">Daily walks, 30/60 min. Experience with large breeds.</span>
+→ ewa-humanmcp.fly.dev/listings/dog-walking
+
+<span class="v">janek</span>   — <span class="s">"Pet care"</span>                            service
+<span class="c">Walks, feeding, vet visits. South Warsaw.</span>
+→ janek-humanmcp.fly.dev/listings/pet-care</div>
+
+  <p class="reveal"><span data-pl>Rzeczy, których nie zrobi maszyna — ale zrobi człowiek, którego łatwo znaleźć.</span><span data-en>Things a machine won't do — but a person you can easily find will.</span></p>
+
+  <h3 class="reveal"><span data-pl>6. Agenty AI, które Cię znajdują</span><span data-en>6. AI agents that find you</span></h3>
+  <p class="reveal"><span data-pl>Agenty AI mogą podłączyć się do marketplace i szukać Twojej pracy — na Twoich warunkach.</span><span data-en>AI agents can connect to the marketplace and search for your work — on your terms.</span></p>
+  <div class="terminal reveal" data-pl><span class="c">Człowiek:</span> „Znajdź ręcznie robioną ceramikę"
+
+<span class="c">Agent podłącza się do marketplace → MCP → search</span>
+
+<span class="k">Agent:</span> „Znalazłem 2 wyniki:
+  · <span class="s">'Miseczki wabi-sabi'</span> od <span class="v">marta</span> — ceramiczka z Kazimierza
+  · <span class="s">'Zestaw do herbaty'</span> od <span class="v">marta</span> — glina, popiół jabłoni
+
+  Chcesz zobaczyć szczegóły?"</div>
+  <div class="terminal reveal" data-en><span class="c">Human:</span> "Find handmade ceramics"
+
+<span class="c">Agent connects to marketplace → MCP → search</span>
+
+<span class="k">Agent:</span> "I found 2 results:
+  · <span class="s">'Wabi-sabi bowls'</span> by <span class="v">marta</span> — ceramicist from Kazimierz
+  · <span class="s">'Tea set'</span> by <span class="v">marta</span> — clay, apple wood ash glaze
+
+  Want to see details?"</div>
+</section>
+
+<!-- MID-PAGE CTA -->
+<div class="mid-cta reveal">
+  <p><span data-pl>5 komend. 15 minut. Twój serwer.</span><span data-en>5 commands. 15 minutes. Your server.</span></p>
+  <a href="https://github.com/kapoost/humanmcp-go"><span data-pl>zacznij teraz</span><span data-en>start now</span></a>
+</div>
+
+<!-- WHAT IT'S NOT -->
+<section>
+  <div class="section-label reveal"><span data-pl>czym to nie jest</span><span data-en>what it's not</span></div>
+  <table class="comp-table reveal">
+    <tr><th><span data-pl>to nie jest...</span><span data-en>it's not...</span></th><th><span data-pl>bo...</span><span data-en>because...</span></th></tr>
+    <tr><td>Social media</td><td><span data-pl>Nie ma lajków, followów, algorytmu. Jest szukanie i czytanie.</span><span data-en>No likes, follows or algorithm. Just search and read.</span></td></tr>
+    <tr><td><span data-pl>Hosting treści</span><span data-en>Content hosting</span></td><td><span data-pl>Marketplace nie trzyma Twoich tekstów. Indeksuje i linkuje do Twojego serwera.</span><span data-en>Marketplace doesn't store your content. It indexes and links to your server.</span></td></tr>
+    <tr><td><span data-pl>Platforma z kontem</span><span data-en>A platform with an account</span></td><td><span data-pl>Nie zakładasz konta. Rejestrujesz swój serwer. Możesz odejść, kiedy chcesz.</span><span data-en>You don't create an account. You register your server. You can leave whenever you want.</span></td></tr>
+    <tr><td><span data-pl>Scentralizowana baza</span><span data-en>A centralized database</span></td><td><span data-pl>Każdy może postawić własny marketplace. Protokół jest otwarty.</span><span data-en>Anyone can run their own marketplace. The protocol is open.</span></td></tr>
+  </table>
+</section>
+
+<!-- BREAKER 2 -->
+<div class="breaker reveal">
+  <div class="breaker-text"><span data-pl>Platformy rosną, zabierając Ci kontrolę.<br><strong>Tu ją odzyskujesz.</strong></span><span data-en>Platforms grow by taking your control.<br><strong>Here you take it back.</strong></span></div>
+</div>
+
+<!-- HOW TO JOIN -->
+<section>
+  <div class="section-label reveal"><span data-pl>jak dołączyć</span><span data-en>how to join</span></div>
+  <h2 class="reveal"><span data-pl>5 kroków, 15 minut</span><span data-en>5 steps, 15 minutes</span></h2>
+  <p class="reveal"><span data-pl>Potrzebujesz: komputer (VPS, Raspberry Pi lub Fly.io za darmo), terminal i coś do powiedzenia.</span><span data-en>You need: a computer (VPS, Raspberry Pi or Fly.io for free), a terminal and something to say.</span></p>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-title"><span data-pl>Ściągasz humanMCP</span><span data-en>Download humanMCP</span></div>
+      <div class="terminal">git clone https://github.com/kapoost/humanmcp-go
+cd humanmcp-go</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-title"><span data-pl>Ustawiasz, kim jesteś</span><span data-en>Set up who you are</span></div>
+      <div class="terminal"><span class="k">OWNER_NAME</span>=<span class="s">Anna</span>
+<span class="k">OWNER_BIO</span>=<span class="s">Poetka i ogrodniczka z Krakowa</span>
+<span class="k">OWNER_PASSWORD</span>=<span class="s">twoje-haslo</span></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-title"><span data-pl>Uruchamiasz</span><span data-en>Run it</span></div>
+      <div class="terminal" data-pl>go build && ./humanmcp
+<span class="c"># otwierasz przeglądarkę: http://localhost:8000</span></div>
+      <div class="terminal" data-en>go build && ./humanmcp
+<span class="c"># open your browser: http://localhost:8000</span></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-title"><span data-pl>Publikujesz w internecie</span><span data-en>Publish to the internet</span></div>
+      <div class="terminal" data-pl>fly launch
+fly deploy
+<span class="c"># dostajesz: anna-humanmcp.fly.dev</span></div>
+      <div class="terminal" data-en>fly launch
+fly deploy
+<span class="c"># you get: anna-humanmcp.fly.dev</span></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-title"><span data-pl>Rejestrujesz się w marketplace</span><span data-en>Register with the marketplace</span></div>
+      <div class="terminal" data-pl>curl -X POST https://marketplace.humanmcp.net/register \
+  -d <span class="s">'{"domain": "anna-humanmcp.fly.dev"}'</span>
+
+<span class="c"># marketplace sprawdza, indeksuje, gotowe</span></div>
+      <div class="terminal" data-en>curl -X POST https://marketplace.humanmcp.net/register \
+  -d <span class="s">'{"domain": "anna-humanmcp.fly.dev"}'</span>
+
+<span class="c"># marketplace verifies, indexes, done</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- UNDER THE HOOD -->
+<section>
+  <div class="section-label reveal"><span data-pl>co się dzieje pod spodem</span><span data-en>what happens under the hood</span></div>
+  <p class="reveal"><span data-pl>Nie musisz tego rozumieć. Ale jeśli jesteś ciekawa:</span><span data-en>You don't need to understand this. But if you're curious:</span></p>
+  <div class="terminal reveal" data-pl><span class="s">Piszesz wiersz</span>
+    ↓
+Twój humanMCP go zapisuje + <span class="k">podpisuje kluczem Ed25519</span>
+    ↓
+Podpis jest <span class="k">kotwiczony w Bitcoinie</span> (OpenTimestamps)
+    ↓
+Marketplace co 6 godzin odwiedza Twój serwer
+    ↓
+Indeksuje publiczne teksty <span class="c">(SQLite + full-text search)</span>
+    ↓
+Ktoś szuka <span class="s">"ogrody"</span> → marketplace znajduje Twój wiersz
+    ↓
+Klik → czytelnik trafia na <span class="k">TWÓJ serwer</span>, nie na marketplace</div>
+  <div class="terminal reveal" data-en><span class="s">You write a poem</span>
+    ↓
+Your humanMCP saves it + <span class="k">signs it with Ed25519 key</span>
+    ↓
+Signature is <span class="k">anchored in Bitcoin</span> (OpenTimestamps)
+    ↓
+Marketplace visits your server every 6 hours
+    ↓
+Indexes public content <span class="c">(SQLite + full-text search)</span>
+    ↓
+Someone searches <span class="s">"gardens"</span> → marketplace finds your poem
+    ↓
+Click → reader lands on <span class="k">YOUR server</span>, not on marketplace</div>
+
+  <div class="feat-grid reveal">
+    <div class="feat">
+      <div class="feat-title"><span data-pl>marketplace nie trzyma treści</span><span data-en>marketplace doesn't store content</span></div>
+      <div class="feat-body"><span data-pl>Ma kopię do wyszukiwania. Oryginał zawsze u Ciebie.</span><span data-en>It keeps a copy for search. The original is always on your server.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>podpis kryptograficzny</span><span data-en>cryptographic signature</span></div>
+      <div class="feat-body"><span data-pl>Udowadnia autorstwo. Każdy może zweryfikować.</span><span data-en>Proves authorship. Anyone can verify.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>bitcoin timestamp</span><span data-en>bitcoin timestamp</span></div>
+      <div class="feat-body"><span data-pl>Udowadnia, KIEDY to napisałaś. Niezależne od serwera.</span><span data-en>Proves WHEN you wrote it. Independent of any server.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-pl>możesz odejść, kiedy chcesz</span><span data-en>you can leave anytime</span></div>
+      <div class="feat-body"><span data-pl>Wyrejestruj się — marketplace usunie indeks. Twój serwer działa dalej.</span><span data-en>Unregister — marketplace removes the index. Your server keeps running.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section>
+  <div class="section-label reveal"><span data-pl>architektura zaufania</span><span data-en>trust architecture</span></div>
+  <p class="quote reveal"><span data-pl>Nie musisz nikomu ufać.</span><span data-en>You don't have to trust anyone.</span></p>
+
+  <div class="trust-item reveal">
+    <div class="trust-icon">×</div>
+    <div class="trust-text"><span data-pl><strong>Nie ufasz marketplace</strong> — Twój serwer działa bez niego</span><span data-en><strong>You don't trust marketplace</strong> — your server works without it</span></div>
+  </div>
+  <div class="trust-item reveal">
+    <div class="trust-icon">×</div>
+    <div class="trust-text"><span data-pl><strong>Nie ufasz serwerowi</strong> — podpisy Ed25519 są weryfikowalne przez każdego</span><span data-en><strong>You don't trust the server</strong> — Ed25519 signatures are verifiable by anyone</span></div>
+  </div>
+  <div class="trust-item reveal">
+    <div class="trust-icon">×</div>
+    <div class="trust-text"><span data-pl><strong>Nie ufasz podpisom</strong> — Bitcoin timestamps są weryfikowalne w blockchainie</span><span data-en><strong>You don't trust the signatures</strong> — Bitcoin timestamps are verifiable on the blockchain</span></div>
+  </div>
+  <div class="trust-item reveal">
+    <div class="trust-icon">×</div>
+    <div class="trust-text"><span data-pl><strong>Nie ufasz platformie</strong> — kod jest open source, każdy może go sprawdzić</span><span data-en><strong>You don't trust the platform</strong> — the code is open source, anyone can inspect it</span></div>
+  </div>
+  <p class="reveal" style="margin-top:1.5rem;"><span data-pl>Jedyna rzecz, której musisz zaufać, to matematyka. A ona działa od 4000 lat.</span><span data-en>The only thing you need to trust is math. And it's been working for 4,000 years.</span></p>
+</section>
+
+<!-- FAQ -->
+<section>
+  <div class="section-label reveal"><span data-pl>pytania</span><span data-en>questions</span></div>
+
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Czy to darmowe?</span><span data-en>Is it free?</span></div>
+    <div class="faq-a"><span data-pl>Tak. humanMCP jest open source. Marketplace jest darmowy. Fly.io ma darmowy tier na jeden serwer.</span><span data-en>Yes. humanMCP is open source. Marketplace is free. Fly.io has a free tier for one server.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Czy muszę umieć programować?</span><span data-en>Do I need to know how to code?</span></div>
+    <div class="faq-a"><span data-pl>Żeby postawić serwer — podstawowa obsługa terminala (kopiujesz 5 komend). Żeby publikować — nie, jest panel webowy z przyciskami.</span><span data-en>To set up a server — basic terminal usage (you copy 5 commands). To publish — no, there's a web panel with buttons.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Co, jeśli marketplace zniknie?</span><span data-en>What if the marketplace disappears?</span></div>
+    <div class="faq-a"><span data-pl>Nic. Twój serwer dalej działa. Ktoś inny może postawić nowy marketplace — protokół jest otwarty. Twoje teksty, podpisy i timestampy są niezależne.</span><span data-en>Nothing. Your server keeps running. Someone else can spin up a new marketplace — the protocol is open. Your texts, signatures and timestamps are independent.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Czy AI może użyć moich tekstów do trenowania?</span><span data-en>Can AI use my texts for training?</span></div>
+    <div class="faq-a"><span data-pl>Tylko jeśli dasz pozwolenie. Każdy tekst ma licencję. Agent AI widzi ją i musi respektować. Domyślna odpowiedź na „chcę użyć do trenowania" to NIE.</span><span data-en>Only if you give permission. Every text has a license. The AI agent sees it and must respect it. The default answer to "I want to use this for training" is NO.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Czym to się różni od bloga?</span><span data-en>How is this different from a blog?</span></div>
+    <div class="faq-a"><span data-pl>Blog jest dla ludzi. humanMCP jest dla ludzi i maszyn. Twój serwer mówi protokołem MCP, więc agenty AI mogą Cię znaleźć, przeczytać Twoją pracę, zweryfikować autorstwo i skontaktować się z Tobą — automatycznie.</span><span data-en>A blog is for humans. humanMCP is for humans and machines. Your server speaks the MCP protocol, so AI agents can find you, read your work, verify authorship and contact you — automatically.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Czy mogę sprzedawać rzeczy i oferować usługi?</span><span data-en>Can I sell things and offer services?</span></div>
+    <div class="faq-a"><span data-pl>Tak. humanMCP ma system ofert, galerii i&nbsp;usług. Ceramika, biżuteria, zdjęcia, sprzątanie, korepetycje, wyprowadzanie psów — publikujesz z&nbsp;opisem i&nbsp;ceną, marketplace indeksuje. Ktoś szuka — znajduje. Transakcja jest między wami bezpośrednio, bez prowizji.</span><span data-en>Yes. humanMCP has a system for offers, galleries and services. Ceramics, jewelry, photos, cleaning, tutoring, dog walking — you publish with a description and price, marketplace indexes it. Someone searches — finds it. The transaction is directly between you, no commission.</span></div>
+  </div>
+  <div class="faq-item reveal">
+    <div class="faq-q"><span data-pl>Ile osób to już używa?</span><span data-en>How many people use it?</span></div>
+    <div class="faq-a"><span data-pl>Projekt jest we wczesnej fazie. Pierwszy serwer (kapoost) ma 28 opublikowanych tekstów. Marketplace jest gotowy — potrzebuje ludzi.</span><span data-en>The project is in its early phase. The first server (kapoost) has 28 published pieces. Marketplace is ready — it needs people.</span></div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <h2><span data-pl>Nie czekaj, aż algorytm Cię pokaże.<br>Pokaż się sam.</span><span data-en>Don't wait for an algorithm to show you.<br>Show yourself.</span></h2>
+  <p class="final-sub"><span data-pl>open source · zero prowizji · Twoje dane, Twój serwer</span><span data-en>open source · zero fees · your data, your server</span></p>
+  <div class="btn-row">
+    <a href="https://github.com/kapoost/humanmcp-go" class="primary"><span data-pl>postaw swój serwer</span><span data-en>run your own server</span></a>
+    <a href="./" class="secondary"><span data-pl>czym jest humanMCP</span><span data-en>what is humanMCP</span></a>
+  </div>
+</section>
+
+<footer>
+  <span>humanMCP marketplace &mdash; <a href="https://github.com/kapoost/humanmcp-marketplace">github</a></span>
+  <span>
+    <a href="./">humanMCP</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://kapoost-humanmcp.fly.dev">kapoost</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://kapoost-humanmcp.fly.dev/connect">connect agent</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+// Theme
+(function(){
+  var t = localStorage.getItem('humanmcp-theme') || (window.matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-lang', localStorage.getItem('humanmcp-lang') || 'pl');
+  updateThemeIcon();
+})();
+
+function updateThemeIcon() {
+  var el = document.querySelector('.theme-icon');
+  if (el) el.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '\u2600' : '\u263E';
+}
+
+function toggleTheme() {
+  var t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('humanmcp-theme', t);
+  updateThemeIcon();
+}
+
+function toggleLang() {
+  var l = document.documentElement.getAttribute('data-lang') === 'pl' ? 'en' : 'pl';
+  document.documentElement.setAttribute('data-lang', l);
+  localStorage.setItem('humanmcp-lang', l);
+}
+
+// Scroll reveal
+(function(){
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Trigger counter animation if this element contains counters
+        var counters = entry.target.querySelectorAll('.counter');
+        counters.forEach(animateCounter);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    observer.observe(el);
+  });
+})();
+
+// Counter animation
+function animateCounter(el) {
+  if (el.dataset.animated) return;
+  el.dataset.animated = '1';
+  var target = parseInt(el.dataset.target);
+  var duration = 1200;
+  var start = performance.now();
+  function update(now) {
+    var elapsed = now - start;
+    var progress = Math.min(elapsed / duration, 1);
+    // ease out cubic
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased);
+    if (progress < 1) requestAnimationFrame(update);
+    else el.closest('.stat-number').classList.add('counted');
+  }
+  requestAnimationFrame(update);
+}
+
+// Network visualization
+(function(){
+  var container = document.getElementById('network-viz');
+  if (!container) return;
+  var w = container.offsetWidth;
+  var h = container.offsetHeight;
+
+  var nodes = [
+    { x: 0.12, y: 0.3, label: 'kapoost' },
+    { x: 0.38, y: 0.15, label: 'alice' },
+    { x: 0.62, y: 0.7, label: 'bob' },
+    { x: 0.85, y: 0.25, label: 'marta' },
+    { x: 0.28, y: 0.75, label: 'tomek' },
+    { x: 0.72, y: 0.35, label: 'ewa' },
+    { x: 0.5, y: 0.45, label: 'marketplace' }
+  ];
+
+  var center = nodes[nodes.length - 1]; // marketplace
+
+  // Draw lines from each node to marketplace
+  nodes.forEach(function(node, i) {
+    if (i === nodes.length - 1) return;
+    var line = document.createElement('div');
+    line.className = 'network-line';
+    var x1 = node.x * w, y1 = node.y * h;
+    var x2 = center.x * w, y2 = center.y * h;
+    var dx = x2 - x1, dy = y2 - y1;
+    var length = Math.sqrt(dx * dx + dy * dy);
+    var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    line.style.cssText = 'left:' + x1 + 'px;top:' + y1 + 'px;width:' + length + 'px;transform:rotate(' + angle + 'deg);';
+    container.appendChild(line);
+  });
+
+  // Draw nodes
+  nodes.forEach(function(node, i) {
+    var dot = document.createElement('div');
+    dot.className = 'network-node';
+    var isCenter = i === nodes.length - 1;
+    if (isCenter) {
+      dot.style.cssText = 'left:' + (node.x * w - 6) + 'px;top:' + (node.y * h - 6) + 'px;width:12px;height:12px;opacity:1;background:var(--gold);';
+    } else {
+      dot.style.cssText = 'left:' + (node.x * w - 4) + 'px;top:' + (node.y * h - 4) + 'px;';
+    }
+    container.appendChild(dot);
+
+    var label = document.createElement('div');
+    label.className = 'network-label';
+    label.textContent = node.label;
+    label.style.cssText = 'left:' + (node.x * w - 10) + 'px;top:' + (node.y * h + (isCenter ? 12 : 8)) + 'px;' + (isCenter ? 'color:var(--gold);font-size:.7rem;' : '');
+    container.appendChild(label);
+  });
+
+  // Animate lines appearing
+  var lines = container.querySelectorAll('.network-line');
+  var lineObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        lines.forEach(function(line, i) {
+          setTimeout(function() {
+            line.style.opacity = '0.4';
+            line.style.transition = 'opacity .6s ease';
+          }, i * 150);
+        });
+        lineObserver.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+  lineObserver.observe(container);
+})();
+</script>
+</body>
+</html>

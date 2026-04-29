@@ -171,8 +171,51 @@ input{font-family:inherit;font-size:inherit;}
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
-const LS='humannetwork-v1', LT='humannetwork-theme';
+const LS='humannetwork-v1', LT='humanmcp-theme', LL='humanmcp-lang';
 const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx'};
+
+const T = {
+  en: {
+    people: 'People',
+    nothing: 'Nothing here yet.',
+    addServer: 'add a humanmcp server to begin',
+    tryKapoost: "try kapoost's server",
+    anyUrl: 'any humanmcp server url',
+    add: 'add',
+    pieces: 'pieces',
+    backToFeed: '\u2190 back to feed',
+    loading: 'loading\u2026',
+    empty: '(empty)',
+    openOn: 'open on',
+    feed: 'Feed',
+    peopleLower: 'People',
+    day: 'day',
+    night: 'night',
+    already: 'Already added',
+    signed: '\u2713 signed',
+    locked: 'locked',
+  },
+  pl: {
+    people: 'Ludzie',
+    nothing: 'Nic tu jeszcze nie ma.',
+    addServer: 'dodaj serwer humanMCP, \u017ceby zacz\u0105\u0107',
+    tryKapoost: 'spr\u00f3buj serwera kapoosta',
+    anyUrl: 'dowolny adres serwera humanMCP',
+    add: 'dodaj',
+    pieces: 'utwor\u00f3w',
+    backToFeed: '\u2190 wr\u00f3\u0107 do feedu',
+    loading: '\u0142adowanie\u2026',
+    empty: '(pusto)',
+    openOn: 'otw\u00f3rz na',
+    feed: 'Feed',
+    peopleLower: 'Ludzie',
+    day: 'dzie\u0144',
+    night: 'noc',
+    already: 'Ju\u017c dodano',
+    signed: '\u2713 podpisany',
+    locked: 'zablokowany',
+  }
+};
 
 function norm(u){return u.trim().replace(/\/$/,'').replace(/\/mcp$/,'');}
 function gf(o,k){if(!o)return;return o[k]!==undefined?o[k]:o[k[0].toUpperCase()+k.slice(1)];}
@@ -273,17 +316,17 @@ async function loadSub(url){
   return{url,profile,pieces,piecesErr};
 }
 
-function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove}){
+function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,t}){
   return(<>
-    <div className="sbhd">People</div>
+    <div className="sbhd">{t.people}</div>
     <div className="sbsc">
       <div className="add">
         <div className="ar">
           <input className="ai" value={addUrl} onChange={e=>{setAddUrl(e.target.value);setAddE('');}} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="https://someone.fly.dev"/>
-          <button className="ab" onClick={add} disabled={addB||!addUrl.trim()}>{addB?'…':'add'}</button>
+          <button className="ab" onClick={add} disabled={addB||!addUrl.trim()}>{addB?'\u2026':t.add}</button>
         </div>
         {addE&&<div className="ae">{addE}</div>}
-        <div className="ah">any humanmcp server url</div>
+        <div className="ah">{t.anyUrl}</div>
       </div>
       {subs.length===0
         ?<div className="sbmt">No servers yet.<br/>Paste a URL above.</div>
@@ -295,12 +338,12 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
               <div className="pav" style={{background:av}}>{initials(name)}</div>
               <div className="pi">
                 <div className="pn">{name}</div>
-                <div className="pm">{sub.pieces?.length||0} pieces</div>
+                <div className="pm">{sub.pieces?.length||0} {t.pieces}</div>
                 {(sub.err||sub.piecesErr)&&<div className="pe">{sub.err||sub.piecesErr}</div>}
               </div>
               <div className="pa">
-                <button onClick={()=>refresh(sub)} disabled={sub.refreshing}>{sub.refreshing?'…':'↻'}</button>
-                <button className="del" onClick={()=>remove(sub.url)}>×</button>
+                <button onClick={()=>refresh(sub)} disabled={sub.refreshing}>{sub.refreshing?'\u2026':'\u21BB'}</button>
+                <button className="del" onClick={()=>remove(sub.url)}>&times;</button>
               </div>
             </div>
           );
@@ -310,7 +353,7 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
   </>);
 }
 
-function PieceCard({piece,onOpen,preview,previewLoading}){
+function PieceCard({piece,onOpen,preview,previewLoading,t}){
   const sub=piece._sub;
   const slug=gf(piece,'slug');
   const title=gf(piece,'title')||slug;
@@ -331,13 +374,13 @@ function PieceCard({piece,onOpen,preview,previewLoading}){
         {isImg&&(
           preview?.kind==='img'
             ?<div className="tile-thumb"><img src={preview.src} alt={title} loading="lazy"/></div>
-            :previewLoading?<div className="tile-thumb-loading ldg">loading…</div>:null
+            :previewLoading?<div className="tile-thumb-loading ldg">{t.loading}</div>:null
         )}
         <div className="tile-top">
           <div className="tile-badges">
             <span className={`ftb ${tc}`}>{type}</span>
-            {sig&&<span className="tsg">✓</span>}
-            {locked&&<span className="tlk">locked</span>}
+            {sig&&<span className="tsg">{'\u2713'}</span>}
+            {locked&&<span className="tlk">{t.locked}</span>}
           </div>
           <span className="tile-date">{fmtDate(pub)}</span>
         </div>
@@ -358,7 +401,7 @@ function PieceCard({piece,onOpen,preview,previewLoading}){
   );
 }
 
-function DetailView({piece,body,bodyLoading,preview,onClose}){
+function DetailView({piece,body,bodyLoading,preview,onClose,t}){
   const sub=piece._sub;
   const slug=gf(piece,'slug');
   const title=gf(piece,'title')||slug;
@@ -372,7 +415,7 @@ function DetailView({piece,body,bodyLoading,preview,onClose}){
   const isImg=type==='image';
   return(
     <div className="dv">
-      <button className="dv-back" onClick={onClose}>← back to feed</button>
+      <button className="dv-back" onClick={onClose}>{t.backToFeed}</button>
       {isImg&&preview?.kind==='img'&&(
         <div className="dv-img"><img src={preview.src} alt={title}/></div>
       )}
@@ -382,26 +425,27 @@ function DetailView({piece,body,bodyLoading,preview,onClose}){
           <div className="dv-av" style={{background:av}}>{initials(author)}</div>
           <span className="dv-aname">{author}</span>
         </div>
-        <span className="dv-sep">·</span>
+        <span className="dv-sep">&middot;</span>
         <span className={`ftb ${tc}`}>{type}</span>
-        <span className="dv-sep">·</span>
+        <span className="dv-sep">&middot;</span>
         <span className="dv-date">{fmtDate(pub)}</span>
-        {sig&&<><span className="dv-sep">·</span><span className="dv-sig">✓ signed</span></>}
+        {sig&&<><span className="dv-sep">&middot;</span><span className="dv-sig">{t.signed}</span></>}
         {tags.length>0&&<>{tags.map(t=><span key={t} className="fg" style={{marginLeft:'.2rem'}}>{t}</span>)}</>}
       </div>
       <div>
         {bodyLoading
-          ?<div className="dv-loading ldg">loading…</div>
-          :<div className="dv-body">{cleanBody(body)||'(empty)'}</div>
+          ?<div className="dv-loading ldg">{t.loading}</div>
+          :<div className="dv-body">{cleanBody(body)||t.empty}</div>
         }
       </div>
-      <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="dv-link">open on {sub.url.replace('https://','')}</a>
+      <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="dv-link">{t.openOn} {sub.url.replace('https://','')}</a>
     </div>
   );
 }
 
 function App(){
   const [theme,setTheme]=useState(()=>{const s=localStorage.getItem(LT);if(s)return s;return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';});
+  const [lang,setLang]=useState(()=>localStorage.getItem(LL)||'en');
   const [subs,setSubs]=useState(()=>{try{return JSON.parse(localStorage.getItem(LS)||'[]');}catch{return[];}});
   const [view,setView]=useState('feed');
   const [open,setOpen]=useState(null);
@@ -412,6 +456,8 @@ function App(){
   const [addE,setAddE]=useState('');
   const [previews,setPreviews]=useState({});
   const loadedKeys=useRef(new Set());
+
+  const t=T[lang];
 
   // On mount: silently refresh all subs (stale-while-revalidate — picks up new pieces)
   useEffect(()=>{
@@ -449,11 +495,12 @@ function App(){
     });
   },[subs.map(s=>s.url+':'+( s.pieces?.length||0)).join(',')]);
   useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem(LT,theme);},[theme]);
+  useEffect(()=>{localStorage.setItem(LL,lang);},[lang]);
   useEffect(()=>{localStorage.setItem(LS,JSON.stringify(subs.map(({url,profile,pieces})=>({url,profile,pieces}))));},[subs]);
 
   async function add(){
     const base=norm(addUrl);if(!base)return;
-    if(subs.find(s=>s.url===base)){setAddE('Already added');return;}
+    if(subs.find(s=>s.url===base)){setAddE(t.already);return;}
     setAddB(true);setAddE('');
     try{const sub=await loadSub(base);setSubs(p=>[...p,sub]);setAddUrl('');}
     catch(e){setAddE(e.message||'Could not connect');}
@@ -472,7 +519,7 @@ function App(){
     .map(p=>({...p,_sub:sub})))
     .sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
-  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove};
+  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,t};
 
   return(
     <div className="app">
@@ -485,14 +532,17 @@ function App(){
             <path d="M2 4h9M2 9h9" stroke="var(--gold)" strokeWidth=".7" strokeDasharray="1.8 1.5"/>
           </svg>
           HumanNetwork
-          {total>0&&<span className="lct">· {total}</span>}
+          {total>0&&<span className="lct">&middot; {total}</span>}
         </div>
         <div className="hdr-r">
           <button className="hbtn mob" onClick={()=>setView(v=>v==='feed'?'people':'feed')}>
-            {view==='feed'?'people':'feed'}
+            {view==='feed'?t.peopleLower:t.feed}
           </button>
-          <button className="hbtn" onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>
-            {theme==='dark'?'day':'night'}
+          <button className="hbtn" onClick={()=>setLang(l=>l==='en'?'pl':'en')}>
+            {lang==='en'?'PL':'EN'}
+          </button>
+          <button className="hbtn" onClick={()=>setTheme(th=>th==='dark'?'light':'dark')}>
+            {theme==='dark'?t.day:t.night}
           </button>
         </div>
       </div>
@@ -505,15 +555,15 @@ function App(){
           <div className="fdin">
             {feed.length===0 ? (
               <div className="emp">
-                <div className="etit">Nothing here yet.</div>
-                <div className="esub">add a humanmcp server to begin</div>
-                <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>try kapoost's server</button>
+                <div className="etit">{t.nothing}</div>
+                <div className="esub">{t.addServer}</div>
+                <button className="etry" onClick={()=>{setAddUrl('https://kapoost-humanmcp.fly.dev');setView('people');}}>{t.tryKapoost}</button>
               </div>
             ) : open ? (
               // Detail view
               (()=>{
                 const op=feed.find(p=>`${p._sub.url}::${gf(p,'slug')}`===open);
-                return op?<DetailView piece={op} body={bodies[open]} bodyLoading={bodyL===open} preview={previews[open]} onClose={()=>setOpen(null)}/>:null;
+                return op?<DetailView piece={op} body={bodies[open]} bodyLoading={bodyL===open} preview={previews[open]} onClose={()=>setOpen(null)} t={t}/>:null;
               })()
             ) : (
               // Tile grid
@@ -534,7 +584,7 @@ function App(){
                         .catch(e=>{setBodies(p=>({...p,[key]:`Error: ${e.message}`}));setBodyL(null);});
                     }
                   }
-                  return <PieceCard key={key} piece={piece} onOpen={openPiece} preview={previews[key]} previewLoading={previewLoading}/>;
+                  return <PieceCard key={key} piece={piece} onOpen={openPiece} preview={previews[key]} previewLoading={previewLoading} t={t}/>;
                 })}
               </div>
             )}
@@ -556,14 +606,14 @@ function App(){
             <rect x="2" y="7.4" width="8" height="1.2" rx=".6" fill="currentColor"/>
             <rect x="2" y="11.3" width="10" height="1.2" rx=".6" fill="currentColor"/>
           </svg>
-          Feed
+          {t.feed}
         </button>
         <button className={`bnb${view==='people'?' on':''}`} onClick={()=>setView('people')}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
             <path d="M3 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
           </svg>
-          People
+          {t.people}
         </button>
       </div>
     </div>
