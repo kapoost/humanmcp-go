@@ -238,6 +238,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/blobs", h.handleAPIBlobs)
 	mux.HandleFunc("/api/blobs/", h.handleAPIBlobs)
 	mux.HandleFunc("/api/search", h.handleAPISearch)
+	mux.HandleFunc("/api/profile", h.handleAPIProfile)
 
 	// OpenAPI spec for ChatGPT and REST agents
 	mux.HandleFunc("/openapi.json", h.handleOpenAPI)
@@ -514,8 +515,23 @@ func (h *Handler) handleAPIList(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	pieces := h.store.List(h.auth.IsOwner(r)) // owner=all, public=public only
-	json.NewEncoder(w).Encode(pieces)
+	pieces := h.store.List(h.auth.IsOwner(r))
+
+	// Exclude personas from content API — they belong to /api/personas
+	personaSlugs := make(map[string]bool)
+	allPersonas, _ := h.skillStore.ListPersonas()
+	for _, per := range allPersonas {
+		personaSlugs[strings.ToLower(per.Slug)] = true
+		personaSlugs[strings.ToLower(per.Name)] = true
+	}
+	var filtered []*content.Piece
+	for _, p := range pieces {
+		if personaSlugs[strings.ToLower(p.Slug)] || personaSlugs[strings.ToLower(p.Title)] {
+			continue
+		}
+		filtered = append(filtered, p)
+	}
+	json.NewEncoder(w).Encode(filtered)
 }
 
 func (h *Handler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
@@ -528,8 +544,22 @@ func (h *Handler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 	}
 	h.statStore.Record(content.Event{Type: content.EventSearch, Caller: content.CallerFromUA(r.Header.Get("User-Agent")), Query: q})
 	h.store.Load()
-	pieces := h.store.List(false)
+	allPieces := h.store.List(false)
 	terms := strings.Fields(strings.ToLower(q))
+
+	// Exclude personas from search
+	personaSlugs := make(map[string]bool)
+	allPersonas, _ := h.skillStore.ListPersonas()
+	for _, per := range allPersonas {
+		personaSlugs[strings.ToLower(per.Slug)] = true
+		personaSlugs[strings.ToLower(per.Name)] = true
+	}
+	var pieces []*content.Piece
+	for _, p := range allPieces {
+		if !personaSlugs[strings.ToLower(p.Slug)] && !personaSlugs[strings.ToLower(p.Title)] {
+			pieces = append(pieces, p)
+		}
+	}
 
 	type result struct {
 		Slug    string   `json:"slug"`
@@ -570,6 +600,32 @@ func (h *Handler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{"query": q, "count": len(results), "results": results})
+}
+
+func (h *Handler) handleAPIProfile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+
+	// Collect unique tags from all public pieces
+	h.store.Load()
+	pieces := h.store.List(false)
+	tagSet := make(map[string]bool)
+	for _, p := range pieces {
+		for _, t := range p.Tags {
+			tagSet[t] = true
+		}
+	}
+	var tags []string
+	for t := range tagSet {
+		tags = append(tags, t)
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"name": h.cfg.AuthorName,
+		"bio":  h.cfg.AuthorBio,
+		"tags": strings.Join(tags, ", "),
+	})
 }
 
 func (h *Handler) handleAPIContent(w http.ResponseWriter, r *http.Request) {
@@ -1521,6 +1577,15 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 					"responses": map[string]interface{}{
 						"200": map[string]interface{}{"description": "Listing HTML page"},
 						"404": map[string]interface{}{"description": "Not found"},
+					},
+				},
+			},
+			"/api/profile": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "getProfile",
+					"summary":     "Public author profile — name, bio, tags",
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{"description": "Author profile with name, bio, and aggregated tags"},
 					},
 				},
 			},
