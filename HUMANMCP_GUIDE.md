@@ -1,9 +1,9 @@
 # humanMCP — Project Guide
 ## Version 0.3 — April 2026
 
-**Live:** https://kapoost-humanmcp.fly.dev
+**Live:** https://kapoost.humanmcp.net
 **Repo:** https://github.com/kapoost/humanmcp-go
-**Pages:** https://kapoost.github.io/humanmcp-go
+**Pages:** https://humanmcp.net
 **MCP:** `io.github.kapoost/humanmcp`
 **myśloodsiewnia:** https://github.com/kapoost/mysloodsiewnia
 
@@ -15,7 +15,7 @@ A personal Go server that publishes poems, images, and data with:
 - Ed25519 cryptographic signatures (proof of authorship)
 - MCP tools so AI agents can read, verify, and license your work
 - Local knowledge vault (myśloodsiewnia) via query_vault tool
-- Web UI for humans at `kapoost-humanmcp.fly.dev`
+- Web UI for humans at `kapoost.humanmcp.net`
 
 ---
 

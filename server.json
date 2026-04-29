@@ -5,7 +5,7 @@
   "description": "Personal MCP server. Publishes poetry, manages an expert AI team (14 personas), tracks skills and memories. Session bootstrap with rotating code unlocks full context.",
   "version": "0.2.0",
   "license": "MIT",
-  "homepage": "https://kapoost.github.io/humanmcp",
+  "homepage": "https://humanmcp.net",
   "repository": {
     "url": "https://github.com/kapoost/humanmcp",
     "source": "github"
@@ -13,7 +13,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://kapoost-humanmcp.fly.dev/mcp"
+      "url": "https://kapoost.humanmcp.net/mcp"
     }
   ],
   "tags": [

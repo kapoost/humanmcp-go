@@ -2,8 +2,8 @@
 
 A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
-**Live:** https://kapoost-humanmcp.fly.dev  
-**Landing page:** https://kapoost.github.io/humanmcp  
+**Live:** https://kapoost.humanmcp.net  
+**Landing page:** https://humanmcp.net  
 **Author:** kapoost (Łukasz Kapuśniak) — poet, builder, sailor. Warsaw / Malta.
 
 ## What it is
@@ -74,7 +74,7 @@ humanMCP lets you publish poems, essays, notes, images, and typed data artifacts
   "mcpServers": {
     "kapoost": {
       "type": "http",
-      "url": "https://kapoost-humanmcp.fly.dev/mcp"
+      "url": "https://kapoost.humanmcp.net/mcp"
     }
   }
 }
