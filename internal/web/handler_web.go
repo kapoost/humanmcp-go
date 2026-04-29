@@ -508,6 +508,33 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request) {
 
 // --- Owner API ---
 
+// buildPersonaFilter returns a function that checks if a piece is a persona.
+// Uses exact slug/name match and prefix matching for slugified names.
+func (h *Handler) buildPersonaFilter() func(*content.Piece) bool {
+	allPersonas, _ := h.skillStore.ListPersonas()
+	slugSet := make(map[string]bool)
+	nameSet := make(map[string]bool)
+	for _, per := range allPersonas {
+		slugSet[strings.ToLower(per.Slug)] = true
+		nameSet[strings.ToLower(per.Name)] = true
+	}
+	return func(p *content.Piece) bool {
+		ls := strings.ToLower(p.Slug)
+		lt := strings.ToLower(p.Title)
+		if slugSet[ls] || slugSet[lt] || nameSet[ls] || nameSet[lt] {
+			return true
+		}
+		// Prefix match: content slug "tomas-reyes" starts with persona slug "tomas"
+		for _, per := range allPersonas {
+			ps := strings.ToLower(per.Slug)
+			if strings.HasPrefix(ls, ps+"-") || strings.HasPrefix(ls, ps) && len(ls) > len(ps) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 func (h *Handler) handleAPIList(w http.ResponseWriter, r *http.Request) {
 	if err := h.store.Load(); err != nil {
 		jsonError(w, err.Error(), 500)
@@ -518,18 +545,12 @@ func (h *Handler) handleAPIList(w http.ResponseWriter, r *http.Request) {
 	pieces := h.store.List(h.auth.IsOwner(r))
 
 	// Exclude personas from content API — they belong to /api/personas
-	personaSlugs := make(map[string]bool)
-	allPersonas, _ := h.skillStore.ListPersonas()
-	for _, per := range allPersonas {
-		personaSlugs[strings.ToLower(per.Slug)] = true
-		personaSlugs[strings.ToLower(per.Name)] = true
-	}
+	isPersona := h.buildPersonaFilter()
 	var filtered []*content.Piece
 	for _, p := range pieces {
-		if personaSlugs[strings.ToLower(p.Slug)] || personaSlugs[strings.ToLower(p.Title)] {
-			continue
+		if !isPersona(p) {
+			filtered = append(filtered, p)
 		}
-		filtered = append(filtered, p)
 	}
 	json.NewEncoder(w).Encode(filtered)
 }
@@ -548,15 +569,10 @@ func (h *Handler) handleAPISearch(w http.ResponseWriter, r *http.Request) {
 	terms := strings.Fields(strings.ToLower(q))
 
 	// Exclude personas from search
-	personaSlugs := make(map[string]bool)
-	allPersonas, _ := h.skillStore.ListPersonas()
-	for _, per := range allPersonas {
-		personaSlugs[strings.ToLower(per.Slug)] = true
-		personaSlugs[strings.ToLower(per.Name)] = true
-	}
+	isPersona := h.buildPersonaFilter()
 	var pieces []*content.Piece
 	for _, p := range allPieces {
-		if !personaSlugs[strings.ToLower(p.Slug)] && !personaSlugs[strings.ToLower(p.Title)] {
+		if !isPersona(p) {
 			pieces = append(pieces, p)
 		}
 	}
@@ -607,11 +623,15 @@ func (h *Handler) handleAPIProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 
-	// Collect unique tags from all public pieces
+	// Collect unique tags from public pieces (excluding personas)
 	h.store.Load()
-	pieces := h.store.List(false)
+	allPieces := h.store.List(false)
+	isPersona := h.buildPersonaFilter()
 	tagSet := make(map[string]bool)
-	for _, p := range pieces {
+	for _, p := range allPieces {
+		if isPersona(p) {
+			continue
+		}
 		for _, t := range p.Tags {
 			tagSet[t] = true
 		}
