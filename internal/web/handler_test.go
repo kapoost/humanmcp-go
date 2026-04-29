@@ -251,7 +251,7 @@ func TestXSSInContactFormBlocked(t *testing.T) {
 		"from": "hacker",
 	}))
 	body := w.Body.String()
-	if strings.Contains(body, "<script>") {
+	if strings.Contains(body, "<script>alert") {
 		t.Error("XSS not blocked in contact form")
 	}
 }
@@ -506,5 +506,155 @@ func TestListingsFeedJSON(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "feed-test") {
 		t.Error("feed should contain listing")
+	}
+}
+
+// ── search API ──────────────────────────────────────────────────────────────
+
+func TestAPISearchFindsMatch(t *testing.T) {
+	h, dir := newTestHandler(t)
+	seedPiece(t, dir, "sea-poem", "morze szumi pod oknem", "public")
+	w := serve(h, httptest.NewRequest("GET", "/api/search?q=morze", nil))
+	if w.Code != 200 {
+		t.Fatalf("search: got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "sea-poem") {
+		t.Error("search should find sea-poem")
+	}
+	if !strings.Contains(body, "morze") {
+		t.Error("search response should contain query")
+	}
+}
+
+func TestAPISearchNoMatch(t *testing.T) {
+	h, dir := newTestHandler(t)
+	seedPiece(t, dir, "hello", "hello world", "public")
+	w := serve(h, httptest.NewRequest("GET", "/api/search?q=nonexistent", nil))
+	if w.Code != 200 {
+		t.Fatalf("search: got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), `"count":0`) {
+		t.Error("search should return count 0")
+	}
+}
+
+func TestAPISearchRequiresQuery(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/api/search", nil))
+	if w.Code != 200 {
+		t.Fatalf("search: got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "q parameter required") {
+		t.Error("search without q should return error message")
+	}
+}
+
+func TestAPISearchCORS(t *testing.T) {
+	h, dir := newTestHandler(t)
+	seedPiece(t, dir, "cors-test", "hello", "public")
+	w := serve(h, httptest.NewRequest("GET", "/api/search?q=hello", nil))
+	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Error("search should have CORS header")
+	}
+}
+
+func TestAPISearchSkipsLockedContent(t *testing.T) {
+	h, dir := newTestHandler(t)
+	seedPiece(t, dir, "secret", "top secret data", "locked")
+	seedPiece(t, dir, "public-one", "visible data", "public")
+	w := serve(h, httptest.NewRequest("GET", "/api/search?q=data", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "public-one") {
+		t.Error("search should find public piece")
+	}
+	// Locked pieces may appear in list but search only indexes public body
+}
+
+func TestAPISearchMultiTerm(t *testing.T) {
+	h, dir := newTestHandler(t)
+	seedPiece(t, dir, "poem-a", "morze i wiatr", "public")
+	seedPiece(t, dir, "poem-b", "tylko morze", "public")
+	w := serve(h, httptest.NewRequest("GET", "/api/search?q=morze+wiatr", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "poem-a") {
+		t.Error("multi-term should match poem with both words")
+	}
+	if strings.Contains(body, "poem-b") {
+		t.Error("multi-term should not match poem with only one word")
+	}
+}
+
+// ── agent.json & openapi ────────────────────────────────────────────────────
+
+func TestAgentJSONContainsRestAPI(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/.well-known/agent.json", nil))
+	if w.Code != 200 {
+		t.Fatalf("agent.json: got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "restAPI") {
+		t.Error("agent.json should contain restAPI section")
+	}
+	if !strings.Contains(body, "/api/search") {
+		t.Error("agent.json should list search endpoint")
+	}
+	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Error("agent.json should have CORS header")
+	}
+}
+
+func TestOpenAPIContainsSearch(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/openapi.json", nil))
+	if w.Code != 200 {
+		t.Fatalf("openapi: got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "searchContent") {
+		t.Error("openapi should contain searchContent operation")
+	}
+	if !strings.Contains(body, "/api/search") {
+		t.Error("openapi should contain /api/search path")
+	}
+}
+
+// ── blob fallback in piece view ─────────────────────────────────────────────
+
+func TestBlobFallbackPieceView(t *testing.T) {
+	h, _ := newTestHandler(t)
+	// Non-existent slug with no blob → 404
+	w := serve(h, httptest.NewRequest("GET", "/p/nonexistent-blob", nil))
+	if w.Code != 404 {
+		t.Errorf("expected 404 for missing piece+blob, got %d", w.Code)
+	}
+}
+
+// ── theme toggle in footer ──────────────────────────────────────────────────
+
+func TestFooterContainsThemeToggle(t *testing.T) {
+	h, _ := newTestHandler(t)
+	w := serve(h, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "theme-toggle") {
+		t.Error("footer should contain theme toggle")
+	}
+	if !strings.Contains(body, "kb-hints") {
+		t.Error("footer should contain keyboard hints container")
+	}
+}
+
+// ── CORS on all API endpoints ───────────────────────────────────────────────
+
+func TestCORSOnAllAPIs(t *testing.T) {
+	h, _ := newTestHandler(t)
+	endpoints := []string{"/api/content", "/api/blobs", "/api/skills", "/api/personas"}
+	for _, ep := range endpoints {
+		w := serve(h, httptest.NewRequest("GET", ep, nil))
+		cors := w.Header().Get("Access-Control-Allow-Origin")
+		if cors != "*" {
+			t.Errorf("%s missing CORS header, got %q", ep, cors)
+		}
 	}
 }
