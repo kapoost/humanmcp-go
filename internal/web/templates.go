@@ -1674,7 +1674,7 @@ a:hover{text-decoration:underline}
 {{if .RecentEvents}}
 <div class="mc-section">
   <div class="mc-label">RECENT EVENTS <span>LAST 30</span></div>
-  {{range .RecentEvents}}<div class="mc-ev"><span>{{formatTime .At}}</span><span class="mc-ev-type">{{.Type}}</span>{{if eq (print .Caller) "agent"}}<span class="mc-badge-a">AGT</span>{{else if eq (print .Caller) "human"}}<span class="mc-badge-h">HMN</span>{{end}}{{if .Slug}}<span style="color:var(--mc-fg)">{{.Slug}}</span>{{end}}{{if .Country}}<span>{{.Country}}</span>{{end}}</div>{{end}}
+  {{range .RecentEvents}}<div class="mc-ev"><span>{{formatTime .At}}</span><span class="mc-ev-type">{{.Type}}</span>{{if eq (print .Caller) "agent"}}<span class="mc-badge-a">AGT</span>{{else if eq (print .Caller) "human"}}<span class="mc-badge-h">HMN</span>{{end}}{{if .Query}}<span style="color:var(--mc-accent);">"{{.Query}}"</span>{{end}}{{if .Slug}}<span style="color:var(--mc-fg)">{{.Slug}}</span>{{end}}{{if .From}}<span>{{.From}}</span>{{end}}{{if .Country}}<span>{{.Country}}</span>{{end}}</div>{{end}}
 </div>
 {{end}}
 {{end}}
