@@ -10,22 +10,62 @@ A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
 humanMCP lets you publish poems, essays, notes, images, and typed data artifacts with cryptographic proof of authorship, explicit license terms, and full control over who can access what. AI agents connect via MCP and interact with your content natively.
 
-## MCP Tools (12)
+## MCP Tools (30+)
 
+**Content & Discovery**
 | Tool | Description |
 |---|---|
 | `get_author_profile` | Who is kapoost — bio, content overview, how to browse |
 | `list_content` | Browse all pieces with metadata, filter by type or tag |
 | `read_content` | Read a piece — respects all access gates |
+| `search_content` | Full-text search across all pieces |
 | `request_access` | Get gate details for locked content |
 | `submit_answer` | Unlock challenge-gated content |
 | `list_blobs` | Browse typed data artifacts |
 | `read_blob` | Read image, contact, dataset, vector (respects audience) |
+
+**IP & Verification**
+| Tool | Description |
+|---|---|
 | `verify_content` | Verify Ed25519 signature |
 | `get_certificate` | Full IP certificate: license, price, originality index, hash, signature |
+| `upgrade_timestamp` | Upgrade OTS proof to Bitcoin-anchored |
+
+**Interaction**
+| Tool | Description |
+|---|---|
 | `request_license` | Declare intended use, get terms, logged for audit |
 | `leave_comment` | Leave a reaction — visible in author dashboard |
 | `leave_message` | Send a direct note (max 2000 chars, URLs welcome) |
+
+**Session & Context**
+| Tool | Description |
+|---|---|
+| `bootstrap_session` | Unlock private context with session code |
+| `recall` | Retrieve saved memories |
+| `remember` | Save observations |
+| `query_vault` | Search personal knowledge vault |
+| `list_vault` | List vault documents |
+
+**Skills & Personas**
+| Tool | Description |
+|---|---|
+| `list_skills` / `get_skill` | Agent instruction catalog |
+| `list_personas` / `get_persona` | Expert team roster |
+| `upsert_skill` / `delete_skill` | Manage skills (agent token) |
+| `upsert_persona` / `delete_persona` | Manage personas (agent token) |
+
+**Listings**
+| Tool | Description |
+|---|---|
+| `list_listings` / `read_listing` | Browse classified ads |
+| `respond_to_listing` | Send response to listing |
+| `subscribe_listings` / `unsubscribe_listings` | Webhook subscriptions |
+
+**Meta**
+| Tool | Description |
+|---|---|
+| `about_humanmcp` | Open-source project info |
 
 ## Connect
 
@@ -67,11 +107,26 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 - **Originality Index** (0.0–1.0): burstiness (Fano Factor), lexical density (CTTR), Shannon entropy, structural signature — grades S/A/B/C/D
 - License terms and price in sats (for commercial licenses)
 
-## SEO / discovery
+## Discovery & REST API
 
-- `robots.txt` — `https://kapoost-humanmcp.fly.dev/robots.txt`
-- `sitemap.xml` — `https://kapoost-humanmcp.fly.dev/sitemap.xml`
+**Agent discovery:**
+- `/.well-known/agent.json` — agent profile card
 - `/.well-known/mcp-server.json` — MCP server discovery
+- `/openapi.json` — OpenAPI 3.1 spec (ChatGPT, Gemini)
+- `/llms.txt` — LLM preferences (signed)
+- `/for-agents` — agent onboarding page
+- `/connect` — connection methods page
+
+**REST API (for agents without MCP):**
+- `GET /api/content` — list all pieces
+- `GET /api/content/{slug}` — read piece
+- `GET /api/search?q=...` — full-text search
+- `GET /api/profile` — author name, bio, tags
+- `GET /api/blobs` — list data artifacts
+- `GET /listings/feed.json` — listings feed
+
+**SEO:**
+- `robots.txt`, `sitemap.xml`, `humans.txt`
 
 ## Limits
 
