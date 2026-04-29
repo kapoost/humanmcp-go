@@ -8,7 +8,7 @@ primary_region = "ams"
   CONTENT_DIR = "/data/content"
   AUTHOR_NAME = "kapoost"
   AUTHOR_BIO  = "I am a poet and a builder. I grew up in Zamość, studied in Wrocław, and ended up in Warsaw — though I spend as much time as I can at sea. I write because something in me has to. I sail because something in me must. I build software because the world needs more people who understand both code and silence. I am a CTO by trade, a sailor by temperament, and a poet by necessity. I started writing late. The poems are short. The sea is long."
-  DOMAIN      = "kapoost-humanmcp.fly.dev"
+  DOMAIN      = "kapoost.humanmcp.net"
   AI_METADATA = "true"   # set to "false" to disable AI assist on /new
 
 [http_service]
