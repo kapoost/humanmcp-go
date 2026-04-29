@@ -905,7 +905,7 @@ func (h *Handler) toolSearchContent(w http.ResponseWriter, req *Request, args js
 		writeError(w, req.ID, -32602, "query is required")
 		return
 	}
-	h.statStore.Record(content.Event{Type: content.EventList, Caller: content.CallerAgent})
+	h.statStore.Record(content.Event{Type: content.EventSearch, Caller: content.CallerAgent, Query: a.Query})
 
 	q := strings.ToLower(a.Query)
 	terms := strings.Fields(q)
