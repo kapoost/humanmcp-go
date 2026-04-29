@@ -113,8 +113,8 @@ footer a:hover{color:var(--gold);}
   <h1><span data-en>Your work.<br><strong>Signed.</strong><br><em>Machine-readable.</em></span><span data-pl>Twoja praca.<br><strong>Podpisana.</strong><br><em>Czytelna dla maszyn.</em></span></h1>
   <p class="hero-sub"><span data-en>A personal publishing server for artists — poems, images, datasets — with cryptographic proof of authorship and native AI agent access.</span><span data-pl>Osobisty serwer publikacyjny dla tw&oacute;rc&oacute;w — wiersze, obrazy, dane — z kryptograficznym dowodem autorstwa i natywnym dostępem dla agent&oacute;w AI.</span></p>
   <div class="hero-cta">
-    <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-gold"><span data-en>see it live</span><span data-pl>zobacz na żywo</span></a>
-    <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-outline"><span data-en>connect an agent</span><span data-pl>podłącz agenta</span></a>
+    <a href="https://kapoost.humanmcp.net" class="btn btn-gold"><span data-en>see it live</span><span data-pl>zobacz na żywo</span></a>
+    <a href="https://kapoost.humanmcp.net/connect" class="btn btn-outline"><span data-en>connect an agent</span><span data-pl>podłącz agenta</span></a>
     <a href="marketplace.html" class="btn btn-outline">marketplace</a>
     <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-outline">github</a>
   </div>
@@ -229,7 +229,7 @@ mov eax, 0;</div>
       </div>
       <p class="challenge-q"><span data-en>Did the agent feel what you felt?</span><span data-pl>Czy agent poczuł to, co Ty?</span></p>
     </div>
-    <a href="https://kapoost-humanmcp.fly.dev" class="btn btn-gold"><span data-en>see kapoost's live server &rarr;</span><span data-pl>zobacz serwer kapoosta &rarr;</span></a>
+    <a href="https://kapoost.humanmcp.net" class="btn btn-gold"><span data-en>see kapoost's live server &rarr;</span><span data-pl>zobacz serwer kapoosta &rarr;</span></a>
   </div>
 
   <div class="tab-panel" id="tab-developer">
@@ -283,22 +283,22 @@ fly deploy --app your-humanmcp</div>
       <tr><td>subscribe_listings</td><td><span data-en>Subscribe to new listings (webhook or MCP pull)</span><span data-pl>Subskrybuj nowe ogłoszenia (webhook lub MCP pull)</span></td></tr>
       <tr><td>unsubscribe_listings</td><td><span data-en>Cancel listing subscription</span><span data-pl>Anuluj subskrypcję ogłoszeń</span></td></tr>
     </table>
-    <div class="endpoint-row"><span class="ep-label">MCP</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/mcp</span></div>
-    <div class="endpoint-row"><span class="ep-label">REST</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/api/content</span></div>
-    <div class="endpoint-row" style="margin-bottom:1.5rem;"><span class="ep-label">OAS</span><span class="ep-url">https://kapoost-humanmcp.fly.dev/openapi.json</span></div>
+    <div class="endpoint-row"><span class="ep-label">MCP</span><span class="ep-url">https://kapoost.humanmcp.net/mcp</span></div>
+    <div class="endpoint-row"><span class="ep-label">REST</span><span class="ep-url">https://kapoost.humanmcp.net/api/content</span></div>
+    <div class="endpoint-row" style="margin-bottom:1.5rem;"><span class="ep-label">OAS</span><span class="ep-url">https://kapoost.humanmcp.net/openapi.json</span></div>
     <div class="code"><span class="c"># Claude Desktop — claude_desktop_config.json</span>
 {
   <span class="k">"mcpServers"</span>: {
     <span class="k">"kapoost"</span>: {
       <span class="k">"type"</span>: <span class="s">"http"</span>,
-      <span class="k">"url"</span>: <span class="s">"https://kapoost-humanmcp.fly.dev/mcp"</span>
+      <span class="k">"url"</span>: <span class="s">"https://kapoost.humanmcp.net/mcp"</span>
     }
   }
 }
 
 <span class="c"># ChatGPT Custom GPT — import OpenAPI from:</span>
-<span class="v">https://kapoost-humanmcp.fly.dev/openapi.json</span></div>
-    <a href="https://kapoost-humanmcp.fly.dev/connect" class="btn btn-outline"><span data-en>full connection guide &rarr;</span><span data-pl>pełna instrukcja połączenia &rarr;</span></a>
+<span class="v">https://kapoost.humanmcp.net/openapi.json</span></div>
+    <a href="https://kapoost.humanmcp.net/connect" class="btn btn-outline"><span data-en>full connection guide &rarr;</span><span data-pl>pełna instrukcja połączenia &rarr;</span></a>
   </div>
 </section>
 
@@ -347,11 +347,11 @@ ots verify piece.ots</code><span data-en>Returns the Bitcoin block height and ti
 </section>
 
 <footer>
-  <span>humanMCP v0.2 &mdash; <a href="https://kapoost-humanmcp.fly.dev">kapoost-humanmcp.fly.dev</a></span>
+  <span>humanMCP v0.2 &mdash; <a href="https://kapoost.humanmcp.net">kapoost.humanmcp.net</a></span>
   <span>
     <a href="marketplace.html">marketplace</a>
     &nbsp;&middot;&nbsp;
-    <a href="https://kapoost-humanmcp.fly.dev/connect"><span data-en>connect</span><span data-pl>połącz</span></a>
+    <a href="https://kapoost.humanmcp.net/connect"><span data-en>connect</span><span data-pl>połącz</span></a>
     &nbsp;&middot;&nbsp;
     <a href="https://github.com/kapoost/humanmcp-go">github</a>
   </span>
