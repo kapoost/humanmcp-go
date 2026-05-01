@@ -41,6 +41,7 @@ type Listing struct {
 	Access    AccessLevel   `json:"access"`
 	Published time.Time     `json:"published"`
 	ExpiresAt time.Time     `json:"expires_at,omitempty"`
+	ImageRef  string        `json:"image_ref,omitempty"` // path to uploaded image (e.g. files/listing-slug.jpg)
 	Signature string        `json:"signature,omitempty"`
 }
 
