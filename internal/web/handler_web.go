@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -1161,6 +1162,13 @@ func (h *Handler) handleFile(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, filePath)
 			return
 		}
+	}
+	// Serve listing images (no blob record, just file on disk)
+	filePath := filepath.Join(filepath.Dir(h.cfg.ContentDir), "blobs", "files", slug)
+	if _, err := os.Stat(filePath); err == nil {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		http.ServeFile(w, r, filePath)
+		return
 	}
 	http.NotFound(w, r)
 }
