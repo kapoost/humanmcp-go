@@ -1289,7 +1289,7 @@ func (h *Handler) handleListingRoute(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleListingNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		r.ParseForm()
+		r.ParseMultipartForm(50 << 20) // 50 MB
 		l := content.Listing{
 			Slug:   slugify(r.FormValue("title") + " " + fmt.Sprintf("%d", time.Now().Unix())),
 			Type:   content.ListingType(r.FormValue("type")),
@@ -1315,6 +1315,14 @@ func (h *Handler) handleListingNew(w http.ResponseWriter, r *http.Request) {
 		if ea := r.FormValue("expires_at"); ea != "" {
 			if t, err := time.Parse("2006-01-02T15:04", ea); err == nil {
 				l.ExpiresAt = t
+			}
+		}
+		if file, header, err := r.FormFile("image"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			if ref, err := h.blobStore.StoreFile("listing-"+l.Slug, header.Filename, data); err == nil {
+				l.ImageRef = ref
 			}
 		}
 		if h.signingKey != nil {
@@ -1348,7 +1356,7 @@ func (h *Handler) handleListingEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		r.ParseForm()
+		r.ParseMultipartForm(50 << 20)
 		l.Type = content.ListingType(r.FormValue("type"))
 		l.Title = r.FormValue("title")
 		l.Body = r.FormValue("body")
@@ -1373,6 +1381,17 @@ func (h *Handler) handleListingEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			l.ExpiresAt = time.Time{}
+		}
+		if file, header, err := r.FormFile("image"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			if ref, err := h.blobStore.StoreFile("listing-"+l.Slug, header.Filename, data); err == nil {
+				l.ImageRef = ref
+			}
+		}
+		if r.FormValue("remove_image") == "1" {
+			l.ImageRef = ""
 		}
 		if h.signingKey != nil {
 			if sig, err := content.SignListing(l, h.signingKey); err == nil {

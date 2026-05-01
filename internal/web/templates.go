@@ -1770,8 +1770,9 @@ a:hover{text-decoration:underline}
 <ul class="pieces">
 {{range .Listings}}
 <li class="piece-item">
-  <div class="piece-row">
-    <div class="piece-left">
+  <div class="piece-row" style="display:flex;gap:1rem;">
+    {{if .ImageRef}}<div style="flex-shrink:0;"><img src="/{{.ImageRef}}" style="width:80px;height:60px;object-fit:cover;border-radius:4px;"></div>{{end}}
+    <div class="piece-left" style="flex:1;">
       <div class="piece-meta">
         <span>{{formatDate .Published}}</span>
         <span class="type-badge {{.Type}}">{{.Type}}</span>
@@ -1822,6 +1823,8 @@ a:hover{text-decoration:underline}
 
   <h1 style="font-size:1.6rem;margin:.5rem 0;">{{.Listing.Title}}</h1>
 
+  {{if .Listing.ImageRef}}<div style="margin:1rem 0;"><img src="/{{.Listing.ImageRef}}" style="max-width:100%;max-height:400px;border-radius:6px;"></div>{{end}}
+
   {{if .Listing.Price}}<div style="font-size:1.1rem;font-weight:500;color:var(--accent);margin:.5rem 0;">{{.Listing.Price}}{{if .Listing.PriceSats}} ({{.Listing.PriceSats}} sats){{end}}</div>{{end}}
 
   {{if not .Listing.ExpiresAt.IsZero}}<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem;">Expires: {{formatDate .Listing.ExpiresAt}}</div>{{end}}
@@ -1867,7 +1870,7 @@ a:hover{text-decoration:underline}
 {{template "header" .}}
 <h2 style="font-size:1.2rem;">{{if .Listing}}Edit Listing{{else}}New Listing{{end}}</h2>
 
-<form method="POST" style="max-width:600px;">
+<form method="POST" enctype="multipart/form-data" style="max-width:600px;">
   <div style="margin-bottom:1rem;">
     <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Type</label>
     <select name="type" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
@@ -1925,6 +1928,11 @@ a:hover{text-decoration:underline}
       <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Expires</label>
       <input name="expires_at" type="datetime-local" value="{{if .Listing}}{{isoDate .Listing.ExpiresAt}}{{end}}" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
     </div>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Image</label>
+    {{if .Listing}}{{if .Listing.ImageRef}}<div style="margin-bottom:.5rem;"><img src="/{{.Listing.ImageRef}}" style="max-width:200px;max-height:150px;border-radius:4px;"><label style="margin-left:.8rem;font-size:.78rem;color:var(--muted);"><input type="checkbox" name="remove_image" value="1"> remove</label></div>{{end}}{{end}}
+    <input type="file" name="image" accept="image/*" style="font-size:.85rem;">
   </div>
   <button type="submit" class="btn btn-primary" style="padding:.6rem 1.5rem;">{{if .Listing}}Save{{else}}Publish{{end}}</button>
   <a href="/listings" style="margin-left:1rem;font-size:.85rem;color:var(--muted);">cancel</a>
