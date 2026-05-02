@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.kapoost/humanmcp",
   "title": "humanMCP — kapoost",
-  "description": "Personal MCP server. Publishes poetry, manages an expert AI team (14 personas), tracks skills and memories. Session bootstrap with rotating code unlocks full context.",
+  "description": "Personal MCP server for humans. Publishes poetry, essays, listings. Stores skills and memories. Session bootstrap with rotating Polish poetry code unlocks full context and expert team.",
   "version": "0.2.0",
   "license": "MIT",
   "homepage": "https://humanmcp.net",
   "repository": {
-    "url": "https://github.com/kapoost/humanmcp",
+    "url": "https://github.com/kapoost/humanmcp-go",
     "source": "github"
   },
   "remotes": [
@@ -17,17 +17,18 @@
     }
   ],
   "tags": [
-    "content", "publishing", "poetry", "personas", "skills",
-    "knowledge-vault", "personal", "creative", "bootstrap"
+    "content", "publishing", "poetry", "skills",
+    "knowledge-vault", "personal", "creative", "bootstrap", "listings"
   ],
   "capabilities": {
     "public": [
-      "get_author_profile", "list_content", "read_content",
-      "list_skills", "list_personas", "leave_message", "leave_comment"
+      "get_author_profile", "list_content", "read_content", "search_content",
+      "list_skills", "list_listings", "leave_message", "leave_comment",
+      "verify_content", "get_certificate", "about_humanmcp"
     ],
     "authenticated": [
       "bootstrap_session", "query_vault", "list_vault",
-      "remember", "recall", "get_persona", "get_skill"
+      "remember", "recall", "get_persona", "get_skill", "list_personas"
     ]
   }
 }

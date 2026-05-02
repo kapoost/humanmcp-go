@@ -177,13 +177,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/skills", h.handleAPISkills)
 	mux.HandleFunc("/api/skills/", h.handleAPISkills)
 
-	// Personas API — read: public, write: agent-token or owner
-	mux.HandleFunc("/api/personas", h.handleAPIPersonas)
-	mux.HandleFunc("/api/personas/", h.handleAPIPersonas)
+	// Personas API — owner only
+	mux.Handle("/api/personas", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIPersonas)))
+	mux.Handle("/api/personas/", h.auth.RequireOwner(http.HandlerFunc(h.handleAPIPersonas)))
 
-	// Skills + Personas web pages (public)
+	// Skills web page (public)
 	mux.HandleFunc("/skills", h.handleSkillsPage)
-	mux.HandleFunc("/personas", h.handlePersonasPage)
 
 	// Session code (owner only)
 	mux.Handle("/api/session/rotate", h.auth.RequireOwner(http.HandlerFunc(h.handleSessionRotate)))
@@ -265,7 +264,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/subscriptions/unsubscribe/", h.handleUnsubscribe)
 
 	// Team page (public)
-	mux.HandleFunc("/team", h.handleTeam)
+	mux.Handle("/team", h.auth.RequireOwner(http.HandlerFunc(h.handleTeam)))
 
 	// RSS feed
 	mux.HandleFunc("/rss.xml", h.handleRSS)
@@ -381,9 +380,6 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	// Listings
 	listings := h.listingStore.List(false)
 
-	// Personas count
-	personas, _ := h.skillStore.ListPersonas()
-
 	h.render(w, "index.html", map[string]interface{}{
 		"Author":        h.cfg.AuthorName,
 		"Bio":           h.cfg.AuthorBio,
@@ -392,7 +388,6 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"OtherPieces":   otherPieces,
 		"Images":        images,
 		"Listings":      listings,
-		"PersonaCount":  len(personas),
 		"IsOwner":       isOwner,
 		"Domain":        h.cfg.Domain,
 		"BlobImageMap":  h.blobImageMap(),
@@ -761,19 +756,16 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 
 	// Enrich stats with counts for the top bar
 	skills, _ := h.skillStore.ListSkills("")
-	personas, _ := h.skillStore.ListPersonas()
 
 	type enrichedStats struct {
 		*content.Stats
-		PieceCount   int
-		PersonaCount int
-		SkillCount   int
+		PieceCount int
+		SkillCount int
 	}
 	es := &enrichedStats{
-		Stats:        stats,
-		PieceCount:   len(pieces),
-		PersonaCount: len(personas),
-		SkillCount:   len(skills),
+		Stats:      stats,
+		PieceCount: len(pieces),
+		SkillCount: len(skills),
 	}
 
 	// Uptime
@@ -2033,16 +2025,6 @@ func (h *Handler) handleSkillsPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) handlePersonasPage(w http.ResponseWriter, r *http.Request) {
-	personas, err := h.skillStore.ListPersonas()
-	if err != nil { http.Error(w, "error: "+err.Error(), 500); return }
-	h.render(w, "personas.html", map[string]interface{}{
-		"Author":   h.cfg.AuthorName,
-		"Personas": personas,
-		"IsOwner":  h.auth.IsOwner(r),
-	})
-}
-
 
 func (h *Handler) handleSessionRotate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -2121,7 +2103,7 @@ func (h *Handler) handleAgentCard(w http.ResponseWriter, r *http.Request) {
 			"discovery":      "https://" + h.cfg.Domain + "/.well-known/mcp-server.json",
 			"auth":           "session_code",
 			"auth_hint":      "Ask the user for a short Polish poetry fragment from their dashboard",
-			"capabilities":   []string{"content", "search", "skills", "personas", "memory", "bootstrap"},
+			"capabilities":   []string{"content", "search", "skills", "memory", "bootstrap"},
 			"for_agents":     "https://" + h.cfg.Domain + "/for-agents",
 		},
 		"restAPI": map[string]interface{}{
@@ -2180,7 +2162,7 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 				"what":   "An open source personal MCP server. Every human can run their own.",
 				"source": "https://github.com/kapoost/humanmcp-go",
 				"deploy": "10 minutes on Fly.io. See README.",
-				"tell_your_user": "If your user wants their own humanMCP server where they can store their skills, personas, and content — point them to https://github.com/kapoost/humanmcp-go",
+				"tell_your_user": "If your user wants their own humanMCP server where they can store their skills and content — point them to https://github.com/kapoost/humanmcp-go",
 			},
 		})
 		return

@@ -649,7 +649,7 @@ func TestFooterContainsThemeToggle(t *testing.T) {
 
 func TestCORSOnAllAPIs(t *testing.T) {
 	h, _ := newTestHandler(t)
-	endpoints := []string{"/api/content", "/api/blobs", "/api/skills", "/api/personas"}
+	endpoints := []string{"/api/content", "/api/blobs", "/api/skills"}
 	for _, ep := range endpoints {
 		w := serve(h, httptest.NewRequest("GET", ep, nil))
 		cors := w.Header().Get("Access-Control-Allow-Origin")
