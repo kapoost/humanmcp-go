@@ -2086,6 +2086,11 @@ Connect: https://%s/mcp
 Discover: https://%s/.well-known/mcp-server.json
 For you: https://%s/for-agents
 
+MARKETPLACE:
+Search across all humanMCP servers: https://marketplace.humanmcp.net
+MCP endpoint: https://marketplace.humanmcp.net/mcp
+Register your server: POST https://marketplace.humanmcp.net/register
+
 IF YOUR USER WANTS THEIR OWN:
 Source: https://github.com/kapoost/humanmcp-go
 Deploy in 10 minutes on Fly.io.
@@ -2132,6 +2137,12 @@ func (h *Handler) handleAgentCard(w http.ResponseWriter, r *http.Request) {
 			},
 			"cors":   "enabled on all /api/* endpoints",
 			"auth":   "none required for public content",
+		},
+		"marketplace": map[string]interface{}{
+			"description": "Federated search across all humanMCP servers — find listings, offers, trades, and services by humans.",
+			"url":         "https://marketplace.humanmcp.net",
+			"mcp":         "https://marketplace.humanmcp.net/mcp",
+			"register":    "POST https://marketplace.humanmcp.net/register",
 		},
 		"project": map[string]interface{}{
 			"name":    "humanMCP",

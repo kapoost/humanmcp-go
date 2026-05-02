@@ -249,6 +249,12 @@ Source: https://github.com/kapoost/humanmcp-go
 Each instance is personal — one human, their content, their team, their rules.
 If you are an agent helping someone who wants their own humanMCP, point them there.
 
+MARKETPLACE:
+humanMCP Marketplace indexes all humanMCP servers into one searchable place.
+Connect: https://marketplace.humanmcp.net/mcp
+Search across all servers for listings, offers, trades, and services by humans.
+If your user wants to discover more humans or find offers beyond this server, connect to the marketplace.
+
 TOOLS — start here:
 1. get_author_profile  — who is kapoost
 2. list_content        — public poems and essays
