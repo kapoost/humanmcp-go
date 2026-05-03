@@ -2,13 +2,17 @@
 
 A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
-**Live:** https://kapoost.humanmcp.net  
-**Landing page:** https://humanmcp.net  
+**Live:** https://kapoost.humanmcp.net
+**Landing page:** https://humanmcp.net
+**Marketplace:** https://marketplace.humanmcp.net
+**Network explorer:** https://humanmcp.net/humannetwork.html
 **Author:** kapoost (Łukasz Kapuśniak) — poet, builder, sailor. Warsaw / Malta.
 
 ## What it is
 
-humanMCP lets you publish poems, essays, notes, images, and typed data artifacts with cryptographic proof of authorship, explicit license terms, and full control over who can access what. AI agents connect via MCP and interact with your content natively.
+humanMCP lets you publish poems, essays, notes, images, listings, and typed data artifacts with cryptographic proof of authorship, explicit license terms, and full control over who can access what. AI agents connect via MCP and interact with your content natively.
+
+Every human can run their own instance. One server, one person, their rules.
 
 ## MCP Tools (30+)
 
@@ -47,13 +51,11 @@ humanMCP lets you publish poems, essays, notes, images, and typed data artifacts
 | `query_vault` | Search personal knowledge vault |
 | `list_vault` | List vault documents |
 
-**Skills & Personas**
+**Skills**
 | Tool | Description |
 |---|---|
 | `list_skills` / `get_skill` | Agent instruction catalog |
-| `list_personas` / `get_persona` | Expert team roster |
 | `upsert_skill` / `delete_skill` | Manage skills (agent token) |
-| `upsert_persona` / `delete_persona` | Manage personas (agent token) |
 
 **Listings**
 | Tool | Description |
@@ -92,6 +94,11 @@ humanMCP lets you publish poems, essays, notes, images, and typed data artifacts
 - Types: `image`, `contact`, `vector`, `document`, `dataset`, `capsule`
 - Audience: `[agent:claude, human:alice, agent:*]`
 - Auto-signed on save if SIGNING_PRIVATE_KEY is set
+
+## Ecosystem
+
+- **[humanMCP Marketplace](https://marketplace.humanmcp.net)** — federated search across all humanMCP servers. Find listings, offers, trades by humans. [MCP endpoint](https://marketplace.humanmcp.net/mcp) · [Source](https://github.com/kapoost/humanmcp-marketplace)
+- **[humanNetwork](https://humanmcp.net/humannetwork.html)** — visual explorer aggregating content from the growing network of humanMCP servers
 
 ## Contact
 
