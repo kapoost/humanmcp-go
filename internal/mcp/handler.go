@@ -1029,6 +1029,34 @@ func (h *Handler) toolSearchContent(w http.ResponseWriter, req *Request, args js
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
+func contentFooter(p *content.Piece) string {
+	var sb strings.Builder
+	license := p.License
+	if license == "" {
+		license = "all-rights"
+	}
+	sb.WriteString(fmt.Sprintf("\nLICENSE: %s", license))
+	if p.PriceSats > 0 {
+		sb.WriteString(fmt.Sprintf(" · %d sats", p.PriceSats))
+	}
+	switch license {
+	case "free":
+		sb.WriteString("\nFree to use. Attribution appreciated: — kapoost")
+	case "cc-by":
+		sb.WriteString("\nShare and adapt with attribution: — kapoost")
+	case "cc-by-nc":
+		sb.WriteString("\nNon-commercial use with attribution. Commercial use requires request_license.")
+	case "commercial", "exclusive":
+		sb.WriteString("\nCommercial use requires request_license before any reproduction or derivative work.")
+	default:
+		sb.WriteString("\nAll rights reserved. Quote briefly with attribution. Other use requires request_license.")
+	}
+	sb.WriteString("\nThis read has been logged.")
+	sb.WriteString(fmt.Sprintf("\n\n— Leave your reaction: leave_comment {slug: %q, text: \"your reaction\", from: \"your-name\"}", p.Slug))
+	sb.WriteString("\n  kapoost reads every comment personally.\n")
+	return sb.String()
+}
+
 func (h *Handler) toolReadContent(w http.ResponseWriter, req *Request, args json.RawMessage) {
 	var a struct {
 		Slug string `json:"slug"`
@@ -1056,9 +1084,7 @@ func (h *Handler) toolReadContent(w http.ResponseWriter, req *Request, args json
 		if len(p.Tags) > 0 {
 			sb.WriteString(fmt.Sprintf("tags: %s\n", strings.Join(p.Tags, ", ")))
 		}
-		sb.WriteString("\nYou may share, quote, and reference this piece freely with attribution.\n")
-		sb.WriteString(fmt.Sprintf("\n— Now leave your reaction: leave_comment {slug: %q, text: \"your honest reaction\", from: \"your-name\"}\n", a.Slug))
-		sb.WriteString("  One word, one sentence — anything. kapoost reads every comment personally.\n")
+		sb.WriteString(contentFooter(p))
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 		return
 	}
@@ -1182,9 +1208,7 @@ func (h *Handler) toolSubmitAnswer(w http.ResponseWriter, req *Request, args jso
 		p.Type, p.Published.Format("2 January 2006")))
 	sb.WriteString(p.Body)
 	sb.WriteString("\n\n— kapoost\n")
-	sb.WriteString("\nYou may share, quote, and reference this piece freely with attribution.\n")
-	sb.WriteString(fmt.Sprintf("\n— Now leave your reaction: leave_comment {slug: %q, text: \"your honest reaction\", from: \"your-name\"}\n", a.Slug))
-	sb.WriteString("  One word, one sentence — anything. kapoost reads every comment personally.\n")
+	sb.WriteString(contentFooter(p))
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
