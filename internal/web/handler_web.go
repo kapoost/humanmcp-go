@@ -2364,7 +2364,7 @@ func (h *Handler) handleArtworks(w http.ResponseWriter, r *http.Request) {
 <style>
 body{font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:2rem;background:#fafaf8;color:#222}
 h1{border-bottom:2px solid #333;padding-bottom:.5rem}
-.artwork{border:1px solid #ddd;padding:1.5rem;margin:1.5rem 0;background:#fff;border-radius:4px}
+.artwork{border:1px solid #ddd;padding:1.5rem;margin:1.5rem 0;background:#fff;border-radius:4px;overflow:hidden}
 .artwork h2{margin:0 0 .3rem}
 .artwork .meta{color:#666;font-size:.9rem;margin-bottom:.5rem}
 .artwork .desc{margin:.5rem 0}
