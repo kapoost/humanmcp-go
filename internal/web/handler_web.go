@@ -2373,6 +2373,7 @@ a{color:#2a5a8a;text-decoration:none}
 a:hover{text-decoration:underline}
 .img-thumb{max-width:200px;max-height:150px;float:right;margin:0 0 1rem 1rem;border-radius:4px}
 </style></head><body>
+<a href="/" style="color:#666;font-size:.9rem;">← back</a>
 <h1>Artworks</h1>
 <p>Physical artworks with digital provenance. Each piece carries its full history: certificates, sales, expert opinions — all signed and verifiable.</p>
 `, h.cfg.AuthorName)
