@@ -364,13 +364,15 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Separate pieces by type for sectioned layout
-	var poems, otherPieces []*content.Piece
+	var poems, artworks, otherPieces []*content.Piece
 	for _, p := range pieces {
 		if isPersonaPiece(p) {
 			continue // skip personas — they belong to /team
 		}
 		if p.Type == "poem" || p.Type == "essay" || p.Type == "note" {
 			poems = append(poems, p)
+		} else if p.Type == "artwork" {
+			artworks = append(artworks, p)
 		} else if p.Type != "document" && p.Type != "capsule" {
 			otherPieces = append(otherPieces, p)
 		}
@@ -385,6 +387,18 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Artwork thumbnail images
+	artworkImages := make(map[string]string)
+	for _, b := range blobs {
+		if b.FileRef != "" && (b.BlobType == content.BlobImage || b.BlobType == "artwork") {
+			for _, a := range artworks {
+				if b.Slug == a.Slug || b.Artwork == a.Slug || strings.HasPrefix(b.Slug, a.Slug) {
+					artworkImages[a.Slug] = b.FileRef
+				}
+			}
+		}
+	}
+
 	// Listings
 	listings := h.listingStore.List(false)
 
@@ -395,6 +409,8 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"Poems":         poems,
 		"OtherPieces":   otherPieces,
 		"Images":        images,
+		"Artworks":      artworks,
+		"ArtworkImages": artworkImages,
 		"Listings":      listings,
 		"IsOwner":       isOwner,
 		"Domain":        h.cfg.Domain,
