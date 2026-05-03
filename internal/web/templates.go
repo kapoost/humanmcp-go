@@ -16,15 +16,27 @@ const allTemplates = `
 
 {{if .IsOwner}}
 <div class="owner-bar">
-  <a href="/new" class="btn btn-primary">+ post</a>
-  <a href="/new?type=image" class="btn">+ image</a>
-  <a href="/images" style="color:var(--muted);">gallery</a>
-  <a href="/artworks" style="color:var(--muted);">artworks</a>
-  <a href="/messages" style="color:var(--muted);">messages</a>
-  <a href="/listings/new" style="color:var(--muted);">+ listing</a>
-  <a href="/llms-edit" style="color:var(--muted);">llms.txt</a>
+  <div class="ob-group">
+    <span class="ob-label">create</span>
+    <a href="/new" class="btn btn-primary">+ post</a>
+    <a href="/new?type=image" class="btn">+ image</a>
+    <a href="/new?type=artwork" class="btn">+ artwork</a>
+    <a href="/listings/new" class="btn">+ listing</a>
+  </div>
+  <div class="ob-sep"></div>
+  <div class="ob-group">
+    <span class="ob-label">browse</span>
+    <a href="/images" class="ob-link">gallery</a>
+    <a href="/artworks" class="ob-link">artworks</a>
+    <a href="/listings" class="ob-link">listings</a>
+    <a href="/messages" class="ob-link">messages</a>
+  </div>
   <span style="flex:1;"></span>
-  <a href="/dashboard" style="color:var(--muted);">stats</a>
+  <div class="ob-group">
+    <a href="/llms-edit" class="ob-link">llms.txt</a>
+    <a href="/mc" class="ob-link">mc</a>
+    <a href="/dashboard" class="ob-link">stats</a>
+  </div>
 </div>
 {{end}}
 
@@ -697,7 +709,12 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
 .piece-desc{font-size:.82rem;color:var(--muted);}
 .tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem;}
 .tag{font-size:.72rem;color:var(--accent2);background:none;padding:0;}
-.owner-bar{display:flex;gap:.7rem;align-items:center;margin-bottom:1.5rem;padding:.4rem .6rem;border:1px solid var(--border);flex-wrap:wrap;font-size:.82rem;}
+.owner-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:1.5rem;padding:.5rem .7rem;border:1px solid var(--border);flex-wrap:wrap;font-size:.82rem;border-radius:4px;background:var(--bg)}
+.ob-group{display:flex;gap:.4rem;align-items:center}
+.ob-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);opacity:.6;margin-right:.1rem}
+.ob-sep{width:1px;height:1.2rem;background:var(--border);margin:0 .3rem}
+.ob-link{color:var(--muted);text-decoration:none;padding:2px 5px;border-radius:3px}
+.ob-link:hover{color:var(--fg);background:var(--border)}
 .btn{display:inline-block;padding:.25rem .6rem;font-size:.82rem;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-family:var(--mono);}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
 .btn-primary{border-color:var(--accent);color:var(--accent);}
@@ -934,6 +951,10 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 {{end}}
 <script>
 (function(){
+  // Preselect type from URL param (?type=artwork, ?type=image, etc.)
+  var tp=new URLSearchParams(location.search).get('type');
+  if(tp){var r=document.getElementById('type_'+tp);if(r){r.checked=true;var det=document.querySelector('details');if(det)det.open=true;}}
+
   var dz=document.getElementById('drop-zone');
   var fi=dz.querySelector('input[type=file]');
   var fn=document.getElementById('file-name');
