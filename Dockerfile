@@ -15,5 +15,6 @@ COPY --from=builder /app/humanmcp .
 RUN mkdir -p /data/content
 ENV PORT=8080
 ENV CONTENT_DIR=/data/content
+LABEL io.modelcontextprotocol.server.name="io.github.kapoost/humanmcp"
 EXPOSE 8080
 CMD ["./humanmcp"]
