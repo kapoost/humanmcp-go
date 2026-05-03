@@ -45,9 +45,9 @@ const allTemplates = `
 </div>
 
 <!-- wiersze -->
-<div class="section" id="wiersze">
-<div class="section-head">--- #wiersze <span>[1]</span> ─────────────────────────────────────</div>
 {{if .Poems}}
+<div class="section" id="wiersze">
+<div class="section-head">--- #wiersze ─────────────────────────────────────────</div>
 <div id="poem-list">
 {{range .Poems}}
 <div class="irc-line navigable" data-href="/p/{{.Slug}}">
@@ -60,29 +60,41 @@ const allTemplates = `
 {{if .Tags}}<div class="irc-tags-line">{{range .Tags}}<span class="irc-tag">#{{.}}</span> {{end}}</div>{{end}}
 {{end}}
 </div>
-{{else}}
-<div class="empty">no poems yet</div>
-{{end}}
 </div>
+{{end}}
 
 <!-- obrazy -->
-<div class="section" id="obrazy">
-<div class="section-head">--- #obrazy <span>[2]</span> ──────────────────────────────────────</div>
 {{if .Images}}
+<div class="section" id="obrazy">
+<div class="section-head">--- #obrazy ──────────────────────────────────────────</div>
 <div class="gallery-row">
 {{range .Images}}
 <a href="/p/{{.Slug}}"><img class="gallery-thumb" src="/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>
 {{end}}
 </div>
-{{else}}
-<div class="empty">no images yet</div>
+</div>
+{{end}}
+
+<!-- artworks -->
+{{if .Artworks}}
+<div class="section" id="artworks">
+<div class="section-head">--- #artworks ────────────────────────────────────────</div>
+{{range .Artworks}}
+<div class="irc-line navigable" data-href="/artworks/{{.Slug}}">
+  <span class="irc-date">{{shortDate .Published}}</span>
+  <span class="irc-title"><a href="/artworks/{{.Slug}}">{{.Title}}</a></span>
+  {{if .Signature}}<span class="irc-signed">✓</span>{{end}}
+  {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+</div>
+{{if .Tags}}<div class="irc-tags-line">{{range .Tags}}<span class="irc-tag">#{{.}}</span> {{end}}</div>{{end}}
 {{end}}
 </div>
+{{end}}
 
 <!-- ogłoszenia -->
-<div class="section" id="ogloszenia">
-<div class="section-head">--- #ogłoszenia <span>[3]</span> ──────────────────────────────────</div>
 {{if .Listings}}
+<div class="section" id="ogloszenia">
+<div class="section-head">--- #ogłoszenia ──────────────────────────────────────</div>
 {{range .Listings}}
 <div class="listing-line">
   <span class="listing-type {{.Type}}">{{.Type}}</span>
@@ -90,10 +102,8 @@ const allTemplates = `
   {{if .Price}}<span style="color:var(--accent3);">{{.Price}}</span>{{end}}
 </div>
 {{end}}
-{{else}}
-<div class="empty">no active listings</div>
-{{end}}
 </div>
+{{end}}
 
 
 {{template "footer" .}}
@@ -748,9 +758,10 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
         <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
-        <a href="#wiersze" style="color:var(--accent2);">wiersze</a>
-        <a href="#obrazy" style="color:var(--accent2);">obrazy</a>
-        <a href="#ogloszenia" style="color:var(--accent2);">ogłoszenia</a>
+        {{if .Poems}}<a href="#wiersze" style="color:var(--accent2);">wiersze</a>{{end}}
+        {{if .Images}}<a href="#obrazy" style="color:var(--accent2);">obrazy</a>{{end}}
+        {{if .Artworks}}<a href="#artworks" style="color:var(--accent2);">artworks</a>{{end}}
+        {{if .Listings}}<a href="#ogloszenia" style="color:var(--accent2);">ogłoszenia</a>{{end}}
         <a href="/contact" style="color:var(--muted);">contact</a>
         <a href="/connect" style="color:var(--accent);">+connect</a>
         <span style="color:var(--muted);cursor:pointer;" id="help-trigger" title="keyboard shortcuts [?]">?</span>
