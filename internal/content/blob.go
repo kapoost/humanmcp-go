@@ -23,7 +23,8 @@ const (
 	BlobVector   BlobType = "vector"   // float32 embeddings — agents only
 	BlobDocument BlobType = "document" // PDF, binary — file ref
 	BlobDataset  BlobType = "dataset"  // JSON/CSV structured data
-	BlobCapsule  BlobType = "capsule"  // any schema — agent declares what it needs
+	BlobCapsule    BlobType = "capsule"    // any schema — agent declares what it needs
+	BlobProvenance BlobType = "provenance" // artwork provenance document (certificate, sale, opinion)
 )
 
 // AudienceEntry is a named access grant
@@ -53,6 +54,11 @@ type Blob struct {
 	Encoding    string          `json:"Encoding"`    // "base64-float32", "utf-8"
 	Signature   string          `json:"Signature"`
 	Tags        []string        `json:"Tags"`
+	// Provenance fields — link document to an artwork
+	Artwork     string          `json:"Artwork,omitempty"`  // slug of parent artwork piece
+	DocType     string          `json:"DocType,omitempty"`  // certificate, sale, opinion, appraisal, restoration, exhibition, provenance
+	DocDate     string          `json:"DocDate,omitempty"`  // date of the document (YYYY-MM-DD)
+	IssuedBy    string          `json:"IssuedBy,omitempty"` // who issued it (gallery, expert, auction house)
 	FilePath    string          `json:"-"`
 }
 
@@ -176,6 +182,24 @@ func (bs *BlobStore) ReadFile(ref string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(bs.dir, ref))
 }
 
+// Provenance returns all provenance documents for a given artwork slug, sorted by doc_date
+func (bs *BlobStore) Provenance(artworkSlug string) ([]*Blob, error) {
+	blobs, err := bs.Load()
+	if err != nil {
+		return nil, err
+	}
+	var out []*Blob
+	for _, b := range blobs {
+		if b.BlobType == BlobProvenance && b.Artwork == artworkSlug {
+			out = append(out, b)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].DocDate < out[j].DocDate
+	})
+	return out, nil
+}
+
 // SignBlob signs a blob's content with an Ed25519 key
 func SignBlob(b *Blob, kp *KeyPair) (string, error) {
 	canonical := b.Slug + "|" + b.Title + "|" + b.TextData + "|" + b.Base64Data + "|" + b.FileRef
@@ -262,6 +286,10 @@ func parseBlobMeta(lines []string, b *Blob) {
 		case "base64_data": b.Base64Data = strings.TrimSpace(v)
 		case "signature":   b.Signature = unquote(v)
 		case "tags":        b.Tags = parseStringSlice(v)
+		case "artwork":     b.Artwork = unquote(v)
+		case "doc_type":    b.DocType = unquote(v)
+		case "doc_date":    b.DocDate = unquote(v)
+		case "issued_by":   b.IssuedBy = unquote(v)
 		case "dimensions":  fmt.Sscanf(strings.TrimSpace(v), "%d", &b.Dimensions)
 		case "audience":
 			for _, p := range parseStringSlice(v) {
@@ -299,6 +327,10 @@ func marshalBlobMeta(b *Blob) string {
 	if b.FileRef != "" { wf("file_ref", b.FileRef) }
 	if b.Base64Data != "" { sb.WriteString("base64_data: " + b.Base64Data + "\n") }
 	if b.Signature != "" { wf("signature", b.Signature) }
+	if b.Artwork != "" { wf("artwork", b.Artwork) }
+	if b.DocType != "" { wf("doc_type", b.DocType) }
+	if b.DocDate != "" { wf("doc_date", b.DocDate) }
+	if b.IssuedBy != "" { wf("issued_by", quoteIfNeeded(b.IssuedBy)) }
 	if len(b.Tags) > 0 { sb.WriteString("tags: [" + strings.Join(b.Tags, ", ") + "]\n") }
 	if len(b.Audience) > 0 {
 		parts := make([]string, len(b.Audience))

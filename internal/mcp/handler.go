@@ -550,6 +550,33 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "list_provenance",
+			Description: "List provenance documents for an artwork: certificates, sales, expert opinions, restorations. Returns timeline of the artwork's history.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"artwork"},
+				"properties": map[string]interface{}{
+					"artwork": map[string]interface{}{"type": "string", "description": "Slug of the artwork piece"},
+				},
+			},
+		},
+		{
+			Name:        "add_provenance",
+			Description: "Add a provenance document to an artwork. Requires owner token. Use with file upload for PDFs/scans.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"artwork", "title", "doc_type"},
+				"properties": map[string]interface{}{
+					"artwork":   map[string]interface{}{"type": "string", "description": "Slug of the artwork piece"},
+					"title":     map[string]interface{}{"type": "string", "description": "Document title"},
+					"doc_type":  map[string]interface{}{"type": "string", "description": "Type: certificate, sale, opinion, appraisal, restoration, exhibition, provenance"},
+					"doc_date":  map[string]interface{}{"type": "string", "description": "Date of document (YYYY-MM-DD)"},
+					"issued_by": map[string]interface{}{"type": "string", "description": "Who issued it (gallery, expert, auction house)"},
+					"text":      map[string]interface{}{"type": "string", "description": "Document text content (optional if file uploaded separately)"},
+				},
+			},
+		},
+		{
 			Name:        "about_humanmcp",
 			Description: "Get information about humanMCP as an open source project to share with users who want their own personal MCP server.",
 			InputSchema: map[string]interface{}{
@@ -799,6 +826,10 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolSubscribeListings(w, req, params.Arguments)
 	case "unsubscribe_listings":
 		h.toolUnsubscribeListings(w, req, params.Arguments)
+	case "list_provenance":
+		h.toolListProvenance(w, req, params.Arguments)
+	case "add_provenance":
+		h.toolAddProvenance(w, r, req, params.Arguments)
 	default:
 		writeError(w, req.ID, -32602, "unknown tool: "+params.Name)
 	}
@@ -2006,6 +2037,88 @@ func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Reques
 		sb.WriteString(fmt.Sprintf("\n%s\n\n", body))
 	}
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+// ── Provenance tools ──────────────────────────────────────────────────────────
+
+func (h *Handler) toolListProvenance(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Artwork string `json:"artwork"`
+	}
+	json.Unmarshal(args, &a)
+	if a.Artwork == "" {
+		writeError(w, req.ID, -32602, "artwork slug required")
+		return
+	}
+	docs, err := h.blobStore.Provenance(a.Artwork)
+	if err != nil || len(docs) == 0 {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "No provenance documents for artwork: " + a.Artwork}}})
+		return
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Provenance for artwork \"%s\" (%d documents):\n\n", a.Artwork, len(docs)))
+	for _, d := range docs {
+		sb.WriteString(fmt.Sprintf("  %s  %-14s  %s", d.DocDate, d.DocType, d.Title))
+		if d.IssuedBy != "" {
+			sb.WriteString(fmt.Sprintf(" — %s", d.IssuedBy))
+		}
+		if d.Signature != "" {
+			sb.WriteString(" [signed]")
+		}
+		sb.WriteString("\n")
+		if d.TextData != "" {
+			body := d.TextData
+			if len(body) > 200 {
+				body = body[:200] + "..."
+			}
+			sb.WriteString(fmt.Sprintf("           %s\n", body))
+		}
+		sb.WriteString(fmt.Sprintf("           slug: %s", d.Slug))
+		if d.FileRef != "" {
+			sb.WriteString(fmt.Sprintf("  file: %s", d.FileRef))
+		}
+		sb.WriteString("\n\n")
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolAddProvenance(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
+	if !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "owner token required"}}})
+		return
+	}
+	var a struct {
+		Artwork  string `json:"artwork"`
+		Title    string `json:"title"`
+		DocType  string `json:"doc_type"`
+		DocDate  string `json:"doc_date"`
+		IssuedBy string `json:"issued_by"`
+		Text     string `json:"text"`
+	}
+	if err := json.Unmarshal(args, &a); err != nil || a.Artwork == "" || a.Title == "" || a.DocType == "" {
+		writeError(w, req.ID, -32602, "artwork, title, and doc_type required")
+		return
+	}
+	if a.DocDate == "" {
+		a.DocDate = time.Now().Format("2006-01-02")
+	}
+	slug := a.Artwork + "-" + a.DocType + "-" + strings.ReplaceAll(a.DocDate, "-", "")
+	b := &content.Blob{
+		Slug:     slug,
+		Title:    a.Title,
+		BlobType: content.BlobProvenance,
+		Access:   content.AccessPublic,
+		Artwork:  a.Artwork,
+		DocType:  a.DocType,
+		DocDate:  a.DocDate,
+		IssuedBy: a.IssuedBy,
+		TextData: a.Text,
+	}
+	if err := h.blobStore.Save(b); err != nil {
+		writeError(w, req.ID, -32603, err.Error())
+		return
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("Provenance document saved: %s", slug)}}})
 }
 
 func (h *Handler) toolAboutHumanMCP(w http.ResponseWriter, req *Request) {
