@@ -19,6 +19,7 @@ const allTemplates = `
   <a href="/new" class="btn btn-primary">+ post</a>
   <a href="/new?type=image" class="btn">+ image</a>
   <a href="/images" style="color:var(--muted);">gallery</a>
+  <a href="/artworks" style="color:var(--muted);">artworks</a>
   <a href="/messages" style="color:var(--muted);">messages</a>
   <a href="/listings/new" style="color:var(--muted);">+ listing</a>
   <a href="/llms-edit" style="color:var(--muted);">llms.txt</a>
@@ -866,7 +867,7 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
   <div class="field">
     <label class="fl">Content type</label>
     <div class="type-grid">
-      {{range (slice "note" "poem" "essay" "image" "contact" "dataset" "vector" "document" "capsule")}}
+      {{range (slice "note" "poem" "essay" "artwork" "image" "contact" "dataset" "vector" "document" "capsule")}}
       <span class="type-opt">
         <input type="radio" name="type" value="{{.}}" id="type_{{.}}" style="display:none;"
           {{if $.Piece}}{{if eq $.Piece.Type .}}checked{{end}}{{else}}{{if eq . "note"}}checked{{end}}{{end}}>

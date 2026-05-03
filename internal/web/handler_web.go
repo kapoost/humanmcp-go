@@ -262,6 +262,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/artworks", h.handleArtworks)
 	mux.HandleFunc("/artworks/", h.handleArtworkDetail)
 	mux.HandleFunc("/api/provenance/", h.handleAPIProvenance)
+	mux.Handle("/provenance/add/", h.auth.RequireOwner(http.HandlerFunc(h.handleProvenanceAdd)))
+	mux.Handle("/provenance/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleProvenanceDelete)))
+	mux.Handle("/provenance/edit/", h.auth.RequireOwner(http.HandlerFunc(h.handleProvenanceEdit)))
 
 	// Subscriptions
 	mux.HandleFunc("/subscriptions/new", h.handleSubscribeForm)
@@ -2410,6 +2413,7 @@ func (h *Handler) handleArtworkDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isOwner := h.auth.IsOwner(r)
 	docs, _ := h.blobStore.Provenance(slug)
 
 	// Find artwork image
@@ -2446,6 +2450,23 @@ h2{margin-top:2rem;border-bottom:1px solid #ccc;padding-bottom:.3rem}
 .doc-file a{color:#2a5a8a}
 .signed{color:#2a7a2a;font-size:.8rem}
 a.back{color:#666;font-size:.9rem}
+.doc-actions{margin-top:.5rem;display:flex;gap:.5rem;align-items:center}
+.doc-actions a,.doc-actions button{font-size:.8rem;color:#666;background:none;border:1px solid #ccc;padding:2px 8px;border-radius:4px;cursor:pointer;text-decoration:none}
+.doc-actions button.del{color:#a33;border-color:#daa}
+.doc-actions a:hover,.doc-actions button:hover{background:#f0ece4}
+.add-form{background:#fff;border:1px solid #ddd;border-radius:4px;padding:1.5rem;margin-top:1rem}
+.add-form label{display:block;font-size:.9rem;color:#555;margin-top:.8rem}
+.add-form input,.add-form select,.add-form textarea{width:100%%;padding:.4rem;border:1px solid #ccc;border-radius:4px;font-size:.95rem;box-sizing:border-box;font-family:inherit}
+.add-form textarea{resize:vertical}
+.add-form .row{display:flex;gap:1rem}
+.add-form .row>div{flex:1}
+.btn-add{margin-top:1rem;padding:.5rem 1.5rem;background:#8a6d3b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.95rem}
+.btn-add:hover{background:#6d5530}
+.drop-zone{border:2px dashed #ccc;border-radius:4px;padding:1rem;text-align:center;color:#999;cursor:pointer;margin-top:.3rem}
+.drop-zone.over{border-color:#8a6d3b;color:#8a6d3b}
+.verify-box{margin-top:2rem;padding:1rem;background:#f5f0e8;border:1px solid #d4c9b4;border-radius:4px}
+.verify-box h3{margin:0 0 .5rem}
+.verify-ok{color:#2a7a2a}.verify-fail{color:#a33}
 </style></head><body>
 <a class="back" href="/artworks">← all artworks</a>
 <h1>%s</h1>
@@ -2457,6 +2478,9 @@ a.back{color:#666;font-size:.9rem}
 	}
 	if piece.Signature != "" {
 		fmt.Fprintf(w, ` · <span class="signed">✓ signed</span>`)
+	}
+	if isOwner {
+		fmt.Fprintf(w, ` · <a href="/edit/%s">edit</a>`, slug)
 	}
 	fmt.Fprintf(w, `</div>`)
 
@@ -2489,17 +2513,300 @@ a.back{color:#666;font-size:.9rem}
 				fmt.Fprintf(w, `<div class="doc-issuer">%s</div>`, d.IssuedBy)
 			}
 			if d.TextData != "" {
-				fmt.Fprintf(w, `<div class="doc-text">%s</div>`, d.TextData)
+				fmt.Fprintf(w, `<div class="doc-text">%s</div>`, strings.ReplaceAll(d.TextData, "\n", "<br>"))
 			}
 			if d.FileRef != "" {
-				fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank">📄 View document</a></div>`, d.FileRef)
+				ext := strings.ToLower(filepath.Ext(d.FileRef))
+				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+					fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank"><img src="/files/%s" style="max-width:300px;max-height:200px;border-radius:4px;margin-top:.5rem" alt="scan"></a></div>`, d.FileRef, d.FileRef)
+				} else {
+					fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank">View document</a></div>`, d.FileRef)
+				}
+			}
+			if isOwner {
+				fmt.Fprintf(w, `<div class="doc-actions">`)
+				fmt.Fprintf(w, `<a href="/provenance/edit/%s">edit</a>`, d.Slug)
+				fmt.Fprintf(w, `<form method="POST" action="/provenance/delete/%s" style="margin:0" onsubmit="return confirm('Delete this document?')"><button type="submit" class="del">delete</button></form>`, d.Slug)
+				fmt.Fprintf(w, `</div>`)
 			}
 			fmt.Fprintf(w, `</div>`)
 		}
 		fmt.Fprintf(w, `</div>`)
 	}
 
+	// Verification box (public)
+	if len(docs) > 0 {
+		signedCount := 0
+		for _, d := range docs {
+			if d.Signature != "" {
+				signedCount++
+			}
+		}
+		fmt.Fprintf(w, `<div class="verify-box"><h3>Provenance verification</h3>`)
+		fmt.Fprintf(w, `<p>%d document(s) in chain · %d signed with Ed25519</p>`, len(docs), signedCount)
+		if signedCount == len(docs) && signedCount > 0 {
+			fmt.Fprintf(w, `<p class="verify-ok">All documents are cryptographically signed.</p>`)
+		} else if signedCount > 0 {
+			fmt.Fprintf(w, `<p>%d unsigned — verify via MCP: <code>verify_content</code></p>`, len(docs)-signedCount)
+		}
+		fmt.Fprintf(w, `<p style="font-size:.85rem;color:#666">API: <code>GET /api/provenance/%s</code> · MCP: <code>list_provenance {artwork: "%s"}</code></p>`, slug, slug)
+		fmt.Fprintf(w, `</div>`)
+	}
+
+	// Add provenance form (owner only)
+	if isOwner {
+		fmt.Fprintf(w, `<h2>Add provenance document</h2>
+<form class="add-form" method="POST" action="/provenance/add/%s" enctype="multipart/form-data">
+<div class="row">
+  <div>
+    <label>Document type</label>
+    <select name="doc_type" required>
+      <option value="certificate">Certificate of authenticity</option>
+      <option value="sale">Sale / purchase</option>
+      <option value="opinion">Expert opinion</option>
+      <option value="appraisal">Appraisal / valuation</option>
+      <option value="restoration">Restoration</option>
+      <option value="exhibition">Exhibition</option>
+      <option value="provenance">Provenance note</option>
+    </select>
+  </div>
+  <div>
+    <label>Date</label>
+    <input type="date" name="doc_date" required>
+  </div>
+</div>
+<label>Title</label>
+<input type="text" name="title" placeholder="e.g. Certificate from Galeria Sztuki" required>
+<label>Issued by</label>
+<input type="text" name="issued_by" placeholder="Gallery, expert, auction house...">
+<label>Description / notes</label>
+<textarea name="text" rows="4" placeholder="Details about this document..."></textarea>
+<label>Scan or photo (optional)</label>
+<div class="drop-zone" id="prov-drop">
+  Drop file here or click to select
+  <input type="file" name="file" id="prov-file" style="display:none" accept="image/*,.pdf,.doc,.docx">
+  <div id="prov-fname" style="color:#8a6d3b;margin-top:.3rem"></div>
+</div>
+<button type="submit" class="btn-add">Add document &amp; sign</button>
+</form>
+<script>
+(function(){
+  var dz=document.getElementById('prov-drop');
+  var fi=document.getElementById('prov-file');
+  var fn=document.getElementById('prov-fname');
+  dz.addEventListener('click',function(){fi.click()});
+  fi.addEventListener('change',function(){if(fi.files[0])fn.textContent=fi.files[0].name});
+  dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',function(){dz.classList.remove('over')});
+  dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');var f=e.dataTransfer.files[0];var dt=new DataTransfer();dt.items.add(f);fi.files=dt.files;fn.textContent=f.name});
+})();
+</script>`, slug)
+	}
+
 	fmt.Fprintf(w, `</body></html>`)
+}
+
+func (h *Handler) handleProvenanceAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	artwork := strings.TrimPrefix(r.URL.Path, "/provenance/add/")
+	artwork = strings.TrimSuffix(artwork, "/")
+	if artwork == "" {
+		http.Error(w, "artwork slug required", 400)
+		return
+	}
+
+	r.ParseMultipartForm(50 << 20)
+	docType := r.FormValue("doc_type")
+	docDate := r.FormValue("doc_date")
+	title := r.FormValue("title")
+	issuedBy := r.FormValue("issued_by")
+	text := r.FormValue("text")
+
+	if docType == "" || title == "" {
+		http.Error(w, "doc_type and title required", 400)
+		return
+	}
+	if docDate == "" {
+		docDate = time.Now().Format("2006-01-02")
+	}
+
+	slug := artwork + "-" + docType + "-" + strings.ReplaceAll(docDate, "-", "")
+	// Avoid slug collisions
+	if _, err := h.blobStore.Get(slug); err == nil {
+		slug = slug + "-" + fmt.Sprintf("%d", time.Now().Unix()%10000)
+	}
+
+	b := &content.Blob{
+		Slug:     slug,
+		Title:    title,
+		BlobType: content.BlobProvenance,
+		Access:   content.AccessPublic,
+		Artwork:  artwork,
+		DocType:  docType,
+		DocDate:  docDate,
+		IssuedBy: issuedBy,
+		TextData: text,
+	}
+
+	// Handle file upload
+	if file, header, err := r.FormFile("file"); err == nil {
+		defer file.Close()
+		data := make([]byte, header.Size)
+		file.Read(data)
+		mime := header.Header.Get("Content-Type")
+		if mime == "" {
+			mime = "application/octet-stream"
+		}
+		ref, err := h.blobStore.StoreFile(slug, header.Filename, data)
+		if err == nil {
+			b.FileRef = ref
+			b.MimeType = mime
+		}
+	}
+
+	// Sign
+	if h.signingKey != nil {
+		if sig, err := content.SignBlob(b, h.signingKey); err == nil {
+			b.Signature = sig
+		}
+	}
+
+	if err := h.blobStore.Save(b); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/artworks/"+artwork, http.StatusSeeOther)
+}
+
+func (h *Handler) handleProvenanceDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	slug := strings.TrimPrefix(r.URL.Path, "/provenance/delete/")
+	slug = strings.TrimSuffix(slug, "/")
+
+	b, err := h.blobStore.Get(slug)
+	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+	artwork := b.Artwork
+	if err := h.blobStore.Delete(slug); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/artworks/"+artwork, http.StatusSeeOther)
+}
+
+func (h *Handler) handleProvenanceEdit(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/provenance/edit/")
+	slug = strings.TrimSuffix(slug, "/")
+
+	b, err := h.blobStore.Get(slug)
+	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseMultipartForm(50 << 20)
+		b.DocType = r.FormValue("doc_type")
+		b.DocDate = r.FormValue("doc_date")
+		b.Title = r.FormValue("title")
+		b.IssuedBy = r.FormValue("issued_by")
+		b.TextData = r.FormValue("text")
+
+		// Handle new file upload (replace existing)
+		if file, header, err := r.FormFile("file"); err == nil {
+			defer file.Close()
+			data := make([]byte, header.Size)
+			file.Read(data)
+			mime := header.Header.Get("Content-Type")
+			if mime == "" {
+				mime = "application/octet-stream"
+			}
+			ref, err := h.blobStore.StoreFile(slug, header.Filename, data)
+			if err == nil {
+				b.FileRef = ref
+				b.MimeType = mime
+			}
+		}
+
+		// Re-sign
+		if h.signingKey != nil {
+			if sig, err := content.SignBlob(b, h.signingKey); err == nil {
+				b.Signature = sig
+			}
+		}
+
+		if err := h.blobStore.Save(b); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		http.Redirect(w, r, "/artworks/"+b.Artwork, http.StatusSeeOther)
+		return
+	}
+
+	// GET — show edit form
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Edit — %s</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:Georgia,serif;max-width:700px;margin:0 auto;padding:2rem;background:#fafaf8;color:#222}
+label{display:block;font-size:.9rem;color:#555;margin-top:.8rem}
+input,select,textarea{width:100%%;padding:.4rem;border:1px solid #ccc;border-radius:4px;font-size:.95rem;box-sizing:border-box;font-family:inherit}
+textarea{resize:vertical}
+.row{display:flex;gap:1rem}.row>div{flex:1}
+.btn{margin-top:1rem;padding:.5rem 1.5rem;background:#8a6d3b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.95rem}
+.btn:hover{background:#6d5530}
+a.back{color:#666;font-size:.9rem}
+.current-file{font-size:.85rem;color:#666;margin-top:.3rem}
+</style></head><body>
+<a class="back" href="/artworks/%s">← back to artwork</a>
+<h1>Edit provenance document</h1>
+<form method="POST" enctype="multipart/form-data">
+<div class="row">
+  <div>
+    <label>Document type</label>
+    <select name="doc_type">`, b.Title, b.Artwork)
+
+	for _, dt := range []string{"certificate", "sale", "opinion", "appraisal", "restoration", "exhibition", "provenance"} {
+		sel := ""
+		if dt == b.DocType {
+			sel = " selected"
+		}
+		fmt.Fprintf(w, `<option value="%s"%s>%s</option>`, dt, sel, dt)
+	}
+
+	fmt.Fprintf(w, `</select>
+  </div>
+  <div>
+    <label>Date</label>
+    <input type="date" name="doc_date" value="%s">
+  </div>
+</div>
+<label>Title</label>
+<input type="text" name="title" value="%s" required>
+<label>Issued by</label>
+<input type="text" name="issued_by" value="%s">
+<label>Description / notes</label>
+<textarea name="text" rows="4">%s</textarea>
+<label>Replace file (optional)</label>
+<input type="file" name="file" accept="image/*,.pdf,.doc,.docx">`,
+		b.DocDate, b.Title, b.IssuedBy, b.TextData)
+
+	if b.FileRef != "" {
+		fmt.Fprintf(w, `<div class="current-file">Current: <a href="/files/%s" target="_blank">%s</a></div>`, b.FileRef, filepath.Base(b.FileRef))
+	}
+
+	fmt.Fprintf(w, `
+<button type="submit" class="btn">Save &amp; re-sign</button>
+</form>
+</body></html>`)
 }
 
 func (h *Handler) handleAPIProvenance(w http.ResponseWriter, r *http.Request) {
