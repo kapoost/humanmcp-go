@@ -2383,7 +2383,7 @@ a:hover{text-decoration:underline}
 	for _, a := range artworks {
 		fmt.Fprintf(w, `<div class="artwork">`)
 		if img, ok := artworkImages[a.Slug]; ok {
-			fmt.Fprintf(w, `<img class="img-thumb" src="/files/%s" alt="%s">`, img, a.Title)
+			fmt.Fprintf(w, `<img class="img-thumb" src="/%s" alt="%s">`, img, a.Title)
 		}
 		fmt.Fprintf(w, `<h2><a href="/artworks/%s">%s</a></h2>`, a.Slug, a.Title)
 		fmt.Fprintf(w, `<div class="meta">%s`, a.Published.Format("2006"))
@@ -2494,7 +2494,7 @@ a.back{color:#666;font-size:.9rem}
 	fmt.Fprintf(w, `</div>`)
 
 	if imageRef != "" {
-		fmt.Fprintf(w, `<img class="artwork-img" src="/files/%s" alt="%s">`, imageRef, piece.Title)
+		fmt.Fprintf(w, `<img class="artwork-img" src="/%s" alt="%s">`, imageRef, piece.Title)
 	}
 
 	if piece.Description != "" {
@@ -2527,9 +2527,9 @@ a.back{color:#666;font-size:.9rem}
 			if d.FileRef != "" {
 				ext := strings.ToLower(filepath.Ext(d.FileRef))
 				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
-					fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank"><img src="/files/%s" style="max-width:300px;max-height:200px;border-radius:4px;margin-top:.5rem" alt="scan"></a></div>`, d.FileRef, d.FileRef)
+					fmt.Fprintf(w, `<div class="doc-file"><a href="/%s" target="_blank"><img src="/%s" style="max-width:300px;max-height:200px;border-radius:4px;margin-top:.5rem" alt="scan"></a></div>`, d.FileRef, d.FileRef)
 				} else {
-					fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank">View document</a></div>`, d.FileRef)
+					fmt.Fprintf(w, `<div class="doc-file"><a href="/%s" target="_blank">View document</a></div>`, d.FileRef)
 				}
 			}
 			if isOwner {
@@ -2809,7 +2809,7 @@ a.back{color:#666;font-size:.9rem}
 		b.DocDate, b.Title, b.IssuedBy, b.TextData)
 
 	if b.FileRef != "" {
-		fmt.Fprintf(w, `<div class="current-file">Current: <a href="/files/%s" target="_blank">%s</a></div>`, b.FileRef, filepath.Base(b.FileRef))
+		fmt.Fprintf(w, `<div class="current-file">Current: <a href="/%s" target="_blank">%s</a></div>`, b.FileRef, filepath.Base(b.FileRef))
 	}
 
 	fmt.Fprintf(w, `
