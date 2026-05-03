@@ -960,13 +960,18 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 			if mime == "" { mime = "application/octet-stream" }
 			ref, err := h.blobStore.StoreFile(p.Slug, header.Filename, data)
 			if err == nil {
+				blobType := content.BlobType(p.Type)
+				if p.Type == "artwork" && strings.HasPrefix(mime, "image/") {
+					blobType = content.BlobImage
+				}
 				b := &content.Blob{
 					Slug:     p.Slug,
 					Title:    p.Title,
-					BlobType: content.BlobType(p.Type),
+					BlobType: blobType,
 					Access:   p.Access,
 					MimeType: mime,
 					FileRef:  ref,
+					Artwork:  func() string { if p.Type == "artwork" { return p.Slug }; return "" }(),
 				}
 				if h.signingKey != nil {
 					if sig, err := content.SignBlob(b, h.signingKey); err == nil {
@@ -2341,10 +2346,10 @@ func (h *Handler) handleArtworks(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Artwork images (blobs with matching artwork slug)
+	// Artwork images (blobs with matching artwork slug — image or artwork type with file)
 	artworkImages := make(map[string]string)
 	for _, b := range blobs {
-		if b.BlobType == content.BlobImage && b.FileRef != "" {
+		if b.FileRef != "" && (b.BlobType == content.BlobImage || b.BlobType == "artwork") {
 			for _, a := range artworks {
 				if b.Slug == a.Slug || b.Artwork == a.Slug || strings.HasPrefix(b.Slug, a.Slug) {
 					artworkImages[a.Slug] = b.FileRef
@@ -2424,7 +2429,7 @@ func (h *Handler) handleArtworkDetail(w http.ResponseWriter, r *http.Request) {
 	var imageRef string
 	blobs, _ := h.blobStore.Load()
 	for _, b := range blobs {
-		if b.BlobType == content.BlobImage && b.FileRef != "" {
+		if b.FileRef != "" && (b.BlobType == content.BlobImage || b.BlobType == "artwork") {
 			if b.Slug == slug || b.Artwork == slug || strings.HasPrefix(b.Slug, slug) {
 				imageRef = b.FileRef
 				break
