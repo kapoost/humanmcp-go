@@ -985,7 +985,11 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 		if err := h.store.Save(&p); err != nil {
 			http.Error(w, err.Error(), 500); return
 		}
-		http.Redirect(w, r, "/p/"+p.Slug, http.StatusSeeOther)
+		if p.Type == "artwork" {
+			http.Redirect(w, r, "/artworks/"+p.Slug, http.StatusSeeOther)
+		} else {
+			http.Redirect(w, r, "/p/"+p.Slug, http.StatusSeeOther)
+		}
 		return
 	}
 	h.render(w, "new.html", map[string]interface{}{
