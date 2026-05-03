@@ -948,6 +948,10 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
   <label class="fl">Tags <span style="opacity:.5">(comma separated)</span></label>
   <input type="text" name="tags" id="aw-tags" value="{{if .Piece}}{{join .Piece.Tags ", "}}{{end}}" placeholder="oil, portrait, landscape, abstract...">
 </div>
+
+<div style="padding:.8rem;background:var(--card);border:1px solid var(--border);border-radius:6px;font-size:.82rem;color:var(--muted);line-height:1.5;">
+  After saving you will be able to add <strong style="color:var(--fg);">provenance documents</strong>: certificates, sales, expert opinions, exhibition history — each with a scan or photo, signed and verifiable.
+</div>
 </div>
 
 <div class="field">
