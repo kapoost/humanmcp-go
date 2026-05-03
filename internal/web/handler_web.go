@@ -258,6 +258,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/listings/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingDelete)))
 	mux.HandleFunc("/listings/feed.json", h.handleListingsFeed)
 
+	// Artworks & Provenance
+	mux.HandleFunc("/artworks", h.handleArtworks)
+	mux.HandleFunc("/artworks/", h.handleArtworkDetail)
+	mux.HandleFunc("/api/provenance/", h.handleAPIProvenance)
+
 	// Subscriptions
 	mux.HandleFunc("/subscriptions/new", h.handleSubscribeForm)
 	mux.HandleFunc("/subscriptions/confirm", h.handleSubscribeConfirm)
@@ -2303,4 +2308,213 @@ func (l *loginRateLimiter) reset(ip string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	delete(l.entries, ip)
+}
+
+// ── Artworks & Provenance ─────────────────────────────────────────────────────
+
+func (h *Handler) handleArtworks(w http.ResponseWriter, r *http.Request) {
+	if err := h.store.Load(); err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	pieces := h.store.List(false)
+	var artworks []*content.Piece
+	for _, p := range pieces {
+		if p.Type == "artwork" {
+			artworks = append(artworks, p)
+		}
+	}
+
+	// Count provenance docs per artwork
+	provCounts := make(map[string]int)
+	blobs, _ := h.blobStore.Load()
+	for _, b := range blobs {
+		if b.BlobType == content.BlobProvenance && b.Artwork != "" {
+			provCounts[b.Artwork]++
+		}
+	}
+
+	// Artwork images (blobs with matching artwork slug)
+	artworkImages := make(map[string]string)
+	for _, b := range blobs {
+		if b.BlobType == content.BlobImage && b.FileRef != "" {
+			for _, a := range artworks {
+				if b.Slug == a.Slug || b.Artwork == a.Slug || strings.HasPrefix(b.Slug, a.Slug) {
+					artworkImages[a.Slug] = b.FileRef
+				}
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Artworks — %s</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:2rem;background:#fafaf8;color:#222}
+h1{border-bottom:2px solid #333;padding-bottom:.5rem}
+.artwork{border:1px solid #ddd;padding:1.5rem;margin:1.5rem 0;background:#fff;border-radius:4px}
+.artwork h2{margin:0 0 .3rem}
+.artwork .meta{color:#666;font-size:.9rem;margin-bottom:.5rem}
+.artwork .desc{margin:.5rem 0}
+.prov-count{display:inline-block;background:#e8e0d4;color:#5a4a3a;padding:2px 8px;border-radius:10px;font-size:.8rem}
+a{color:#2a5a8a;text-decoration:none}
+a:hover{text-decoration:underline}
+.img-thumb{max-width:200px;max-height:150px;float:right;margin:0 0 1rem 1rem;border-radius:4px}
+</style></head><body>
+<h1>Artworks</h1>
+<p>Physical artworks with digital provenance. Each piece carries its full history: certificates, sales, expert opinions — all signed and verifiable.</p>
+`, h.cfg.AuthorName)
+
+	if len(artworks) == 0 {
+		fmt.Fprintf(w, `<p>No artworks published yet.</p>`)
+	}
+	for _, a := range artworks {
+		fmt.Fprintf(w, `<div class="artwork">`)
+		if img, ok := artworkImages[a.Slug]; ok {
+			fmt.Fprintf(w, `<img class="img-thumb" src="/files/%s" alt="%s">`, img, a.Title)
+		}
+		fmt.Fprintf(w, `<h2><a href="/artworks/%s">%s</a></h2>`, a.Slug, a.Title)
+		fmt.Fprintf(w, `<div class="meta">%s`, a.Published.Format("2006"))
+		if len(a.Tags) > 0 {
+			fmt.Fprintf(w, ` · %s`, strings.Join(a.Tags, ", "))
+		}
+		fmt.Fprintf(w, `</div>`)
+		if a.Description != "" {
+			fmt.Fprintf(w, `<div class="desc">%s</div>`, a.Description)
+		}
+		if c, ok := provCounts[a.Slug]; ok && c > 0 {
+			fmt.Fprintf(w, `<span class="prov-count">%d provenance document`, c)
+			if c > 1 { fmt.Fprintf(w, `s`) }
+			fmt.Fprintf(w, `</span>`)
+		}
+		fmt.Fprintf(w, `</div>`)
+	}
+	fmt.Fprintf(w, `</body></html>`)
+}
+
+func (h *Handler) handleArtworkDetail(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/artworks/")
+	slug = strings.TrimSuffix(slug, "/")
+	if slug == "" {
+		h.handleArtworks(w, r)
+		return
+	}
+
+	if err := h.store.Load(); err != nil {
+		http.Error(w, "internal error", 500)
+		return
+	}
+	piece, err := h.store.Get(slug, true)
+	if err != nil || piece.Type != "artwork" {
+		http.Error(w, "artwork not found", 404)
+		return
+	}
+
+	docs, _ := h.blobStore.Provenance(slug)
+
+	// Find artwork image
+	var imageRef string
+	blobs, _ := h.blobStore.Load()
+	for _, b := range blobs {
+		if b.BlobType == content.BlobImage && b.FileRef != "" {
+			if b.Slug == slug || b.Artwork == slug || strings.HasPrefix(b.Slug, slug) {
+				imageRef = b.FileRef
+				break
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>%s — %s</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:2rem;background:#fafaf8;color:#222}
+h1{margin-bottom:.3rem}
+.meta{color:#666;font-size:.9rem;margin-bottom:1rem}
+.body{line-height:1.7;margin:1.5rem 0}
+.artwork-img{max-width:100%%;max-height:500px;border-radius:4px;margin:1rem 0}
+h2{margin-top:2rem;border-bottom:1px solid #ccc;padding-bottom:.3rem}
+.timeline{position:relative;padding-left:2rem}
+.timeline::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:#c4b5a0}
+.doc{position:relative;margin:1.5rem 0;padding:1rem;background:#fff;border:1px solid #ddd;border-radius:4px}
+.doc::before{content:"";position:absolute;left:-1.65rem;top:1.2rem;width:10px;height:10px;border-radius:50%%;background:#8a6d3b;border:2px solid #fff}
+.doc-date{font-weight:bold;color:#8a6d3b}
+.doc-type{display:inline-block;background:#e8e0d4;color:#5a4a3a;padding:1px 6px;border-radius:8px;font-size:.8rem;margin-left:.5rem}
+.doc-issuer{color:#666;font-style:italic}
+.doc-text{margin-top:.5rem;font-size:.95rem;line-height:1.5}
+.doc-file{margin-top:.5rem}
+.doc-file a{color:#2a5a8a}
+.signed{color:#2a7a2a;font-size:.8rem}
+a.back{color:#666;font-size:.9rem}
+</style></head><body>
+<a class="back" href="/artworks">← all artworks</a>
+<h1>%s</h1>
+`, piece.Title, h.cfg.AuthorName, piece.Title)
+
+	fmt.Fprintf(w, `<div class="meta">%s`, piece.Published.Format("2006"))
+	if len(piece.Tags) > 0 {
+		fmt.Fprintf(w, ` · %s`, strings.Join(piece.Tags, ", "))
+	}
+	if piece.Signature != "" {
+		fmt.Fprintf(w, ` · <span class="signed">✓ signed</span>`)
+	}
+	fmt.Fprintf(w, `</div>`)
+
+	if imageRef != "" {
+		fmt.Fprintf(w, `<img class="artwork-img" src="/files/%s" alt="%s">`, imageRef, piece.Title)
+	}
+
+	if piece.Description != "" {
+		fmt.Fprintf(w, `<div class="body"><em>%s</em></div>`, piece.Description)
+	}
+	if piece.Body != "" {
+		fmt.Fprintf(w, `<div class="body">%s</div>`, piece.Body)
+	}
+
+	// Provenance timeline
+	fmt.Fprintf(w, `<h2>Provenance (%d)</h2>`, len(docs))
+	if len(docs) == 0 {
+		fmt.Fprintf(w, `<p>No provenance documents yet.</p>`)
+	} else {
+		fmt.Fprintf(w, `<div class="timeline">`)
+		for _, d := range docs {
+			fmt.Fprintf(w, `<div class="doc">`)
+			fmt.Fprintf(w, `<span class="doc-date">%s</span>`, d.DocDate)
+			fmt.Fprintf(w, `<span class="doc-type">%s</span>`, d.DocType)
+			if d.Signature != "" {
+				fmt.Fprintf(w, ` <span class="signed">✓ signed</span>`)
+			}
+			fmt.Fprintf(w, `<div><strong>%s</strong></div>`, d.Title)
+			if d.IssuedBy != "" {
+				fmt.Fprintf(w, `<div class="doc-issuer">%s</div>`, d.IssuedBy)
+			}
+			if d.TextData != "" {
+				fmt.Fprintf(w, `<div class="doc-text">%s</div>`, d.TextData)
+			}
+			if d.FileRef != "" {
+				fmt.Fprintf(w, `<div class="doc-file"><a href="/files/%s" target="_blank">📄 View document</a></div>`, d.FileRef)
+			}
+			fmt.Fprintf(w, `</div>`)
+		}
+		fmt.Fprintf(w, `</div>`)
+	}
+
+	fmt.Fprintf(w, `</body></html>`)
+}
+
+func (h *Handler) handleAPIProvenance(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	slug := strings.TrimPrefix(r.URL.Path, "/api/provenance/")
+	slug = strings.TrimSuffix(slug, "/")
+	if slug == "" {
+		jsonError(w, "artwork slug required", 400)
+		return
+	}
+	docs, err := h.blobStore.Provenance(slug)
+	if err != nil {
+		jsonError(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(docs)
 }
