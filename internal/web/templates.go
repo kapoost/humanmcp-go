@@ -1561,7 +1561,6 @@ a:hover{text-decoration:underline}
 {{with .Stats}}
 <div class="mc-stats">
   <div class="mc-stat"><div class="mc-stat-num">{{.PieceCount}}</div><div class="mc-stat-label">pieces</div></div>
-  <div class="mc-stat"><div class="mc-stat-num">{{.PersonaCount}}</div><div class="mc-stat-label">personas</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.SkillCount}}</div><div class="mc-stat-label">skills</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.TotalReads}}</div><div class="mc-stat-label">reads</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.TotalMessages}}</div><div class="mc-stat-label">messages</div></div>
@@ -1726,7 +1725,7 @@ a:hover{text-decoration:underline}
 
 <div class="mc-foot">
   <span>humanMCP · {{.Author}} · MISSION CONTROL v0.3</span>
-  <span>{{with .Stats}}{{.PieceCount}} PIECES · {{.SkillCount}} SKILLS · {{.PersonaCount}} PERSONAS{{end}}</span>
+  <span>{{with .Stats}}{{.PieceCount}} PIECES · {{.SkillCount}} SKILLS{{end}}</span>
 </div>
 
 <script>
