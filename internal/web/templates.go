@@ -837,6 +837,10 @@ details > *:not(summary){margin-top:.65rem;}
 .type-label{font-size:.78rem;cursor:pointer;padding:.2rem .55rem;border:1px solid var(--border);border-radius:10px;color:var(--muted);display:inline-flex;align-items:center;gap:.25rem;}
 input[type=radio]:checked + .type-label{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
 .type-opt{display:contents;}
+.aw-photo-area{border:2px dashed var(--border);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;margin-bottom:.7rem;min-height:180px;display:flex;align-items:center;justify-content:center;transition:border-color .15s;position:relative;overflow:hidden;}
+.aw-photo-area:hover,.aw-photo-area.over{border-color:var(--accent);}
+.aw-photo-area img{max-width:100%;max-height:300px;border-radius:4px;}
+#aw-placeholder{color:var(--muted);}
 </style>
 </head>
 <body>
@@ -845,7 +849,7 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 
 <div class="compose">
 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem;">
-  <h1 style="font-size:.95rem;font-weight:500;color:var(--muted);">
+  <h1 style="font-size:.95rem;font-weight:500;color:var(--muted);" id="form-title">
     {{if .Piece}}Editing: {{.Piece.Slug}}{{else}}New post{{end}}
   </h1>
   <a href="{{if .Piece}}/p/{{.Piece.Slug}}{{else}}/{{end}}" style="font-size:.82rem;color:var(--muted);">cancel</a>
@@ -854,19 +858,96 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 <form method="POST" enctype="multipart/form-data">
 {{if .Piece}}<input type="hidden" name="slug_override" value="{{.Piece.Slug}}">{{end}}
 
+<!-- Standard post fields -->
+<div id="post-fields">
 <div class="field">
   <textarea name="body" rows="9" placeholder="What do you want to share?">{{if .Piece}}{{.Piece.Body}}{{end}}</textarea>
 </div>
 
 <div class="field">
   <label class="fl">Title <span style="opacity:.5">(optional)</span></label>
-  <input type="text" name="title" value="{{if .Piece}}{{.Piece.Title}}{{end}}" placeholder="Auto-generated from first line if empty">
+  <input type="text" name="title" id="title-input" value="{{if .Piece}}{{.Piece.Title}}{{end}}" placeholder="Auto-generated from first line if empty">
 </div>
 
 <div class="file-area" id="drop-zone" onclick="this.querySelector('input[type=file]').click()">
   <input type="file" name="file">
   &#8679; attach a file &mdash; image, PDF, CSV, anything
   <div class="file-name" id="file-name"></div>
+</div>
+</div>
+
+<!-- Artwork-specific fields (shown when type=artwork) -->
+<div id="artwork-fields" style="display:none;">
+<div class="field">
+  <label class="fl" style="font-size:.95rem;font-weight:500;">Title of the artwork</label>
+  <input type="text" id="aw-title" placeholder="e.g. Portret damy z gronostajem" style="font-size:1.05rem;">
+</div>
+
+<div class="aw-photo-area" id="aw-drop" onclick="document.getElementById('aw-file').click()">
+  <input type="file" id="aw-file" accept="image/*" style="display:none">
+  <div id="aw-preview"></div>
+  <div id="aw-placeholder">
+    <div style="font-size:2rem;opacity:.4;margin-bottom:.5rem;">&#127912;</div>
+    <div>Drop a photo of the artwork</div>
+    <div style="font-size:.8rem;opacity:.6;margin-top:.3rem;">or click to select</div>
+  </div>
+</div>
+
+<div class="row2">
+  <div>
+    <label class="fl">Medium</label>
+    <select id="aw-medium">
+      <option value="">select...</option>
+      <option value="oil on canvas">oil on canvas</option>
+      <option value="oil on board">oil on board</option>
+      <option value="acrylic on canvas">acrylic on canvas</option>
+      <option value="watercolor">watercolor</option>
+      <option value="tempera">tempera</option>
+      <option value="pastel">pastel</option>
+      <option value="charcoal">charcoal</option>
+      <option value="ink">ink</option>
+      <option value="mixed media">mixed media</option>
+      <option value="print">print</option>
+      <option value="sculpture">sculpture</option>
+      <option value="other">other</option>
+    </select>
+  </div>
+  <div>
+    <label class="fl">Year created</label>
+    <input type="text" id="aw-year" placeholder="e.g. 2024" style="width:100%;">
+  </div>
+</div>
+
+<div class="row2">
+  <div>
+    <label class="fl">Dimensions</label>
+    <input type="text" id="aw-dimensions" placeholder="e.g. 80 x 60 cm">
+  </div>
+  <div>
+    <label class="fl">License</label>
+    <select name="license" id="aw-license">
+      <option value="all-rights">all rights reserved</option>
+      <option value="commercial">commercial (set price)</option>
+      <option value="cc-by">CC-BY (attribution)</option>
+      <option value="cc-by-nc">CC-BY-NC (non-commercial)</option>
+    </select>
+  </div>
+</div>
+
+<div class="field" id="aw-price-row" style="display:none;">
+  <label class="fl">Price <span style="opacity:.5">(sats)</span></label>
+  <input type="number" name="price_sats" id="aw-price" placeholder="0">
+</div>
+
+<div class="field">
+  <label class="fl">Description</label>
+  <textarea id="aw-description" name="description" rows="3" placeholder="Story, context, inspiration...">{{if .Piece}}{{.Piece.Description}}{{end}}</textarea>
+</div>
+
+<div class="field">
+  <label class="fl">Tags <span style="opacity:.5">(comma separated)</span></label>
+  <input type="text" name="tags" id="aw-tags" value="{{if .Piece}}{{join .Piece.Tags ", "}}{{end}}" placeholder="oil, portrait, landscape, abstract...">
+</div>
 </div>
 
 <div class="field">
@@ -878,7 +959,7 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
   </div>
 </div>
 
-<details {{if .Piece}}open{{end}}>
+<details id="more-options" {{if .Piece}}open{{end}}>
   <summary>more options</summary>
 
   <div class="field">
@@ -916,12 +997,12 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 
 </details>
 
-<input type="hidden" name="do_sign" id="do_sign_field" value="0">
+<input type="hidden" name="do_sign" id="do_sign_field" value="1">
 <div style="display:flex;gap:.6rem;align-items:center;margin-top:.5rem;flex-wrap:wrap;">
-  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;" onclick="document.getElementById('do_sign_field').value='0'">
+  <button type="submit" class="btn btn-primary" style="padding:.4rem 1.2rem;" onclick="document.getElementById('do_sign_field').value='0'" id="btn-post">
     {{if .Piece}}Save{{else}}Post{{end}}
   </button>
-  <button type="submit" class="btn" style="padding:.4rem 1.2rem;border-color:var(--accent);color:var(--accent);" onclick="document.getElementById('do_sign_field').value='1'" title="Save and apply Ed25519 signature">
+  <button type="submit" class="btn" style="padding:.4rem 1.2rem;border-color:var(--accent);color:var(--accent);" onclick="document.getElementById('do_sign_field').value='1'" id="btn-sign">
     {{if .Piece}}Save &amp; Sign{{else}}Post &amp; Sign{{end}} &#10003;
   </button>
   {{if .Piece}}{{with .Piece}}{{if .Signature}}
@@ -951,33 +1032,109 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 {{end}}
 <script>
 (function(){
-  // Preselect type from URL param (?type=artwork, ?type=image, etc.)
-  var tp=new URLSearchParams(location.search).get('type');
-  if(tp){var r=document.getElementById('type_'+tp);if(r){r.checked=true;var det=document.querySelector('details');if(det)det.open=true;}}
+  var isArtwork=false;
 
-  var dz=document.getElementById('drop-zone');
-  var fi=dz.querySelector('input[type=file]');
-  var fn=document.getElementById('file-name');
-
-  function onFile(f){
-    fn.textContent=f.name;
-    {{if .AIMetadata}}
-    var panel=document.getElementById('ai-panel');
-    if(panel && f.type.startsWith('image/')){
-      panel.style.display='block';
-      document.getElementById('ai-status').textContent='Image ready — click Generate';
+  function toggleArtwork(on){
+    isArtwork=on;
+    document.getElementById('post-fields').style.display=on?'none':'';
+    document.getElementById('artwork-fields').style.display=on?'':'none';
+    document.getElementById('more-options').style.display=on?'none':'';
+    document.getElementById('form-title').textContent=on?'New artwork':'New post';
+    if(on){
+      document.getElementById('do_sign_field').value='1';
+      document.getElementById('btn-post').textContent='Save artwork';
+      document.getElementById('btn-sign').textContent='Save & Sign \u2713';
+    } else {
+      document.getElementById('btn-post').textContent='Post';
+      document.getElementById('btn-sign').textContent='Post & Sign \u2713';
     }
-    {{end}}
   }
 
-  fi.onchange=function(){if(fi.files[0])onFile(fi.files[0]);};
-  dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
-  dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
-  dz.addEventListener('drop',function(e){
-    e.preventDefault();dz.classList.remove('drag');
-    var f=e.dataTransfer.files[0];if(!f)return;
-    var dt=new DataTransfer();dt.items.add(f);fi.files=dt.files;onFile(f);
+  // Sync artwork fields → hidden form fields before submit
+  document.querySelector('form').addEventListener('submit',function(){
+    if(!isArtwork)return;
+    var t=document.getElementById('aw-title').value;
+    document.getElementById('title-input').value=t;
+    // Build body from artwork metadata
+    var parts=[];
+    var med=document.getElementById('aw-medium').value;
+    var yr=document.getElementById('aw-year').value;
+    var dim=document.getElementById('aw-dimensions').value;
+    if(med)parts.push('Medium: '+med);
+    if(dim)parts.push('Dimensions: '+dim);
+    if(yr)parts.push('Year: '+yr);
+    document.querySelector('textarea[name=body]').value=parts.join('\n');
+    // Copy artwork file to main file input
+    var af=document.getElementById('aw-file');
+    var mf=document.querySelector('#post-fields input[type=file]');
+    if(af.files[0]&&mf){mf.files=af.files;}
   });
+
+  // License → price visibility
+  var lic=document.getElementById('aw-license');
+  if(lic)lic.addEventListener('change',function(){
+    document.getElementById('aw-price-row').style.display=(lic.value==='commercial')?'':'none';
+  });
+
+  // Type radio toggle
+  document.querySelectorAll('input[name=type]').forEach(function(r){
+    r.addEventListener('change',function(){toggleArtwork(r.value==='artwork');});
+  });
+
+  // Preselect type from URL param
+  var tp=new URLSearchParams(location.search).get('type');
+  if(tp){
+    var r=document.getElementById('type_'+tp);
+    if(r){r.checked=true;if(tp!=='artwork'){var det=document.getElementById('more-options');if(det)det.open=true;}}
+    if(tp==='artwork')toggleArtwork(true);
+  }
+
+  // Standard file drag-drop
+  var dz=document.getElementById('drop-zone');
+  if(dz){
+    var fi=dz.querySelector('input[type=file]');
+    var fn=document.getElementById('file-name');
+    function onFile(f){
+      fn.textContent=f.name;
+      {{if .AIMetadata}}
+      var panel=document.getElementById('ai-panel');
+      if(panel && f.type.startsWith('image/')){
+        panel.style.display='block';
+        document.getElementById('ai-status').textContent='Image ready — click Generate';
+      }
+      {{end}}
+    }
+    fi.onchange=function(){if(fi.files[0])onFile(fi.files[0]);};
+    dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+    dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+    dz.addEventListener('drop',function(e){
+      e.preventDefault();dz.classList.remove('drag');
+      var f=e.dataTransfer.files[0];if(!f)return;
+      var dt=new DataTransfer();dt.items.add(f);fi.files=dt.files;onFile(f);
+    });
+  }
+
+  // Artwork photo drag-drop
+  var adz=document.getElementById('aw-drop');
+  if(adz){
+    var afi=document.getElementById('aw-file');
+    var apv=document.getElementById('aw-preview');
+    var aph=document.getElementById('aw-placeholder');
+    function onArtFile(f){
+      aph.style.display='none';
+      var rd=new FileReader();
+      rd.onload=function(){apv.innerHTML='<img src="'+rd.result+'" alt="preview">';};
+      rd.readAsDataURL(f);
+    }
+    afi.onchange=function(){if(afi.files[0])onArtFile(afi.files[0]);};
+    adz.addEventListener('dragover',function(e){e.preventDefault();adz.classList.add('over');});
+    adz.addEventListener('dragleave',function(){adz.classList.remove('over');});
+    adz.addEventListener('drop',function(e){
+      e.preventDefault();adz.classList.remove('over');
+      var f=e.dataTransfer.files[0];if(!f)return;
+      var dt=new DataTransfer();dt.items.add(f);afi.files=dt.files;onArtFile(f);
+    });
+  }
 })();
 
 {{if .AIMetadata}}
