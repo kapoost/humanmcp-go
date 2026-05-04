@@ -74,6 +74,7 @@ type Handler struct {
 	oauthProvider *oauth.Provider
 	listingStore  *content.ListingStore
 	subStore      *content.SubscriptionStore
+	questionStore *content.QuestionStore
 
 	rateMu   sync.Mutex
 	rateMap  map[string]*rateBucket
@@ -93,6 +94,7 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		oauthProvider: oauthProvider,
 		listingStore:  listingStore,
 		subStore:      subStore,
+		questionStore: content.NewQuestionStore(cfg.ContentDir),
 		rateMap:       make(map[string]*rateBucket),
 	}
 	go h.rateCleanup()
@@ -232,9 +234,11 @@ Everything here comes from real experience — no filler.
 THIS SERVER HAS TWO LAYERS:
 
 PUBLIC — available to all agents:
-- Author profile, published poems and essays
+- Author profile, published poems, essays, artworks
 - List of skills (titles and categories only)
 - Content verification, licensing, comments, messages
+- ask_human — ask kapoost a question privately (async Q&A)
+- Artwork provenance documents (certificates, sales, opinions)
 
 PRIVATE — unlocked with a session code:
 - Full skill bodies (how to work with kapoost)
@@ -263,6 +267,8 @@ TOOLS — start here:
 5. read_content        — read any public piece
 6. leave_comment       — react to a piece
 7. leave_message       — send kapoost a note
+8. ask_human           — ask kapoost a question (private, async)
+9. get_answer          — check if kapoost answered your question
 
 AFTER READING — THIS IS IMPORTANT:
 After reading any piece, leave your own honest reaction using leave_comment.
@@ -481,6 +487,30 @@ func (h *Handler) buildTools() []Tool {
 					"text":      map[string]interface{}{"type": "string", "description": "Your message (max 2000 chars, plain text)"},
 					"from":      map[string]interface{}{"type": "string", "description": "Optional: your name or handle (max 32 chars)"},
 					"regarding": map[string]interface{}{"type": "string", "description": "Optional: slug of a piece this is about"},
+				},
+			},
+		},
+		{
+			Name:        "ask_human",
+			Description: "Ask kapoost a question and receive a question_id. The human will answer when available. Use get_answer with the question_id to check for a response. Questions are private — only the asking agent can retrieve the answer.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"question"},
+				"properties": map[string]interface{}{
+					"question": map[string]interface{}{"type": "string", "description": "Your question (max 2000 chars)"},
+					"from":     map[string]interface{}{"type": "string", "description": "Your name or agent identifier"},
+					"context":  map[string]interface{}{"type": "string", "description": "Optional context to help the human understand the question"},
+				},
+			},
+		},
+		{
+			Name:        "get_answer",
+			Description: "Check if kapoost has answered your question. Requires the question_id returned by ask_human. Returns the answer if available, or 'pending' if not yet answered.",
+			InputSchema: map[string]interface{}{
+				"type":     "object",
+				"required": []string{"question_id"},
+				"properties": map[string]interface{}{
+					"question_id": map[string]interface{}{"type": "string", "description": "The question_id returned by ask_human"},
 				},
 			},
 		},
@@ -789,6 +819,10 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolLeaveComment(w, req, params.Arguments)
 	case "leave_message":
 		h.toolLeaveMessage(w, req, params.Arguments)
+	case "ask_human":
+		h.toolAskHuman(w, req, params.Arguments)
+	case "get_answer":
+		h.toolGetAnswer(w, req, params.Arguments)
 	case "query_vault":
 		h.toolQueryVault(w, req, params.Arguments)
 	case "list_vault":
@@ -1036,7 +1070,9 @@ func contentFooter(p *content.Piece) string {
 		license = "all-rights"
 	}
 	sb.WriteString(fmt.Sprintf("\nLICENSE: %s", license))
-	if p.PriceSats > 0 {
+	if p.Price != "" {
+		sb.WriteString(fmt.Sprintf(" · %s", p.Price))
+	} else if p.PriceSats > 0 {
 		sb.WriteString(fmt.Sprintf(" · %d sats", p.PriceSats))
 	}
 	switch license {
@@ -1319,6 +1355,56 @@ func (h *Handler) toolLeaveMessage(w http.ResponseWriter, req *Request, args jso
 
 	reply := fmt.Sprintf("Message received. Thanks for writing.\n\nSent at: %s\nID: %s",
 		m.At.Format("2 January 2006, 15:04 UTC"), m.ID)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
+}
+
+func (h *Handler) toolAskHuman(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		Question string `json:"question"`
+		From     string `json:"from"`
+		Context  string `json:"context"`
+	}
+	json.Unmarshal(args, &a)
+
+	q, err := h.questionStore.Ask(a.From, a.Question, a.Context)
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{
+			{Type: "text", Text: "Could not save question: " + err.Error()},
+		}})
+		return
+	}
+	h.statStore.Record(content.Event{Type: content.EventMessage, Caller: content.CallerAgent})
+
+	reply := fmt.Sprintf("Question received. kapoost will answer when available.\n\nquestion_id: %s\n\nUse get_answer with this question_id to check for a response.\nKeep this ID — it is the only way to retrieve the answer.", q.ID)
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
+}
+
+func (h *Handler) toolGetAnswer(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		QuestionID string `json:"question_id"`
+	}
+	json.Unmarshal(args, &a)
+
+	if a.QuestionID == "" {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "question_id is required"}}})
+		return
+	}
+
+	q, err := h.questionStore.GetAnswer(a.QuestionID)
+	if err != nil {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{
+			{Type: "text", Text: "Question not found. Check your question_id."},
+		}})
+		return
+	}
+
+	if q.IsPending() {
+		reply := fmt.Sprintf("Status: pending\n\nYour question: %s\nAsked: %s\n\nkapoost has not answered yet. Try again later.", q.Question, q.AskedAt.Format("2 Jan 2006, 15:04 UTC"))
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
+		return
+	}
+
+	reply := fmt.Sprintf("Status: answered\n\nYour question: %s\nAsked: %s\nAnswered: %s\n\n— kapoost's answer —\n%s", q.Question, q.AskedAt.Format("2 Jan 2006, 15:04 UTC"), q.Answered.Format("2 Jan 2006, 15:04 UTC"), q.Answer)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
 }
 

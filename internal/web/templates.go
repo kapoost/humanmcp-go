@@ -17,19 +17,20 @@ const allTemplates = `
 {{if .IsOwner}}
 <div class="owner-bar">
   <div class="ob-group">
-    <span class="ob-label">create</span>
-    <a href="/new" class="btn btn-primary">+ post</a>
-    <a href="/new?type=image" class="btn">+ image</a>
-    <a href="/new?type=artwork" class="btn">+ artwork</a>
-    <a href="/listings/new" class="btn">+ listing</a>
+    <span class="ob-label" data-i18n="ob_create">create</span>
+    <a href="/new" class="btn btn-primary" data-i18n="ob_post">+ post</a>
+    <a href="/new?type=image" class="btn" data-i18n="ob_image">+ image</a>
+    <a href="/new?type=artwork" class="btn" data-i18n="ob_artwork">+ artwork</a>
+    <a href="/listings/new" class="btn" data-i18n="ob_listing">+ listing</a>
   </div>
   <div class="ob-sep"></div>
   <div class="ob-group">
-    <span class="ob-label">browse</span>
-    <a href="/images" class="ob-link">gallery</a>
-    <a href="/artworks" class="ob-link">artworks</a>
-    <a href="/listings" class="ob-link">listings</a>
-    <a href="/messages" class="ob-link">messages</a>
+    <span class="ob-label" data-i18n="ob_browse">browse</span>
+    <a href="/images" class="ob-link" data-i18n="ob_gallery">gallery</a>
+    <a href="/artworks" class="ob-link" data-i18n="ob_artworks">artworks</a>
+    <a href="/listings" class="ob-link" data-i18n="ob_listings">listings</a>
+    <a href="/messages" class="ob-link" data-i18n="ob_messages">messages</a>
+    <a href="/questions" class="ob-link" data-i18n="ob_questions">questions</a>
   </div>
   <span style="flex:1;"></span>
   <div class="ob-group">
@@ -41,13 +42,13 @@ const allTemplates = `
 {{end}}
 
 <div id="search-box" class="search-box">
-  <span style="color:var(--accent);">/</span> <input type="text" id="search-input" placeholder="search..." autocomplete="off">
+  <span style="color:var(--accent);">/</span> <input type="text" id="search-input" data-i18n-placeholder="search_placeholder" placeholder="search..." autocomplete="off">
 </div>
 
 <!-- wiersze -->
 {{if .Poems}}
 <div class="section" id="wiersze">
-<div class="section-head">--- #wiersze ─────────────────────────────────────────</div>
+<div class="section-head" data-i18n="sec_wiersze">--- #wiersze ─────────────────────────────────────────</div>
 <div id="poem-list">
 {{range .Poems}}
 <div class="irc-line navigable" data-href="/p/{{.Slug}}">
@@ -66,7 +67,7 @@ const allTemplates = `
 <!-- obrazy -->
 {{if .Images}}
 <div class="section" id="obrazy">
-<div class="section-head">--- #obrazy ──────────────────────────────────────────</div>
+<div class="section-head" data-i18n="sec_obrazy">--- #obrazy ──────────────────────────────────────────</div>
 <div class="gallery-row">
 {{range .Images}}
 <a href="/p/{{.Slug}}"><img class="gallery-thumb" src="/{{.FileRef}}" alt="{{.Title}}" loading="lazy"></a>
@@ -78,7 +79,7 @@ const allTemplates = `
 <!-- artworks -->
 {{if .Artworks}}
 <div class="section" id="artworks">
-<div class="section-head">--- #artworks ────────────────────────────────────────</div>
+<div class="section-head" data-i18n="sec_artworks">--- #artworks ────────────────────────────────────────</div>
 {{range .Artworks}}
 <div class="irc-line navigable" data-href="/artworks/{{.Slug}}">
   <span class="irc-date">{{shortDate .Published}}</span>
@@ -94,7 +95,7 @@ const allTemplates = `
 <!-- ogłoszenia -->
 {{if .Listings}}
 <div class="section" id="ogloszenia">
-<div class="section-head">--- #ogłoszenia ──────────────────────────────────────</div>
+<div class="section-head" data-i18n="sec_ogloszenia">--- #ogłoszenia ──────────────────────────────────────</div>
 {{range .Listings}}
 <div class="listing-line">
   <span class="listing-type {{.Type}}">{{.Type}}</span>
@@ -112,18 +113,16 @@ const allTemplates = `
 <!-- help overlay -->
 <div class="help-overlay" id="help-overlay">
 <div class="help-box">
-  <h3>keyboard shortcuts</h3>
-  <div class="help-row"><span class="help-key">j / ↓</span><span>next item</span></div>
-  <div class="help-row"><span class="help-key">k / ↑</span><span>previous item</span></div>
-  <div class="help-row"><span class="help-key">Enter</span><span>open selected</span></div>
-  <div class="help-row"><span class="help-key">/</span><span>search</span></div>
-  <div class="help-row"><span class="help-key">1</span><span>wiersze</span></div>
-  <div class="help-row"><span class="help-key">2</span><span>obrazy</span></div>
-  <div class="help-row"><span class="help-key">3</span><span>ogłoszenia</span></div>
+  <h3 data-i18n="help_title">keyboard shortcuts</h3>
+  <div class="help-row"><span class="help-key">j / ↓</span><span data-i18n="help_next">next item</span></div>
+  <div class="help-row"><span class="help-key">k / ↑</span><span data-i18n="help_prev">previous item</span></div>
+  <div class="help-row"><span class="help-key">Enter</span><span data-i18n="help_open">open selected</span></div>
+  <div class="help-row"><span class="help-key">/</span><span data-i18n="help_search">search</span></div>
+  <div id="help-sections"></div>
   <div class="help-row"><span class="help-key">c</span><span>connect</span></div>
   <div class="help-row"><span class="help-key">m</span><span>contact</span></div>
-  <div class="help-row"><span class="help-key">Tab</span><span>next section</span></div>
-  <div class="help-row"><span class="help-key">Esc / ?</span><span>close help</span></div>
+  <div class="help-row"><span class="help-key">Tab</span><span data-i18n="help_tab">next section</span></div>
+  <div class="help-row"><span class="help-key">Esc / ?</span><span data-i18n="help_close">close help</span></div>
 </div>
 </div>
 
@@ -131,8 +130,83 @@ const allTemplates = `
 (function(){
   var items = document.querySelectorAll('.navigable');
   var cur = -1;
-  var sections = ['wiersze','obrazy','ogloszenia'];
+  // --- i18n ---
+  var i18n = {
+    pl: {
+      sec_wiersze: '--- #wiersze ─────────────────────────────────────────',
+      sec_obrazy: '--- #obrazy ──────────────────────────────────────────',
+      sec_artworks: '--- #artworks ────────────────────────────────────────',
+      sec_ogloszenia: '--- #ogłoszenia ──────────────────────────────────────',
+      nav_wiersze: 'wiersze', nav_obrazy: 'obrazy', nav_artworks: 'artworks', nav_ogloszenia: 'ogłoszenia',
+      ob_create: 'utwórz', ob_post: '+ wpis', ob_image: '+ obraz', ob_artwork: '+ dzieło', ob_listing: '+ ogłoszenie',
+      ob_browse: 'przeglądaj', ob_gallery: 'galeria', ob_artworks: 'dzieła', ob_listings: 'ogłoszenia', ob_messages: 'wiadomości', ob_questions: 'pytania',
+      footer_written: 'Wiersze pisane przez człowieka',
+      search_placeholder: 'szukaj...',
+      help_title: 'skróty klawiszowe',
+      help_next: 'następny', help_prev: 'poprzedni', help_open: 'otwórz', help_search: 'szukaj',
+      help_tab: 'następna sekcja', help_close: 'zamknij pomoc',
+      sl_wiersze: 'wiersze', sl_obrazy: 'obrazy', sl_artworks: 'dzieła', sl_ogloszenia: 'ogłoszenia',
+      aw_price: 'Cena'
+    },
+    en: {
+      sec_wiersze: '--- #poems ───────────────────────────────────────────',
+      sec_obrazy: '--- #images ──────────────────────────────────────────',
+      sec_artworks: '--- #artworks ────────────────────────────────────────',
+      sec_ogloszenia: '--- #listings ────────────────────────────────────────',
+      nav_wiersze: 'poems', nav_obrazy: 'images', nav_artworks: 'artworks', nav_ogloszenia: 'listings',
+      ob_create: 'create', ob_post: '+ post', ob_image: '+ image', ob_artwork: '+ artwork', ob_listing: '+ listing',
+      ob_browse: 'browse', ob_gallery: 'gallery', ob_artworks: 'artworks', ob_listings: 'listings', ob_messages: 'messages', ob_questions: 'questions',
+      footer_written: 'Poems written by human',
+      search_placeholder: 'search...',
+      help_title: 'keyboard shortcuts',
+      help_next: 'next item', help_prev: 'previous item', help_open: 'open selected', help_search: 'search',
+      help_tab: 'next section', help_close: 'close help',
+      sl_wiersze: 'poems', sl_obrazy: 'images', sl_artworks: 'artworks', sl_ogloszenia: 'listings',
+      aw_price: 'Price'
+    }
+  };
+
+  var lang = localStorage.getItem('humanmcp-lang') || 'en';
+  function applyLang(l) {
+    lang = l;
+    localStorage.setItem('humanmcp-lang', l);
+    var t = i18n[l] || i18n.en;
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      var k = el.getAttribute('data-i18n');
+      if (t[k]) el.textContent = t[k];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+      var k = el.getAttribute('data-i18n-placeholder');
+      if (t[k]) el.placeholder = t[k];
+    });
+    // update help section labels
+    var helpSec = document.getElementById('help-sections');
+    if (helpSec) {
+      helpSec.innerHTML = '';
+      sections.forEach(function(id, i) {
+        var row = document.createElement('div');
+        row.className = 'help-row';
+        row.innerHTML = '<span class="help-key">'+(i+1)+'</span><span>'+(t['sl_'+id]||id)+'</span>';
+        helpSec.appendChild(row);
+      });
+    }
+    // update toggle button
+    var btn = document.getElementById('lang-toggle');
+    if (btn) btn.textContent = l === 'pl' ? 'EN' : 'PL';
+  }
+
+  var langBtn = document.getElementById('lang-toggle');
+  if (langBtn) langBtn.addEventListener('click', function() {
+    applyLang(lang === 'pl' ? 'en' : 'pl');
+  });
+
+  // --- sections ---
+  var allSections = ['wiersze','obrazy','artworks','ogloszenia'];
+  var sections = allSections.filter(function(id){ return document.getElementById(id); });
   var secIdx = 0;
+
+  // apply language (populates help sections too)
+  applyLang(lang);
 
   function highlight(i){
     if(cur>=0 && cur<items.length) items[cur].classList.remove('active');
@@ -197,14 +271,11 @@ const allTemplates = `
       case 'Enter':
         if(cur>=0 && items[cur]) window.location = items[cur].dataset.href;
         break;
-      case '1':
-        document.getElementById('wiersze').scrollIntoView({behavior:'smooth'});
-        break;
-      case '2':
-        document.getElementById('obrazy').scrollIntoView({behavior:'smooth'});
-        break;
-      case '3':
-        document.getElementById('ogloszenia').scrollIntoView({behavior:'smooth'});
+      case '1': case '2': case '3': case '4': case '5':
+        var si = parseInt(e.key) - 1;
+        if(si < sections.length){
+          document.getElementById(sections[si]).scrollIntoView({behavior:'smooth'});
+        }
         break;
       case 'Tab':
         e.preventDefault();
@@ -387,7 +458,7 @@ const allTemplates = `
       <span class="status-key">license</span>
       <span class="status-val">
         {{if .License}}{{licenseLabel .License}}{{else}}free — read &amp; share with credit{{end}}
-        {{if .PriceSats}}<small>{{.PriceSats}} sats for commercial use</small>{{end}}
+        {{if .Price}}<small>{{.Price}}</small>{{else if .PriceSats}}<small>{{.PriceSats}} sats</small>{{end}}
       </span>
       <span class="status-actions">
         {{if or (eq .License "commercial") (eq .License "exclusive") (eq .License "all-rights")}}
@@ -758,12 +829,13 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
         <a href="/dashboard" style="color:var(--muted);">dashboard</a>
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
-        {{if .Poems}}<a href="#wiersze" style="color:var(--accent2);">wiersze</a>{{end}}
-        {{if .Images}}<a href="#obrazy" style="color:var(--accent2);">obrazy</a>{{end}}
-        {{if .Artworks}}<a href="#artworks" style="color:var(--accent2);">artworks</a>{{end}}
-        {{if .Listings}}<a href="#ogloszenia" style="color:var(--accent2);">ogłoszenia</a>{{end}}
+        {{if .Poems}}<a href="#wiersze" style="color:var(--accent2);" data-i18n="nav_wiersze">wiersze</a>{{end}}
+        {{if .Images}}<a href="#obrazy" style="color:var(--accent2);" data-i18n="nav_obrazy">obrazy</a>{{end}}
+        {{if .Artworks}}<a href="#artworks" style="color:var(--accent2);" data-i18n="nav_artworks">artworks</a>{{end}}
+        {{if .Listings}}<a href="#ogloszenia" style="color:var(--accent2);" data-i18n="nav_ogloszenia">ogłoszenia</a>{{end}}
         <a href="/contact" style="color:var(--muted);">contact</a>
         <a href="/connect" style="color:var(--accent);">+connect</a>
+        <span style="color:var(--muted);cursor:pointer;" id="lang-toggle" title="PL / EN">EN</span>
         <span style="color:var(--muted);cursor:pointer;" id="help-trigger" title="keyboard shortcuts [?]">?</span>
       {{end}}
     </nav>
@@ -782,7 +854,7 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
 {{define "footer"}}
 <footer style="border-top:1px solid var(--border);margin-top:2.5rem;padding:1rem 0;font-size:.75rem;color:var(--muted);">
   <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-    <span>Poems written by human &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a> &middot; <span id="theme-toggle" style="cursor:pointer;" title="toggle light/dark [d]">&#9788;</span></span>
+    <span><span data-i18n="footer_written">Poems written by human</span> &middot; <a href="/rss.xml" style="color:var(--muted);">rss</a> &middot; <a href="/connect" style="color:var(--muted);">connect</a> &middot; <span id="theme-toggle" style="cursor:pointer;" title="toggle light/dark [d]">&#9788;</span></span>
     <span><a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="color:var(--muted);">github</a> &middot; humanMCP</span>
   </div>
   <div id="kb-hints" style="margin-top:.4rem;color:var(--muted);opacity:.5;font-size:.7rem;"></div>
@@ -803,7 +875,7 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
   var h=document.getElementById('kb-hints');
   if(h){
     var a='color:var(--accent2)';
-    if(isIndex) h.innerHTML='<span style="'+a+'">[/]</span> search <span style="'+a+'">[j/k]</span> navigate <span style="'+a+'">[1-3]</span> sections <span style="'+a+'">[d]</span> theme <span style="'+a+'">[?]</span> help';
+    if(isIndex) h.innerHTML='<span style="'+a+'">[/]</span> search <span style="'+a+'">[j/k]</span> navigate <span style="'+a+'">[1-5]</span> sections <span style="'+a+'">[d]</span> theme <span style="'+a+'">[?]</span> help';
     else h.innerHTML='<span style="'+a+'">[b]</span> back <span style="'+a+'">[d]</span> theme';
   }
   document.addEventListener('keydown',function(e){
@@ -946,8 +1018,8 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
 </div>
 
 <div class="field" id="aw-price-row" style="display:none;">
-  <label class="fl">Price <span style="opacity:.5">(sats)</span></label>
-  <input type="number" name="price_sats" id="aw-price" placeholder="0">
+  <label class="fl" data-i18n="aw_price">Price</label>
+  <input type="text" name="price" id="aw-price" placeholder="e.g. 500 PLN, $200, trade">
 </div>
 
 <div class="field">
@@ -1008,6 +1080,24 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
   <div class="row2">
     <div><label class="fl">Challenge question</label><input type="text" name="challenge" value="{{if .Piece}}{{.Piece.Challenge}}{{end}}" placeholder="What do we call each other?"></div>
     <div><label class="fl">Answer</label><input type="text" name="answer" value="{{if .Piece}}{{.Piece.Answer}}{{end}}" placeholder="answer"></div>
+  </div>
+
+  <div class="row2">
+    <div>
+      <label class="fl">License</label>
+      <select name="license">
+        <option value="">none</option>
+        <option value="free" {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{end}}>free</option>
+        <option value="cc-by" {{if .Piece}}{{if eq .Piece.License "cc-by"}}selected{{end}}{{end}}>CC-BY</option>
+        <option value="cc-by-nc" {{if .Piece}}{{if eq .Piece.License "cc-by-nc"}}selected{{end}}{{end}}>CC-BY-NC</option>
+        <option value="commercial" {{if .Piece}}{{if eq .Piece.License "commercial"}}selected{{end}}{{end}}>commercial</option>
+        <option value="all-rights" {{if .Piece}}{{if eq .Piece.License "all-rights"}}selected{{end}}{{end}}>all rights reserved</option>
+      </select>
+    </div>
+    <div>
+      <label class="fl">Price <span style="opacity:.5">(free-form)</span></label>
+      <input type="text" name="price" value="{{if .Piece}}{{.Piece.Price}}{{end}}" placeholder="e.g. 500 PLN, $200">
+    </div>
   </div>
 
 </details>
@@ -1459,6 +1549,55 @@ function loadStarter(){
 {{end}}
 {{else}}
 <div class="empty">No messages yet.</div>
+{{end}}
+{{template "footer" .}}
+</div>
+</body></html>
+{{end}}
+
+{{define "questions.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Questions — {{.Author}}</title>
+<style>{{template "css" .}}
+.q-item{padding:1rem 0;border-bottom:1px solid var(--border);}
+.q-item:last-child{border-bottom:none;}
+.q-meta{font-size:.73rem;color:var(--muted);margin-bottom:.4rem;display:flex;gap:.6rem;align-items:center;}
+.q-from{font-weight:600;color:var(--fg);font-size:.82rem;}
+.q-text{font-size:.92rem;line-height:1.6;margin-bottom:.6rem;white-space:pre-wrap;}
+.q-context{font-size:.8rem;color:var(--muted);background:var(--card);padding:.5rem .7rem;border-radius:6px;margin-bottom:.7rem;border-left:3px solid var(--border);}
+.q-form textarea{width:100%;padding:.5rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.88rem;resize:vertical;font-family:inherit;min-height:60px;}
+.q-form textarea:focus{outline:none;border-color:var(--accent);}
+.q-form button{margin-top:.4rem;padding:.35rem 1rem;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-size:.82rem;}
+</style>
+</head>
+<body>
+<div class="container">
+{{template "header-simple" .}}
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
+  <h1 style="font-size:1.05rem;font-weight:500;">Questions <span style="font-size:.78rem;color:var(--muted);font-weight:400;">({{len .Questions}} pending)</span></h1>
+  <a href="/messages" style="font-size:.82rem;color:var(--muted);">messages</a>
+</div>
+{{if .Questions}}
+{{range .Questions}}
+<div class="q-item">
+  <div class="q-meta">
+    {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
+    <span>{{formatDate .AskedAt}}</span>
+  </div>
+  <div class="q-text">{{.Question}}</div>
+  {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
+  <form method="POST" action="/questions/answer" class="q-form">
+    <input type="hidden" name="question_id" value="{{.ID}}">
+    <textarea name="answer" placeholder="Your answer..." rows="3"></textarea>
+    <button type="submit">Answer</button>
+  </form>
+</div>
+{{end}}
+{{else}}
+<div class="empty" style="text-align:center;color:var(--muted);padding:3rem 0;">No pending questions. Agents can ask you via the ask_human MCP tool.</div>
 {{end}}
 {{template "footer" .}}
 </div>

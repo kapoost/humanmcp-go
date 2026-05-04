@@ -20,6 +20,7 @@ func parseFrontmatter(lines []string, p *Piece) {
 		case "challenge":   p.Challenge = unquote(v)
 		case "answer":      p.Answer = unquote(v)
 		case "description": p.Description = unquote(v)
+		case "price":       p.Price = unquote(v)
 		case "price_sats":
 			n, _ := strconv.Atoi(strings.TrimSpace(v))
 			p.PriceSats = n
@@ -92,12 +93,12 @@ func marshalFrontmatter(p *Piece) string {
 	if p.Challenge != "" { wf("challenge", quoteIfNeeded(p.Challenge)) }
 	if p.Answer != ""    { wf("answer", quoteIfNeeded(p.Answer)) }
 	if p.Description != "" { wf("description", quoteIfNeeded(p.Description)) }
+	if p.Price != "" { wf("price", quoteIfNeeded(p.Price)) }
 	if p.PriceSats > 0 { sb.WriteString("price_sats: " + strconv.Itoa(p.PriceSats) + "\n") }
 	if !p.UnlockAfter.IsZero() { wf("unlock_after", p.UnlockAfter.Format("2006-01-02 15:04")) }
 	if len(p.Tags) > 0 { sb.WriteString("tags: [" + strings.Join(p.Tags, ", ") + "]\n") }
 	if p.Signature != "" { wf("signature", p.Signature) }
 	if p.License != "" { wf("license", p.License) }
-	if p.PriceSats > 0 { sb.WriteString(fmt.Sprintf("price_sats: %d\n", p.PriceSats)) }
 	if !p.Published.IsZero() { sb.WriteString("published: " + p.Published.Format("2006-01-02") + "\n") }
 	return sb.String()
 }

@@ -14,7 +14,7 @@ humanMCP lets you publish poems, essays, notes, images, listings, and typed data
 
 Every human can run their own instance. One server, one person, their rules.
 
-## MCP Tools (30+)
+## MCP Tools (34+)
 
 **Content & Discovery**
 | Tool | Description |
@@ -41,6 +41,8 @@ Every human can run their own instance. One server, one person, their rules.
 | `request_license` | Declare intended use, get terms, logged for audit |
 | `leave_comment` | Leave a reaction — visible in author dashboard |
 | `leave_message` | Send a direct note (max 2000 chars, URLs welcome) |
+| `ask_human` | Ask the author a question (private, async — returns question_id) |
+| `get_answer` | Check if the author answered your question (by question_id) |
 
 **Session & Context**
 | Tool | Description |
@@ -85,15 +87,17 @@ Every human can run their own instance. One server, one person, their rules.
 ## Content types
 
 **Pieces** (Markdown files):
-- Types: `poem`, `essay`, `note`, `contact`
+- Types: `poem`, `essay`, `note`, `artwork`, `image`, `contact`
 - Access: `public` / `members` / `locked`
 - Gates: `challenge` (Q&A), `time`, `manual`, `trade`
 - Licenses: `free`, `cc-by`, `cc-by-nc`, `commercial`, `exclusive`, `all-rights`
+- Price: free-form string (e.g. "500 PLN", "$200", "trade")
 
 **Blobs** (typed data artifacts):
-- Types: `image`, `contact`, `vector`, `document`, `dataset`, `capsule`
+- Types: `image`, `contact`, `vector`, `document`, `dataset`, `capsule`, `provenance`
 - Audience: `[agent:claude, human:alice, agent:*]`
 - Auto-signed on save if SIGNING_PRIVATE_KEY is set
+- Provenance documents link to artwork pieces (certificate, sale, opinion, appraisal)
 
 ## Ecosystem
 
@@ -144,6 +148,15 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 | File upload | 50 MB |
 | Slug | 64 chars |
 | Title | 256 chars |
+
+## Features
+
+- **i18n** — PL/EN language toggle on main page (auto-detect or manual switch, stored in localStorage)
+- **Artworks** — dedicated form for painters/artists: photo upload, medium, dimensions, year, provenance documents
+- **Provenance** — attach certificates, sale records, expert opinions to artworks (signed, with file upload)
+- **ask_human** — agents can ask the author questions privately (async Q&A, invisible to public)
+- **Dynamic sections** — main page shows only sections with published content
+- **Free-form pricing** — any currency, any format ("500 PLN", "$200", "trade only")
 
 ## Stack
 
