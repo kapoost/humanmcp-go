@@ -972,8 +972,12 @@ func (h *Handler) toolListContent(w http.ResponseWriter, req *Request, args json
 	h.statStore.Record(content.Event{Type: content.EventList, Caller: content.CallerAgent})
 
 	pieces := h.store.List(false)
+	isPersona := h.buildPersonaFilter()
 	var filtered []*content.Piece
 	for _, p := range pieces {
+		if isPersona(p) {
+			continue
+		}
 		if a.Type != "" && p.Type != a.Type {
 			continue
 		}
@@ -1025,6 +1029,7 @@ func (h *Handler) toolSearchContent(w http.ResponseWriter, req *Request, args js
 	q := strings.ToLower(a.Query)
 	terms := strings.Fields(q)
 	pieces := h.store.List(false)
+	isPersona := h.buildPersonaFilter()
 
 	type match struct {
 		piece   *content.Piece
@@ -1033,6 +1038,9 @@ func (h *Handler) toolSearchContent(w http.ResponseWriter, req *Request, args js
 	var matches []match
 
 	for _, p := range pieces {
+		if isPersona(p) {
+			continue
+		}
 		title := strings.ToLower(p.Title)
 		body := strings.ToLower(p.Body)
 		desc := strings.ToLower(p.Description)
@@ -2331,6 +2339,31 @@ Endpoint: https://` + h.cfg.Domain + `/mcp
 Discovery: https://` + h.cfg.Domain + `/.well-known/mcp-server.json`
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+}
+
+// buildPersonaFilter returns a function that identifies persona content pieces.
+func (h *Handler) buildPersonaFilter() func(*content.Piece) bool {
+	allPersonas, _ := h.skillStore.ListPersonas()
+	slugSet := make(map[string]bool)
+	nameSet := make(map[string]bool)
+	for _, per := range allPersonas {
+		slugSet[strings.ToLower(per.Slug)] = true
+		nameSet[strings.ToLower(per.Name)] = true
+	}
+	return func(p *content.Piece) bool {
+		ls := strings.ToLower(p.Slug)
+		lt := strings.ToLower(p.Title)
+		if slugSet[ls] || slugSet[lt] || nameSet[ls] || nameSet[lt] {
+			return true
+		}
+		for _, per := range allPersonas {
+			ps := strings.ToLower(per.Slug)
+			if strings.HasPrefix(ls, ps+"-") || (strings.HasPrefix(ls, ps) && len(ls) > len(ps)) {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 // ── Peer tools (federation) ───────────────────────────────────────────────────
