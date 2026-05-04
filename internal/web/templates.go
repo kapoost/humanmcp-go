@@ -647,11 +647,6 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 <form method="POST" action="/contact" style="display:grid;gap:.75rem;">
   <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Name or handle <span style="opacity:.5">(optional)</span></label>
   <input type="text" name="from" maxlength="32" value="{{.From}}" placeholder="anonymous" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);"></div>
-  {{if .Pieces}}<div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">About a piece <span style="opacity:.5">(optional)</span></label>
-  <select name="regarding" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
-  <option value="">&#8212; general &#8212;</option>
-  {{range .Pieces}}<option value="{{.Slug}}">{{.Title}}</option>{{end}}
-  </select></div>{{end}}
   <div><label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:.3rem;">Message <span style="color:#c0392b">*</span></label>
   <textarea name="text" id="msg-text" maxlength="2000" rows="5" placeholder="Plain text only. No links. Max 2000 characters." oninput="document.getElementById('cc').textContent=this.value.length+'/2000'">{{.Text}}</textarea>
   <div style="font-size:.72rem;color:var(--muted);text-align:right;" id="cc">0/2000</div></div>
