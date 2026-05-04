@@ -35,6 +35,7 @@ type Handler struct {
 	memoryStore   *content.MemoryStore
 	listingStore  *content.ListingStore
 	subStore      *content.SubscriptionStore
+	questionStore *content.QuestionStore
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore, listingStore *content.ListingStore, subStore *content.SubscriptionStore) *Handler {
@@ -48,9 +49,10 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		skillStore:   skillStore,
 		sessionCode:  sessionCode,
 		memoryStore:  memoryStore,
-		listingStore: listingStore,
-		subStore:     subStore,
-		loginLimiter: newLoginRateLimiter(),
+		listingStore:  listingStore,
+		subStore:      subStore,
+		questionStore: content.NewQuestionStore(cfg.ContentDir),
+		loginLimiter:  newLoginRateLimiter(),
 	}
 	if cfg.SigningPrivateKey != "" {
 		if kp, err := content.KeyPairFromBase64(cfg.SigningPrivateKey); err == nil {
@@ -208,6 +210,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Messages (owner only)
 	mux.Handle("/messages", h.auth.RequireOwner(http.HandlerFunc(h.handleMessages)))
 
+	// Questions (owner only)
+	mux.Handle("/questions", h.auth.RequireOwner(http.HandlerFunc(h.handleQuestions)))
+	mux.Handle("/questions/answer", h.auth.RequireOwner(http.HandlerFunc(h.handleAnswerQuestion)))
+
 	// Contact form (public)
 	mux.HandleFunc("/contact", h.handleContact)
 
@@ -296,7 +302,7 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 		"remotes": []map[string]interface{}{
 			{"type": "streamable-http", "url": "https://" + h.cfg.Domain + "/mcp"},
 		},
-		"tags": []string{"content", "publishing", "poetry", "intellectual-property", "personal", "creative"},
+		"tags": []string{"content", "publishing", "poetry", "intellectual-property", "personal", "creative", "artwork", "provenance", "async-questions"},
 		"personality": map[string]interface{}{
 			"tone":        "direct, poetic, no filler",
 			"languages":   []string{"pl", "en"},
@@ -957,6 +963,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 		}
 		if p.Type == "" { p.Type = "note" }
 		p.License = r.FormValue("license")
+		p.Price = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
 			for _, t := range strings.Split(tags, ",") {
@@ -1034,6 +1041,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		p.Access      = content.AccessLevel(r.FormValue("access"))
 		p.Gate        = content.GateType(r.FormValue("gate"))
 		p.License      = r.FormValue("license")
+		p.Price        = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		p.Challenge   = r.FormValue("challenge")
 		p.Answer      = r.FormValue("answer")
@@ -1575,8 +1583,8 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 		"openapi": "3.1.0",
 		"info": map[string]interface{}{
 			"title":       h.cfg.AuthorName + "'s humanMCP",
-			"description": h.cfg.AuthorBio,
-			"version":     "0.2.0",
+			"description": h.cfg.AuthorBio + " | 34+ MCP tools including ask_human (private async Q&A), artwork provenance, i18n PL/EN",
+			"version":     "0.3.0",
 		},
 		"servers": []map[string]interface{}{
 			{"url": "https://" + h.cfg.Domain},
@@ -1807,6 +1815,34 @@ func (h *Handler) handleMessages(w http.ResponseWriter, r *http.Request) {
 		"Messages": msgs,
 		"IsOwner":  true,
 	})
+}
+
+func (h *Handler) handleQuestions(w http.ResponseWriter, r *http.Request) {
+	questions, _ := h.questionStore.ListPending()
+	h.render(w, "questions.html", map[string]interface{}{
+		"Author":    h.cfg.AuthorName,
+		"Questions": questions,
+		"IsOwner":   true,
+	})
+}
+
+func (h *Handler) handleAnswerQuestion(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/questions", http.StatusSeeOther)
+		return
+	}
+	r.ParseForm()
+	id := r.FormValue("question_id")
+	answer := r.FormValue("answer")
+	if id == "" || answer == "" {
+		http.Error(w, "question_id and answer required", 400)
+		return
+	}
+	if err := h.questionStore.AnswerQuestion(id, answer); err != nil {
+		http.Error(w, "error: "+err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/questions", http.StatusSeeOther)
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -2136,7 +2172,7 @@ func (h *Handler) handleAgentCard(w http.ResponseWriter, r *http.Request) {
 			"discovery":      "https://" + h.cfg.Domain + "/.well-known/mcp-server.json",
 			"auth":           "session_code",
 			"auth_hint":      "Ask the user for a short Polish poetry fragment from their dashboard",
-			"capabilities":   []string{"content", "search", "skills", "memory", "bootstrap"},
+			"capabilities":   []string{"content", "search", "skills", "memory", "bootstrap", "ask_human", "provenance", "listings"},
 			"for_agents":     "https://" + h.cfg.Domain + "/for-agents",
 		},
 		"restAPI": map[string]interface{}{
@@ -2187,9 +2223,17 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 			},
 			"how_to_start": []string{
 				"1. Call get_author_profile — learn who you are talking to",
-				"2. Call list_skills — see available context categories",
-				"3. Ask the user for their session code (Polish poetry fragment from dashboard)",
-				"4. Call bootstrap_session(code, format=full) — receive complete context",
+				"2. Call list_content — browse public poems, essays, artworks",
+				"3. Call ask_human — ask kapoost a question (private, async)",
+				"4. Ask the user for their session code (Polish poetry fragment from dashboard)",
+				"5. Call bootstrap_session(code, format=full) — receive complete context",
+			},
+			"tools_highlight": []string{
+				"ask_human — ask the author a question privately (returns question_id)",
+				"get_answer — check if the author answered (by question_id)",
+				"leave_comment — react to any piece (kapoost reads every one)",
+				"read_content — read poems, essays, artworks (respects gates and licenses)",
+				"get_certificate — full IP certificate with originality index",
 			},
 			"about_humanmcp": map[string]interface{}{
 				"what":   "An open source personal MCP server. Every human can run their own.",

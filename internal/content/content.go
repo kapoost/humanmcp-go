@@ -38,6 +38,7 @@ type Piece struct {
 	Challenge   string      `json:"Challenge"`
 	Answer      string      `json:"Answer"`
 	License     string      `json:"License"`    // LicenseType string
+	Price       string      `json:"Price"`      // free-form: "500 PLN", "$200", "trade"
 	PriceSats   int         `json:"PriceSats"`
 	UnlockAfter time.Time   `json:"UnlockAfter"` // for time gate
 	Tags        []string    `json:"Tags"`
