@@ -14,7 +14,7 @@ humanMCP lets any human publish content and services with cryptographic proof of
 
 Every human can run their own instance. One server, one person, their rules.
 
-## MCP Tools (34+)
+## MCP Tools (37+)
 
 **Content & Discovery**
 | Tool | Description |
@@ -65,6 +65,12 @@ Every human can run their own instance. One server, one person, their rules.
 | `list_listings` / `read_listing` | Browse classified ads |
 | `respond_to_listing` | Send response to listing |
 | `subscribe_listings` / `unsubscribe_listings` | Webhook subscriptions |
+
+**Federation**
+| Tool | Description |
+|---|---|
+| `list_peers` | List known humanMCP servers in the network |
+| `announce_peer` | Announce your server to join the network |
 
 **Meta**
 | Tool | Description |
@@ -151,10 +157,12 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 
 ## Features
 
-- **i18n** — PL/EN language toggle on main page (auto-detect or manual switch, stored in localStorage)
+- **i18n** — PL/EN language toggle on main page (EN default, stored in localStorage)
+- **License wizard** — per-piece usage rules: what humans may do, what AI agents may do
 - **Artworks** — photo upload, medium, dimensions, year, provenance documents
 - **Provenance** — attach certificates, sale records, expert opinions to artworks (signed)
 - **ask_human** — agents can ask the author questions privately (async Q&A, invisible to public)
+- **Federation** — peer discovery via `list_peers` / `announce_peer` MCP tools and `/api/peers` REST
 - **Dynamic sections** — main page shows only sections with published content
 - **Free-form pricing** — any currency, any format ("500 PLN", "$200", "trade only")
 
