@@ -113,6 +113,8 @@ input{font-family:inherit;font-size:inherit;}
 .te{background:rgba(122,173,224,.07);color:var(--blu);border:1px solid rgba(122,173,224,.18);}
 .tn{background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .ti,.td,.tc,.tx{background:var(--fnt);color:var(--mut);border:1px solid var(--b1);}
+.ta{background:rgba(180,130,80,.08);color:#c4956a;border:1px solid rgba(180,130,80,.2);}
+.tl{background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .tlk{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:1px;background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.18);}
 .tsg{font-size:9px;padding:2px 6px;border-radius:1px;background:rgba(106,171,126,.07);color:var(--grn);border:1px solid rgba(106,171,126,.18);}
 .tile-date{font-size:9px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
@@ -174,7 +176,7 @@ input{font-family:inherit;font-size:inherit;}
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
 const LS='humannetwork-v1', LT='humanmcp-theme', LL='humanmcp-lang';
-const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx'};
+const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx',artwork:'ta',listing:'tl'};
 
 const T = {
   en: {
@@ -315,6 +317,8 @@ async function loadSub(url){
   let pieces=[],piecesErr=null;
   try{const t=await mcpCall(url,'list_content',{});pieces=parsePieces(t);if(!pieces.length&&t)piecesErr='No pieces parsed';}
   catch(e){piecesErr=e.message;}
+  // Also fetch listings
+  try{const r=await fetch(`${url}/listings/feed.json`);if(r.ok){const feed=await r.json();const listings=(feed.listings||[]).map(l=>({slug:l.slug||l.id,title:l.title,type:'listing',tags:l.tags||[],published:l.published||l.created,description:l.body?(l.body.slice(0,120)+'...'):l.listing_type}));pieces=pieces.concat(listings);}}catch{}
   return{url,profile,pieces,piecesErr};
 }
 
@@ -522,7 +526,7 @@ function App(){
   }
   function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
   // Bot-only types are consumed directly via MCP — HumanNetwork shows human content only
-  const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule']);
+  const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule','artwork','listing']);
   const feed=subs.flatMap(sub=>(sub.pieces||[])
     .filter(p=>HUMAN_TYPES.has((gf(p,'type')||'note').toLowerCase()))
     .map(p=>({...p,_sub:sub})))
