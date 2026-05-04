@@ -10,7 +10,7 @@ A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
 ## What it is
 
-humanMCP lets you publish poems, essays, notes, images, listings, and typed data artifacts with cryptographic proof of authorship, explicit license terms, and full control over who can access what. AI agents connect via MCP and interact with your content natively.
+humanMCP lets any human publish content and services with cryptographic proof of authorship, explicit license terms, and full control over access. Writers, artists, consultants, craftspeople, galleries, freelancers — anyone who creates valuable work. AI agents connect via MCP and interact with your content natively.
 
 Every human can run their own instance. One server, one person, their rules.
 
@@ -152,8 +152,8 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 ## Features
 
 - **i18n** — PL/EN language toggle on main page (auto-detect or manual switch, stored in localStorage)
-- **Artworks** — dedicated form for painters/artists: photo upload, medium, dimensions, year, provenance documents
-- **Provenance** — attach certificates, sale records, expert opinions to artworks (signed, with file upload)
+- **Artworks** — photo upload, medium, dimensions, year, provenance documents
+- **Provenance** — attach certificates, sale records, expert opinions to artworks (signed)
 - **ask_human** — agents can ask the author questions privately (async Q&A, invisible to public)
 - **Dynamic sections** — main page shows only sections with published content
 - **Free-form pricing** — any currency, any format ("500 PLN", "$200", "trade only")
