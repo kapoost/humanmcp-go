@@ -228,10 +228,20 @@ function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';re
 // Strip agent-only footer lines from humanMCP body text
 function cleanBody(text){
   if(!text||typeof text!=='string')return text;
-  return text
+  // Strip MCP agent footer: everything from "— author" signature or LICENSE block
+  let t=text;
+  const licIdx=t.indexOf('\nLICENSE:');
+  if(licIdx>0)t=t.slice(0,licIdx);
+  const logIdx=t.indexOf('\nThis read has been logged');
+  if(logIdx>0)t=t.slice(0,logIdx);
+  const reactIdx=t.indexOf('\n— Leave your reaction');
+  if(reactIdx>0)t=t.slice(0,reactIdx);
+  return t
     .replace(/\nYou may share[^\n]*/g,'')
     .replace(/\n— Ask the reader[^\n]*/g,'')
     .replace(/\ntags:[^\n]*/g,'')
+    .replace(/\nHuman use:[^\n]*/g,'')
+    .replace(/\nAgent use:[^\n]*/g,'')
     .trim();
 }
 
@@ -418,7 +428,8 @@ function DetailView({piece,body,bodyLoading,preview,onClose,t}){
   const tc=TCLS[type]||'tx';
   const author=gf(sub.profile,'title')||sub.url.replace('https://','');
   const av=avBg(sub.url);
-  const isImg=type==='image';
+  const isImg=type==='image'||type==='artwork';
+  const pieceUrl=type==='listing'?`${sub.url}/listings/${slug}`:`${sub.url}/p/${slug}`;
   return(
     <div className="dv">
       <button className="dv-back" onClick={onClose}>{t.backToFeed}</button>
@@ -444,7 +455,7 @@ function DetailView({piece,body,bodyLoading,preview,onClose,t}){
           :<div className="dv-body">{cleanBody(body)||t.empty}</div>
         }
       </div>
-      <a href={`${sub.url}/p/${slug}`} target="_blank" rel="noopener noreferrer" className="dv-link">{t.openOn} {sub.url.replace('https://','')}</a>
+      <a href={pieceUrl} target="_blank" rel="noopener noreferrer" className="dv-link">{t.openOn} {sub.url.replace('https://','')}</a>
     </div>
   );
 }
@@ -592,8 +603,11 @@ function App(){
                     setOpen(key);
                     if(!bodies[key]){
                       setBodyL(key);
-                      mcpCall(piece._sub.url,'read_content',{slug:gf(piece,'slug')})
-                        .then(t=>{setBodies(p=>({...p,[key]:t||'(empty)'}));setBodyL(null);})
+                      const slug=gf(piece,'slug');
+                      const ptype=(gf(piece,'type')||'').toLowerCase();
+                      const tool=ptype==='listing'?'read_listing':'read_content';
+                      mcpCall(piece._sub.url,tool,{slug})
+                        .then(t=>{setBodies(p=>({...p,[key]:cleanBody(t)||'(empty)'}));setBodyL(null);})
                         .catch(e=>{setBodies(p=>({...p,[key]:`Error: ${e.message}`}));setBodyL(null);});
                     }
                   }
