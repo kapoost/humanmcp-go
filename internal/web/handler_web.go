@@ -36,6 +36,7 @@ type Handler struct {
 	listingStore  *content.ListingStore
 	subStore      *content.SubscriptionStore
 	questionStore *content.QuestionStore
+	peerStore     *content.PeerStore
 }
 
 func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionCode *content.SessionCode, memoryStore *content.MemoryStore, skillStore *content.SkillStore, listingStore *content.ListingStore, subStore *content.SubscriptionStore) *Handler {
@@ -52,6 +53,7 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		listingStore:  listingStore,
 		subStore:      subStore,
 		questionStore: content.NewQuestionStore(cfg.ContentDir),
+		peerStore:     content.NewPeerStore(cfg.ContentDir),
 		loginLimiter:  newLoginRateLimiter(),
 	}
 	if cfg.SigningPrivateKey != "" {
@@ -282,6 +284,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// RSS feed
 	mux.HandleFunc("/rss.xml", h.handleRSS)
+
+	// Peers (federation)
+	mux.HandleFunc("/api/peers", h.handleAPIPeers)
+	mux.Handle("/peers/add", h.auth.RequireOwner(http.HandlerFunc(h.handlePeerAdd)))
+	mux.Handle("/peers/remove", h.auth.RequireOwner(http.HandlerFunc(h.handlePeerRemove)))
 
 	// Login/logout for web UI
 	mux.HandleFunc("/login", h.handleLogin)
@@ -963,6 +970,8 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 		}
 		if p.Type == "" { p.Type = "note" }
 		p.License = r.FormValue("license")
+		p.HumanUse = r.FormValue("human_use")
+		p.AgentUse = r.FormValue("agent_use")
 		p.Price = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
@@ -1041,6 +1050,8 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		p.Access      = content.AccessLevel(r.FormValue("access"))
 		p.Gate        = content.GateType(r.FormValue("gate"))
 		p.License      = r.FormValue("license")
+		p.HumanUse     = r.FormValue("human_use")
+		p.AgentUse     = r.FormValue("agent_use")
 		p.Price        = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		p.Challenge   = r.FormValue("challenge")
@@ -1843,6 +1854,48 @@ func (h *Handler) handleAnswerQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/questions", http.StatusSeeOther)
+}
+
+// --- Peers (federation) ---
+
+func (h *Handler) handleAPIPeers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	peers := h.peerStore.List()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"peers": peers,
+		"server": map[string]string{
+			"name": h.cfg.AuthorName,
+			"url":  "https://" + h.cfg.Domain,
+			"mcp":  "https://" + h.cfg.Domain + "/mcp",
+		},
+	})
+}
+
+func (h *Handler) handlePeerAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", 405)
+		return
+	}
+	url := strings.TrimSpace(r.FormValue("url"))
+	name := strings.TrimSpace(r.FormValue("name"))
+	bio := strings.TrimSpace(r.FormValue("bio"))
+	if url == "" {
+		http.Error(w, "url required", 400)
+		return
+	}
+	h.peerStore.Add(url, name, bio)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (h *Handler) handlePeerRemove(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", 405)
+		return
+	}
+	url := strings.TrimSpace(r.FormValue("url"))
+	h.peerStore.Remove(url)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {

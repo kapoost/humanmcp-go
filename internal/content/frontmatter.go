@@ -38,6 +38,10 @@ func parseFrontmatter(lines []string, p *Piece) {
 		case "license":
 			p.License = unquote(v)
 			fmt.Sscanf(strings.TrimSpace(v), "%d", &p.PriceSats)
+		case "human_use":
+			p.HumanUse = unquote(v)
+		case "agent_use":
+			p.AgentUse = unquote(v)
 		case "published":
 			for _, layout := range []string{time.RFC3339, "2006-01-02", "2006-01-02T15:04:05Z"} {
 				if t, err := time.Parse(layout, strings.TrimSpace(unquote(v))); err == nil {
@@ -99,6 +103,8 @@ func marshalFrontmatter(p *Piece) string {
 	if len(p.Tags) > 0 { sb.WriteString("tags: [" + strings.Join(p.Tags, ", ") + "]\n") }
 	if p.Signature != "" { wf("signature", p.Signature) }
 	if p.License != "" { wf("license", p.License) }
+	if p.HumanUse != "" { wf("human_use", p.HumanUse) }
+	if p.AgentUse != "" { wf("agent_use", p.AgentUse) }
 	if !p.Published.IsZero() { sb.WriteString("published: " + p.Published.Format("2006-01-02") + "\n") }
 	return sb.String()
 }

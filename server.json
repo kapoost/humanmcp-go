@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.kapoost/humanmcp",
   "title": "humanMCP — kapoost",
-  "description": "Personal MCP server for humans. Publish content, store skills, bootstrap expert team.",
-  "version": "0.2.0",
+  "description": "Personal MCP server for humans who create. Proof of authorship, license control, AI-native discovery. Writers, artists, consultants, freelancers, galleries, teachers. Your content, your rules.",
+  "version": "0.3.0",
   "license": "MIT",
   "homepage": "https://humanmcp.net",
   "repository": {
@@ -26,18 +26,21 @@
     }
   ],
   "tags": [
-    "content", "publishing", "poetry", "skills",
-    "knowledge-vault", "personal", "creative", "bootstrap", "listings"
+    "content", "publishing", "authorship", "provenance", "licensing",
+    "creative", "personal", "skills", "listings", "marketplace",
+    "ask-human", "signatures", "ed25519", "opentimestamps"
   ],
   "capabilities": {
     "public": [
       "get_author_profile", "list_content", "read_content", "search_content",
       "list_skills", "list_listings", "leave_message", "leave_comment",
-      "verify_content", "get_certificate", "about_humanmcp"
+      "verify_content", "get_certificate", "request_license",
+      "ask_human", "about_humanmcp"
     ],
     "authenticated": [
       "bootstrap_session", "query_vault", "list_vault",
-      "remember", "recall", "get_persona", "get_skill", "list_personas"
+      "remember", "recall", "get_persona", "get_skill", "list_personas",
+      "get_answer"
     ]
   }
 }
