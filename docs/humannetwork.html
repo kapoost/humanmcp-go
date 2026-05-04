@@ -481,9 +481,16 @@ function App(){
       const type=(gf(piece,'type')||'').toLowerCase();
       setTimeout(async()=>{
         try{
-          if(type==='image'){
-            const text=await mcpCall(piece._sub.url,'read_blob',{slug});
-            const src=extractImageSrc(text);
+          if(type==='image'||type==='artwork'){
+            let src=null;
+            try{const text=await mcpCall(piece._sub.url,'read_blob',{slug});src=extractImageSrc(text);}catch{}
+            if(!src){
+              // Fallback: try direct file URL
+              const base=piece._sub.url;
+              for(const ext of ['.jpg','.jpeg','.png','.webp']){
+                try{const r=await fetch(`${base}/files/${slug}${ext}`,{method:'HEAD'});if(r.ok){src=`${base}/files/${slug}${ext}`;break;}}catch{}
+              }
+            }
             if(src)setPreviews(p=>({...p,[key]:{kind:'img',src}}));
           }else{
             const text=await mcpCall(piece._sub.url,'read_content',{slug});
