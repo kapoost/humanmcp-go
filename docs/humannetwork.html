@@ -228,8 +228,20 @@ function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';re
 // Strip agent-only footer lines from humanMCP body text
 function cleanBody(text){
   if(!text||typeof text!=='string')return text;
-  // Strip MCP agent footer: everything from "— author" signature or LICENSE block
-  let t=text;
+  // If it's JSON (listing response), parse and extract body
+  let t=text.trim();
+  if(t.startsWith('{')){
+    try{
+      const obj=JSON.parse(t);
+      const parts=[];
+      if(obj.body)parts.push(obj.body);
+      if(obj.type)parts.push('Type: '+obj.type);
+      if(obj.status)parts.push('Status: '+obj.status);
+      if(obj.price)parts.push('Price: '+obj.price);
+      return parts.join('\n\n')||t;
+    }catch{}
+  }
+  // Strip MCP agent footer
   const licIdx=t.indexOf('\nLICENSE:');
   if(licIdx>0)t=t.slice(0,licIdx);
   const logIdx=t.indexOf('\nThis read has been logged');
