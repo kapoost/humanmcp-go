@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>humanMCP for Artists</title>
-<meta name="description" content="A personal server for painters and artists. Cryptographic proof of authorship, provenance documents, AI-native discovery. Your art, your rules.">
+<meta name="description" content="A personal server for painters, artists, and independent galleries. Cryptographic proof of authorship, provenance documents, AI-native discovery. Your art, your rules.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script>
@@ -122,8 +122,8 @@ footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
     <span data-pl>Twoja sztuka.<br><strong>Twój dowód.</strong></span>
   </h1>
   <p class="hero-sub">
-    <span data-en>A personal server for painters and artists. Cryptographic proof of authorship, provenance documents, AI&#8209;native discovery. No galleries taking 50%. No platforms owning your data.</span>
-    <span data-pl>Osobisty serwer dla malarzy i&nbsp;artystów. Kryptograficzny dowód autorstwa, dokumenty proweniencji, odkrywanie przez AI. Bez galerii biorących 50%. Bez platform posiadających Twoje dane.</span>
+    <span data-en>A personal server for painters, artists, and independent galleries. Cryptographic proof of authorship, provenance documents, AI&#8209;native discovery. No big platforms owning your data. No middlemen taking half.</span>
+    <span data-pl>Osobisty serwer dla malarzy, artystów i&nbsp;niezależnych galerii. Kryptograficzny dowód autorstwa, dokumenty proweniencji, odkrywanie przez AI. Bez wielkich platform posiadających Twoje dane. Bez pośredników biorących połowę.</span>
   </p>
   <div class="hero-cta">
     <a href="https://github.com/kapoost/humanmcp-go" class="primary"><span data-en>run your own server</span><span data-pl>postaw swój serwer</span></a>
@@ -202,6 +202,20 @@ footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
   </div>
 </section>
 
+<!-- USER STORIES -->
+<section class="reveal">
+  <div class="section-label"><span data-en>who is this for</span><span data-pl>dla kogo to jest</span></div>
+  <h2><span data-en>Real scenarios, real people</span><span data-pl>Prawdziwe scenariusze, prawdziwi ludzie</span></h2>
+
+  <h3><span data-en>Marta — independent painter, Kraków</span><span data-pl>Marta — niezależna malarka, Kraków</span></h3>
+  <p><span data-en>Marta paints large-format oils. She sells directly from her studio and at local fairs. She has no gallery representation and doesn't want one — but she needs proof that each painting is hers, and a way for collectors to verify provenance years from now.</span><span data-pl>Marta maluje wielkoformatowe oleje. Sprzedaje bezpośrednio z&nbsp;pracowni i&nbsp;na lokalnych targach. Nie ma galerii i&nbsp;nie chce — ale potrzebuje dowodu, że każdy obraz jest jej, i&nbsp;sposobu, by kolekcjonerzy mogli zweryfikować proweniencję za lata.</span></p>
+  <p><span data-en>She sets up her humanMCP server. Photographs each painting, uploads it with dimensions, medium, year. Every piece gets an Ed25519 signature and a Bitcoin timestamp. When she sells at a fair, she hands the buyer a link — the certificate of authenticity lives on her server, verifiable forever. An AI agent representing a Berlin collector discovers her work via MCP, requests a license, and sends a private inquiry through ask_human. Marta answers from her phone the next morning.</span><span data-pl>Stawia swój serwer humanMCP. Fotografuje każdy obraz, wgrywa z&nbsp;wymiarami, techniką, rokiem. Każde dzieło dostaje podpis Ed25519 i&nbsp;znacznik Bitcoin. Gdy sprzedaje na targach, daje kupującemu link — certyfikat autentyczności żyje na jej serwerze, weryfikowalny na zawsze. Agent AI reprezentujący berlińskiego kolekcjonera odkrywa jej prace przez MCP, prosi o&nbsp;licencję i&nbsp;wysyła prywatne zapytanie przez ask_human. Marta odpowiada z&nbsp;telefonu następnego ranka.</span></p>
+
+  <h3><span data-en>Galeria Światło — small gallery, Wrocław</span><span data-pl>Galeria Światło — mała galeria, Wrocław</span></h3>
+  <p><span data-en>A two-room gallery representing twelve painters. The owner runs a humanMCP server as the gallery's digital presence — each artist has a section, each artwork has provenance documents attached. Sale records, exhibition history, conservation reports — all signed, all timestamped.</span><span data-pl>Dwusalowa galeria reprezentująca dwunastu malarzy. Właścicielka prowadzi serwer humanMCP jako cyfrową obecność galerii — każdy artysta ma sekcję, każde dzieło ma dołączone dokumenty proweniencji. Akty sprzedaży, historia wystaw, protokoły konserwacji — wszystko podpisane, wszystko ze znacznikiem czasu.</span></p>
+  <p><span data-en>When a client asks "is this authentic?", the gallery sends a link. The signature speaks for itself. When AI agents browse the marketplace looking for Polish contemporary art, they find the gallery's listings — with verifiable provenance built in. The gallery keeps its margin, the artists keep their reputation, and nobody depends on Instagram's algorithm to be seen.</span><span data-pl>Gdy klient pyta „czy to autentyczne?", galeria wysyła link. Podpis mówi sam za siebie. Gdy agenty AI przeglądają marketplace szukając polskiej sztuki współczesnej, znajdują ogłoszenia galerii — z&nbsp;wbudowaną weryfikowalną proweniencją. Galeria utrzymuje swoją marżę, artyści zachowują reputację, i&nbsp;nikt nie zależy od algorytmu Instagrama, żeby być widzianym.</span></p>
+</section>
+
 <!-- TRUST -->
 <section class="reveal">
   <div class="section-label"><span data-en>why it matters</span><span data-pl>dlaczego to ważne</span></div>
@@ -233,8 +247,8 @@ footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
 <!-- FINAL CTA -->
 <section class="final-cta">
   <h2>
-    <span data-en>Your art deserves more<br>than an Instagram grid.</span>
-    <span data-pl>Twoja sztuka zasługuje na więcej<br>niż siatka Instagrama.</span>
+    <span data-en>Your art deserves more<br>than an algorithm's mercy.</span>
+    <span data-pl>Twoja sztuka zasługuje na więcej<br>niż łaskę algorytmu.</span>
   </h2>
   <p class="final-sub"><span data-en>open source · zero fees · your server, your rules</span><span data-pl>open source · zero opłat · Twój serwer, Twoje zasady</span></p>
   <div class="btn-row">
