@@ -75,6 +75,7 @@ type Handler struct {
 	listingStore  *content.ListingStore
 	subStore      *content.SubscriptionStore
 	questionStore *content.QuestionStore
+	peerStore     *content.PeerStore
 
 	rateMu   sync.Mutex
 	rateMap  map[string]*rateBucket
@@ -95,6 +96,7 @@ func NewHandler(cfg *config.Config, store *content.Store, a *auth.Auth, sessionC
 		listingStore:  listingStore,
 		subStore:      subStore,
 		questionStore: content.NewQuestionStore(cfg.ContentDir),
+		peerStore:     content.NewPeerStore(cfg.ContentDir),
 		rateMap:       make(map[string]*rateBucket),
 	}
 	go h.rateCleanup()
@@ -617,6 +619,36 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 		{
+			Name:        "list_peers",
+			Description: "List known humanMCP servers in this node's network. Use to discover other creators and their content.",
+			InputSchema: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+		{
+			Name:        "announce_peer",
+			Description: "Announce your humanMCP server to this node. Provide your server URL so we can discover each other.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"url": map[string]interface{}{
+						"type":        "string",
+						"description": "Your humanMCP server URL (e.g. https://alice.humanmcp.net)",
+					},
+					"name": map[string]interface{}{
+						"type":        "string",
+						"description": "Server owner's name",
+					},
+					"bio": map[string]interface{}{
+						"type":        "string",
+						"description": "Short description",
+					},
+				},
+				"required": []string{"url"},
+			},
+		},
+		{
 			Name:        "list_skills",
 			Description: "List the author's skills — instructions for how to work with them. Filter by category (e.g. tech, writing, workflow).",
 			InputSchema: map[string]interface{}{
@@ -824,6 +856,10 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 		h.toolAskHuman(w, req, params.Arguments)
 	case "get_answer":
 		h.toolGetAnswer(w, req, params.Arguments)
+	case "list_peers":
+		h.toolListPeers(w, req)
+	case "announce_peer":
+		h.toolAnnouncePeer(w, req, params.Arguments)
 	case "query_vault":
 		h.toolQueryVault(w, req, params.Arguments)
 	case "list_vault":
@@ -1087,6 +1123,12 @@ func contentFooter(p *content.Piece) string {
 		sb.WriteString("\nCommercial use requires request_license before any reproduction or derivative work.")
 	default:
 		sb.WriteString("\nAll rights reserved. Quote briefly with attribution. Other use requires request_license.")
+	}
+	if p.HumanUse != "" {
+		sb.WriteString(fmt.Sprintf("\nHuman use: %s", p.HumanUse))
+	}
+	if p.AgentUse != "" {
+		sb.WriteString(fmt.Sprintf("\nAgent use: %s", p.AgentUse))
 	}
 	sb.WriteString("\nThis read has been logged.")
 	sb.WriteString(fmt.Sprintf("\n\n— Leave your reaction: leave_comment {slug: %q, text: \"your reaction\", from: \"your-name\"}", p.Slug))
@@ -1619,10 +1661,18 @@ func (h *Handler) toolRequestLicense(w http.ResponseWriter, req *Request, args j
 	license := content.LicenseType(p.License)
 	if license == "" { license = content.LicenseFree }
 	sb.WriteString(fmt.Sprintf("License:       %s\n", license))
-	if p.PriceSats > 0 {
+	if p.Price != "" {
+		sb.WriteString(fmt.Sprintf("Price:         %s\n", p.Price))
+	} else if p.PriceSats > 0 {
 		sb.WriteString(fmt.Sprintf("Price:         %d sats\n", p.PriceSats))
 	} else {
 		sb.WriteString("Price:         free\n")
+	}
+	if p.HumanUse != "" {
+		sb.WriteString(fmt.Sprintf("Human use:     %s\n", p.HumanUse))
+	}
+	if p.AgentUse != "" {
+		sb.WriteString(fmt.Sprintf("Agent use:     %s\n", p.AgentUse))
 	}
 	sb.WriteString(fmt.Sprintf("Intended use:  %s\n\n", a.IntendedUse))
 	// Check if use is permitted
@@ -2281,6 +2331,48 @@ Endpoint: https://` + h.cfg.Domain + `/mcp
 Discovery: https://` + h.cfg.Domain + `/.well-known/mcp-server.json`
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+}
+
+// ── Peer tools (federation) ───────────────────────────────────────────────────
+
+func (h *Handler) toolListPeers(w http.ResponseWriter, req *Request) {
+	peers := h.peerStore.List()
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Known humanMCP peers (%d):\n\n", len(peers)))
+	sb.WriteString(fmt.Sprintf("This server: %s — https://%s/mcp\n\n", h.cfg.AuthorName, h.cfg.Domain))
+	if len(peers) == 0 {
+		sb.WriteString("No peers yet. Use announce_peer to introduce your server.\n")
+		sb.WriteString("Or connect to the marketplace: https://marketplace.humanmcp.net/mcp\n")
+	}
+	for _, p := range peers {
+		sb.WriteString(fmt.Sprintf("- %s", p.URL))
+		if p.Name != "" {
+			sb.WriteString(fmt.Sprintf(" (%s)", p.Name))
+		}
+		if p.Bio != "" {
+			sb.WriteString(fmt.Sprintf(" — %s", p.Bio))
+		}
+		sb.WriteString("\n")
+	}
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+func (h *Handler) toolAnnouncePeer(w http.ResponseWriter, req *Request, args json.RawMessage) {
+	var a struct {
+		URL  string `json:"url"`
+		Name string `json:"name"`
+		Bio  string `json:"bio"`
+	}
+	json.Unmarshal(args, &a)
+	if a.URL == "" {
+		writeError(w, req.ID, -32602, "url required")
+		return
+	}
+	if h.peerStore.Add(a.URL, a.Name, a.Bio) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("Welcome! %s has been added to the peer network.\nThis server: https://%s/mcp\nYou can now list_peers to see all known nodes.", a.URL, h.cfg.Domain)}}})
+	} else {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("%s is already known. Use list_peers to see the network.", a.URL)}}})
+	}
 }
 
 // ── Vault tools ───────────────────────────────────────────────────────────────

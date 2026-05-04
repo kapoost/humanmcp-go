@@ -146,7 +146,10 @@ const allTemplates = `
       help_next: 'następny', help_prev: 'poprzedni', help_open: 'otwórz', help_search: 'szukaj',
       help_tab: 'następna sekcja', help_close: 'zamknij pomoc',
       sl_wiersze: 'wiersze', sl_obrazy: 'obrazy', sl_artworks: 'dzieła', sl_ogloszenia: 'ogłoszenia',
-      aw_price: 'Cena'
+      aw_price: 'Cena',
+      license_rules: 'Licencja i zasady użycia',
+      human_use: 'Ludzie mogą',
+      agent_use: 'Agenty AI mogą'
     },
     en: {
       sec_wiersze: '--- #poems ───────────────────────────────────────────',
@@ -162,7 +165,10 @@ const allTemplates = `
       help_next: 'next item', help_prev: 'previous item', help_open: 'open selected', help_search: 'search',
       help_tab: 'next section', help_close: 'close help',
       sl_wiersze: 'poems', sl_obrazy: 'images', sl_artworks: 'artworks', sl_ogloszenia: 'listings',
-      aw_price: 'Price'
+      aw_price: 'Price',
+      license_rules: 'License & usage rules',
+      human_use: 'Humans may',
+      agent_use: 'AI agents may'
     }
   };
 
@@ -1017,6 +1023,30 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
   <input type="text" name="price" id="aw-price" placeholder="e.g. 500 PLN, $200, trade">
 </div>
 
+<div class="row2">
+  <div>
+    <label class="fl" style="font-size:.85rem;" data-i18n="human_use">Humans may</label>
+    <select name="human_use">
+      <option value="">— not set —</option>
+      <option value="view">view only</option>
+      <option value="view, share">view &amp; share</option>
+      <option value="view, share, buy">view, share &amp; buy</option>
+      <option value="all">all uses</option>
+    </select>
+  </div>
+  <div>
+    <label class="fl" style="font-size:.85rem;" data-i18n="agent_use">AI agents may</label>
+    <select name="agent_use">
+      <option value="">— not set —</option>
+      <option value="discover, describe">discover &amp; describe</option>
+      <option value="discover, describe, thumbnail">+ show thumbnail</option>
+      <option value="discover, describe, thumbnail, full-display">+ full display</option>
+      <option value="all">all uses</option>
+      <option value="none">no access</option>
+    </select>
+  </div>
+</div>
+
 <div class="field">
   <label class="fl">Description</label>
   <textarea id="aw-description" name="description" rows="3" placeholder="Story, context, inspiration...">{{if .Piece}}{{.Piece.Description}}{{end}}</textarea>
@@ -1077,21 +1107,47 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
     <div><label class="fl">Answer</label><input type="text" name="answer" value="{{if .Piece}}{{.Piece.Answer}}{{end}}" placeholder="answer"></div>
   </div>
 
-  <div class="row2">
-    <div>
-      <label class="fl">License</label>
-      <select name="license">
-        <option value="">none</option>
-        <option value="free" {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{end}}>free</option>
-        <option value="cc-by" {{if .Piece}}{{if eq .Piece.License "cc-by"}}selected{{end}}{{end}}>CC-BY</option>
-        <option value="cc-by-nc" {{if .Piece}}{{if eq .Piece.License "cc-by-nc"}}selected{{end}}{{end}}>CC-BY-NC</option>
-        <option value="commercial" {{if .Piece}}{{if eq .Piece.License "commercial"}}selected{{end}}{{end}}>commercial</option>
-        <option value="all-rights" {{if .Piece}}{{if eq .Piece.License "all-rights"}}selected{{end}}{{end}}>all rights reserved</option>
-      </select>
-    </div>
-    <div>
-      <label class="fl">Price <span style="opacity:.5">(free-form)</span></label>
-      <input type="text" name="price" value="{{if .Piece}}{{.Piece.Price}}{{end}}" placeholder="e.g. 500 PLN, $200">
+  <div>
+    <label class="fl" data-i18n="license_rules" style="margin-bottom:.3rem;">License &amp; usage rules</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+      <div>
+        <label class="fl" style="font-size:.75rem;opacity:.7;">License</label>
+        <select name="license">
+          <option value="">none</option>
+          <option value="free" {{if .Piece}}{{if eq .Piece.License "free"}}selected{{end}}{{end}}>free</option>
+          <option value="cc-by" {{if .Piece}}{{if eq .Piece.License "cc-by"}}selected{{end}}{{end}}>CC-BY</option>
+          <option value="cc-by-nc" {{if .Piece}}{{if eq .Piece.License "cc-by-nc"}}selected{{end}}{{end}}>CC-BY-NC</option>
+          <option value="commercial" {{if .Piece}}{{if eq .Piece.License "commercial"}}selected{{end}}{{end}}>commercial</option>
+          <option value="all-rights" {{if .Piece}}{{if eq .Piece.License "all-rights"}}selected{{end}}{{end}}>all rights reserved</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" style="font-size:.75rem;opacity:.7;">Price <span style="opacity:.5">(free-form)</span></label>
+        <input type="text" name="price" value="{{if .Piece}}{{.Piece.Price}}{{end}}" placeholder="e.g. 500 PLN, $200">
+      </div>
+      <div>
+        <label class="fl" style="font-size:.75rem;opacity:.7;" data-i18n="human_use">Humans may</label>
+        <select name="human_use">
+          <option value="" {{if .Piece}}{{if eq .Piece.HumanUse ""}}selected{{end}}{{end}}>— not set —</option>
+          <option value="view" {{if .Piece}}{{if eq .Piece.HumanUse "view"}}selected{{end}}{{end}}>view only</option>
+          <option value="view, share" {{if .Piece}}{{if eq .Piece.HumanUse "view, share"}}selected{{end}}{{end}}>view &amp; share</option>
+          <option value="view, share, print" {{if .Piece}}{{if eq .Piece.HumanUse "view, share, print"}}selected{{end}}{{end}}>view, share &amp; print</option>
+          <option value="view, share, buy" {{if .Piece}}{{if eq .Piece.HumanUse "view, share, buy"}}selected{{end}}{{end}}>view, share &amp; buy</option>
+          <option value="all" {{if .Piece}}{{if eq .Piece.HumanUse "all"}}selected{{end}}{{end}}>all uses</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" style="font-size:.75rem;opacity:.7;" data-i18n="agent_use">AI agents may</label>
+        <select name="agent_use">
+          <option value="" {{if .Piece}}{{if eq .Piece.AgentUse ""}}selected{{end}}{{end}}>— not set —</option>
+          <option value="discover, describe" {{if .Piece}}{{if eq .Piece.AgentUse "discover, describe"}}selected{{end}}{{end}}>discover &amp; describe</option>
+          <option value="discover, describe, thumbnail" {{if .Piece}}{{if eq .Piece.AgentUse "discover, describe, thumbnail"}}selected{{end}}{{end}}>+ show thumbnail</option>
+          <option value="discover, describe, thumbnail, full-display" {{if .Piece}}{{if eq .Piece.AgentUse "discover, describe, thumbnail, full-display"}}selected{{end}}{{end}}>+ full display</option>
+          <option value="discover, describe, thumbnail, full-display, index" {{if .Piece}}{{if eq .Piece.AgentUse "discover, describe, thumbnail, full-display, index"}}selected{{end}}{{end}}>+ index in search</option>
+          <option value="all" {{if .Piece}}{{if eq .Piece.AgentUse "all"}}selected{{end}}{{end}}>all uses</option>
+          <option value="none" {{if .Piece}}{{if eq .Piece.AgentUse "none"}}selected{{end}}{{end}}>no access</option>
+        </select>
+      </div>
     </div>
   </div>
 

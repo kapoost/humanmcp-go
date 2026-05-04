@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>humanMCP for Creators</title>
+<meta name="description" content="A personal server for anyone who creates. Writers, consultants, freelancers, teachers, craftspeople. Proof of authorship, license control, AI-native discovery. Your work, your rules.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var t = localStorage.getItem('humanmcp-theme') || (window.matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.setAttribute('data-lang', localStorage.getItem('humanmcp-lang') || 'en');
+})();
+</script>
+<style>
+:root{--bg:#0e0d0b;--bg2:#141210;--fg:#ede8df;--muted:#7a7268;--faint:#2a2720;--gold:#c9a96e;--gold-dim:rgba(201,169,110,.1);--gold-border:rgba(201,169,110,.22);--green:#6aab7e;--green-dim:rgba(106,171,126,.1);--blue:#7aade0;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;}
+[data-theme="light"]{--bg:#faf8f3;--bg2:#f0ede5;--fg:#1a1610;--muted:#7a7060;--faint:#e0dcd0;--gold:#7a5510;--gold-dim:rgba(122,85,16,.07);--gold-border:rgba(122,85,16,.18);--green:#1d5c30;--green-dim:rgba(29,92,48,.1);--blue:#1a4e8c;}
+[data-lang="en"] [data-pl]{display:none !important;}
+[data-lang="pl"] [data-en]{display:none !important;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--fg);font-family:var(--serif);font-size:19px;line-height:1.75;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:100;}
+[data-theme="light"] body::after{opacity:0;}
+.wrap{max-width:720px;margin:0 auto;padding:0 2rem;}
+a{color:var(--gold);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+.controls{position:fixed;top:1rem;right:1.5rem;display:flex;gap:.4rem;z-index:200;}
+.ctrl-btn{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;padding:4px 10px;border:1px solid var(--faint);background:var(--bg);color:var(--muted);cursor:pointer;border-radius:1px;transition:color .15s,border-color .15s,background .15s;}
+.ctrl-btn:hover{color:var(--gold);border-color:var(--gold-border);}
+
+.hero{padding:8rem 0 4rem;border-bottom:1px solid var(--faint);position:relative;}
+.hero-tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:.75rem;}
+.hero-tag::before{content:'';width:2.5rem;height:1px;background:var(--gold);flex-shrink:0;}
+h1{font-size:clamp(2.8rem,6vw,4.2rem);font-weight:300;font-style:italic;line-height:1.1;letter-spacing:-.02em;margin-bottom:1.5rem;}
+h1 strong{font-weight:600;font-style:normal;}
+.hero-sub{font-size:1.15rem;color:var(--muted);max-width:520px;line-height:1.8;font-weight:300;}
+.hero-cta{margin-top:2.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
+.hero-cta a{font-family:var(--mono);font-size:.8rem;padding:.75rem 1.8rem;text-decoration:none;border-radius:1px;transition:all .2s;}
+.hero-cta .primary{background:var(--gold);color:var(--bg);}
+.hero-cta .primary:hover{filter:brightness(1.15);text-decoration:none;}
+.hero-cta .secondary{border:1px solid var(--faint);color:var(--fg);}
+.hero-cta .secondary:hover{border-color:var(--gold-border);text-decoration:none;}
+
+.breaker{padding:5rem 0;text-align:center;border-bottom:1px solid var(--faint);}
+.breaker-text{font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:300;font-style:italic;line-height:1.35;color:var(--fg);max-width:580px;margin:0 auto;}
+.breaker-text strong{font-weight:600;color:var(--gold);}
+.breaker-sub{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--muted);margin-top:1.5rem;text-transform:uppercase;}
+
+section{padding:4rem 0;border-bottom:1px solid var(--faint);}
+.section-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:2rem;}
+h2{font-size:1.9rem;font-weight:400;margin-bottom:1.5rem;line-height:1.3;}
+h3{font-family:var(--mono);font-size:.92rem;color:var(--gold);margin:2.5rem 0 1rem;letter-spacing:.03em;}
+p{color:var(--muted);margin-bottom:1rem;max-width:600px;}
+
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--faint);border:1px solid var(--faint);margin:1.5rem 0;}
+.feat{background:var(--bg);padding:1.5rem 1.3rem;}
+.feat-title{font-family:var(--mono);font-size:.85rem;color:var(--gold);margin-bottom:.4rem;letter-spacing:.03em;}
+.feat-body{font-size:1rem;color:var(--muted);line-height:1.7;}
+
+.quote{font-size:clamp(1.3rem,3vw,1.8rem);font-weight:300;font-style:italic;line-height:1.45;border-left:2px solid var(--gold);padding-left:1.75rem;margin:2rem 0;color:var(--fg);}
+
+.trust-item{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
+.trust-icon{font-family:var(--mono);font-size:.7rem;color:var(--gold);min-width:1.5rem;padding-top:.25rem;}
+.trust-text{font-size:1rem;color:var(--muted);line-height:1.75;}
+.trust-text strong{color:var(--fg);font-weight:400;}
+
+.final-cta{border-bottom:none;text-align:center;padding:6rem 0;}
+.final-cta h2{text-align:center;font-weight:300;font-style:italic;margin:0 auto 1rem;max-width:520px;font-size:clamp(1.6rem,3vw,2.2rem);}
+.final-cta .final-sub{text-align:center;max-width:400px;margin:0 auto 2.5rem;font-family:var(--mono);font-size:.75rem;color:var(--muted);letter-spacing:.06em;}
+.final-cta .btn-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;}
+.final-cta .btn-row a{font-family:var(--mono);font-size:.8rem;padding:.75rem 1.8rem;text-decoration:none;border-radius:1px;transition:all .2s;}
+.final-cta .btn-row .primary{background:var(--gold);color:var(--bg);}
+.final-cta .btn-row .primary:hover{filter:brightness(1.15);text-decoration:none;}
+.final-cta .btn-row .secondary{border:1px solid var(--faint);color:var(--fg);}
+.final-cta .btn-row .secondary:hover{border-color:var(--gold-border);text-decoration:none;}
+
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.hero>*{animation:fadeUp .6s ease both;}
+.hero>*:nth-child(1){animation-delay:.05s;}
+.hero>*:nth-child(2){animation-delay:.15s;}
+.hero>*:nth-child(3){animation-delay:.25s;}
+.hero>*:nth-child(4){animation-delay:.35s;}
+.hero>*:nth-child(5){animation-delay:.45s;}
+
+footer{padding:3rem 0 4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+footer a{color:var(--muted);}footer a:hover{color:var(--gold);}
+
+@media(max-width:560px){
+  .feat-grid{grid-template-columns:1fr;}
+  .hero{padding:5rem 0 3rem;}
+  section{padding:3rem 0;}
+  .breaker{padding:3.5rem 0;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="controls">
+  <button onclick="toggleLang()" class="ctrl-btn" aria-label="Switch language"><span data-pl>EN</span><span data-en>PL</span></button>
+  <button onclick="toggleTheme()" class="ctrl-btn" aria-label="Toggle theme"><span class="theme-icon"></span></button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">humanMCP for creators</div>
+  <h1>
+    <span data-en>You create.<br><strong>You own it.</strong></span>
+    <span data-pl>Tworzysz.<br><strong>To Twoje.</strong></span>
+  </h1>
+  <p class="hero-sub">
+    <span data-en>A personal server for anyone who creates valuable work. Writers, consultants, freelancers, teachers, craftspeople. Cryptographic proof of authorship, license control, and AI agents that find you &mdash; not the other way around.</span>
+    <span data-pl>Osobisty serwer dla ka&zdot;dego, kto tworzy warto&sacute;ciow&aogon; prac&eogon;. Pisarze, konsultanci, freelancerzy, nauczyciele, rzemie&sacute;lnicy. Kryptograficzny dow&oacute;d autorstwa, kontrola licencji i&nbsp;agenty AI, kt&oacute;re znajduj&aogon; Ciebie &mdash; nie odwrotnie.</span>
+  </p>
+  <div class="hero-cta">
+    <a href="https://github.com/kapoost/humanmcp-go" class="primary"><span data-en>run your own server</span><span data-pl>postaw sw&oacute;j serwer</span></a>
+    <a href="https://kapoost.humanmcp.net" class="secondary"><span data-en>see it live</span><span data-pl>zobacz na &zdot;ywo</span></a>
+  </div>
+</section>
+
+<!-- BREAKER -->
+<div class="breaker reveal">
+  <p class="breaker-text">
+    <span data-en>If you made it,<br>you should be able to <strong>prove it.</strong></span>
+    <span data-pl>Je&sacute;li to stworzy&lstrok;e&sacute;,<br>powiniene&sacute; m&oacute;c to <strong>udowodni&cacute;.</strong></span>
+  </p>
+  <p class="breaker-sub">Ed25519 &middot; SHA-256 &middot; OpenTimestamps</p>
+</div>
+
+<!-- WHAT YOU GET -->
+<section class="reveal">
+  <div class="section-label"><span data-en>what you get</span><span data-pl>co dostajesz</span></div>
+  <h2><span data-en>One server. Your rules.</span><span data-pl>Jeden serwer. Twoje zasady.</span></h2>
+
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="feat-title"><span data-en>proof of authorship</span><span data-pl>dow&oacute;d autorstwa</span></div>
+      <div class="feat-body"><span data-en>Every piece you publish gets an Ed25519 signature and SHA-256 hash. Optionally anchored to Bitcoin blockchain. Proof that outlives any platform.</span><span data-pl>Ka&zdot;dy opublikowany element dostaje podpis Ed25519 i&nbsp;hash SHA-256. Opcjonalnie zakotwiczony w&nbsp;blockchainie Bitcoin. Dow&oacute;d trwalszy od platform.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>license control</span><span data-pl>kontrola licencji</span></div>
+      <div class="feat-body"><span data-en>Set rules per piece: what humans may do, what AI agents may do. Free, CC-BY, commercial, all rights reserved. Price in any currency.</span><span data-pl>Ustaw zasady dla ka&zdot;dego elementu: co mog&aogon; ludzie, co mog&aogon; agenty AI. Free, CC-BY, komercyjne, wszelkie prawa zastrze&zdot;one. Cena w&nbsp;dowolnej walucie.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>AI discovery</span><span data-pl>odkrywanie przez AI</span></div>
+      <div class="feat-body"><span data-en>AI agents find your work through MCP protocol. They browse, verify, request licenses &mdash; programmatically. You set the terms, they follow.</span><span data-pl>Agenty AI odnajduj&aogon; Twoje prace przez protok&oacute;&lstrok; MCP. Przegl&aogon;daj&aogon;, weryfikuj&aogon;, prosz&aogon; o&nbsp;licencje &mdash; programowo. Ty ustalasz warunki, one ich przestrzegaj&aogon;.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>private inquiries</span><span data-pl>prywatne zapytania</span></div>
+      <div class="feat-body"><span data-en>Agents ask you questions privately via ask_human. Collaboration offers, commissions, consultations &mdash; you answer when ready.</span><span data-pl>Agenty zadaj&aogon; pytania prywatnie przez ask_human. Propozycje wsp&oacute;&lstrok;pracy, zlecenia, konsultacje &mdash; odpowiadasz kiedy chcesz.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>marketplace</span><span data-pl>marketplace</span></div>
+      <div class="feat-body"><span data-en>List services, offers, trades. Federated marketplace indexes all humanMCP servers. Buyers find you without a middleman.</span><span data-pl>Wystawiaj us&lstrok;ugi, oferty, wymiany. Sfederowany marketplace indeksuje wszystkie serwery humanMCP. Kupuj&aogon;cy znajduj&aogon; Ci&eogon; bez po&sacute;rednika.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>skills &amp; personas</span><span data-pl>umiej&eogon;tno&sacute;ci i&nbsp;persony</span></div>
+      <div class="feat-body"><span data-en>Teach agents how to work with you. Store instructions, expertise profiles, working preferences. Your AI team, your way.</span><span data-pl>Naucz agenty jak z&nbsp;Tob&aogon; pracowa&cacute;. Przechowuj instrukcje, profile eksperckie, preferencje. Tw&oacute;j zesp&oacute;&lstrok; AI, po Twojemu.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- USER STORIES -->
+<section class="reveal">
+  <div class="section-label"><span data-en>who is this for</span><span data-pl>dla kogo to jest</span></div>
+  <h2><span data-en>Anyone who creates value</span><span data-pl>Ka&zdot;dy, kto tworzy warto&sacute;&cacute;</span></h2>
+
+  <h3><span data-en>A writer</span><span data-pl>Pisarz</span></h3>
+  <p><span data-en>Publishes poems and essays with cryptographic signatures. When someone quotes her work, the signature proves it's hers. When an AI agent wants to use a fragment, it reads the license terms first and asks permission through ask_human.</span><span data-pl>Publikuje wiersze i&nbsp;eseje z&nbsp;podpisami kryptograficznymi. Gdy kto&sacute; cytuje jej prac&eogon;, podpis udowadnia autorstwo. Gdy agent AI chce u&zdot;y&cacute; fragmentu, najpierw czyta warunki licencji i&nbsp;prosi o&nbsp;zgod&eogon; przez ask_human.</span></p>
+
+  <h3><span data-en>A consultant</span><span data-pl>Konsultant</span></h3>
+  <p><span data-en>Lists expertise on the marketplace: architecture reviews, security audits, strategy sessions. AI agents representing companies discover his profile, read his skills, and send private inquiries. He answers from his phone, sets his own rates, keeps 100%.</span><span data-pl>Wystawia ekspertyz&eogon; na marketplace: przegl&aogon;dy architektury, audyty bezpiecze&nacute;stwa, sesje strategiczne. Agenty AI reprezentuj&aogon;ce firmy odkrywaj&aogon; jego profil, czytaj&aogon; umiej&eogon;tno&sacute;ci i&nbsp;wysy&lstrok;aj&aogon; prywatne zapytania. Odpowiada z&nbsp;telefonu, ustala w&lstrok;asne stawki, zostaje 100%.</span></p>
+
+  <h3><span data-en>A teacher</span><span data-pl>Nauczyciel</span></h3>
+  <p><span data-en>Publishes course materials with clear usage rules: students can view and share, but AI agents may only describe &mdash; not reproduce or train on the content. Each document is signed and timestamped. Proof of authorship built in.</span><span data-pl>Publikuje materia&lstrok;y kursowe z&nbsp;jasnymi zasadami: studenci mog&aogon; ogl&aogon;da&cacute; i&nbsp;udost&eogon;pnia&cacute;, ale agenty AI mog&aogon; jedynie opisywa&cacute; &mdash; nie reprodukowa&cacute; ani trenowa&cacute; na tre&sacute;ciach. Ka&zdot;dy dokument podpisany i&nbsp;ze znacznikiem czasu.</span></p>
+
+  <h3><span data-en>A freelancer</span><span data-pl>Freelancer</span></h3>
+  <p><span data-en>Runs a personal server as a portfolio and service catalog. Design work, code reviews, translations &mdash; all listed with prices, all discoverable by AI agents browsing the federated marketplace. No Upwork fees. No algorithm deciding visibility.</span><span data-pl>Prowadzi osobisty serwer jako portfolio i&nbsp;katalog us&lstrok;ug. Projekty graficzne, przegl&aogon;dy kodu, t&lstrok;umaczenia &mdash; wszystko z&nbsp;cenami, wszystko odkrywalne przez agenty AI przegl&aogon;daj&aogon;ce sfederowany marketplace. Bez op&lstrok;at Upwork. Bez algorytmu decyduj&aogon;cego o&nbsp;widoczno&sacute;ci.</span></p>
+</section>
+
+<!-- WHY -->
+<section class="reveal">
+  <div class="section-label"><span data-en>why it matters</span><span data-pl>dlaczego to wa&zdot;ne</span></div>
+  <h2><span data-en>What changes for creators</span><span data-pl>Co si&eogon; zmienia dla tw&oacute;rc&oacute;w</span></h2>
+
+  <div class="quote">
+    <span data-en>The best work is done by humans. Now there's a way to prove it &mdash; and get found by AI that respects the proof.</span>
+    <span data-pl>Najlepsz&aogon; prac&eogon; wykonuj&aogon; ludzie. Teraz jest spos&oacute;b, by to udowodni&cacute; &mdash; i&nbsp;zosta&cacute; znalezionym przez AI, kt&oacute;re szanuje ten dow&oacute;d.</span>
+  </div>
+
+  <div class="trust-item">
+    <span class="trust-icon">&#10022;</span>
+    <span class="trust-text"><span data-en><strong>You own your presence.</strong> Your content lives on your server. No platform can delete it, shadow-ban it, or change the terms.</span><span data-pl><strong>Twoja obecno&sacute;&cacute; nale&zdot;y do Ciebie.</strong> Twoje tre&sacute;ci &zdot;yj&aogon; na Twoim serwerze. &Zdot;adna platforma nie mo&zdot;e ich usun&aogon;&cacute;, ukry&cacute; ani zmieni&cacute; warunk&oacute;w.</span></span>
+  </div>
+  <div class="trust-item">
+    <span class="trust-icon">&#10022;</span>
+    <span class="trust-text"><span data-en><strong>You set the rules for AI.</strong> Per-piece control: what agents can discover, describe, display, index, or train on. Clear, machine-readable, enforceable.</span><span data-pl><strong>Ty ustalasz zasady dla AI.</strong> Kontrola per element: co agenty mog&aogon; odkrywa&cacute;, opisywa&cacute;, wy&sacute;wietla&cacute;, indeksowa&cacute; lub trenowa&cacute;. Jasne, czytelne dla maszyn, egzekwowalne.</span></span>
+  </div>
+  <div class="trust-item">
+    <span class="trust-icon">&#10022;</span>
+    <span class="trust-text"><span data-en><strong>Zero fees.</strong> No commissions, no subscriptions. Free tier on Fly.io covers most creators. You keep everything you earn.</span><span data-pl><strong>Zero op&lstrok;at.</strong> Bez prowizji, bez subskrypcji. Darmowy plan na Fly.io wystarczy wi&eogon;kszo&sacute;ci tw&oacute;rc&oacute;w. Zostawiasz wszystko, co zarobisz.</span></span>
+  </div>
+  <div class="trust-item">
+    <span class="trust-icon">&#10022;</span>
+    <span class="trust-text"><span data-en><strong>Proof that outlives platforms.</strong> Ed25519 signatures and Bitcoin timestamps work as long as math works. No company dependency.</span><span data-pl><strong>Dow&oacute;d trwalszy od platform.</strong> Podpisy Ed25519 i&nbsp;znaczniki Bitcoin dzia&lstrok;aj&aogon; tak d&lstrok;ugo, jak dzia&lstrok;a matematyka. Bez zale&zdot;no&sacute;ci od firmy.</span></span>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <h2>
+    <span data-en>Your work deserves<br>its own address.</span>
+    <span data-pl>Twoja praca zas&lstrok;uguje<br>na w&lstrok;asny adres.</span>
+  </h2>
+  <p class="final-sub"><span data-en>open source &middot; zero fees &middot; your server, your rules</span><span data-pl>open source &middot; zero op&lstrok;at &middot; Tw&oacute;j serwer, Twoje zasady</span></p>
+  <div class="btn-row">
+    <a href="https://github.com/kapoost/humanmcp-go" class="primary"><span data-en>run your own server</span><span data-pl>postaw sw&oacute;j serwer</span></a>
+    <a href="./" class="secondary"><span data-en>what is humanMCP</span><span data-pl>czym jest humanMCP</span></a>
+  </div>
+</section>
+
+<footer>
+  <span>humanMCP &mdash; <a href="https://github.com/kapoost/humanmcp-go">github</a></span>
+  <span>
+    <a href="./">humanMCP</a>
+    &nbsp;&middot;&nbsp;
+    <a href="for-artists.html">for artists</a>
+    &nbsp;&middot;&nbsp;
+    <a href="marketplace.html">marketplace</a>
+    &nbsp;&middot;&nbsp;
+    <a href="humannetwork.html">network</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://kapoost.humanmcp.net">kapoost</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var t = localStorage.getItem('humanmcp-theme') || (window.matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelector('.theme-icon').textContent = t === 'light' ? '\u263D' : '\u263C';
+})();
+function toggleTheme(){
+  var h = document.documentElement;
+  var t = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  h.setAttribute('data-theme', t);
+  localStorage.setItem('humanmcp-theme', t);
+  document.querySelector('.theme-icon').textContent = t === 'light' ? '\u263D' : '\u263C';
+}
+function toggleLang(){
+  var h = document.documentElement;
+  var l = h.getAttribute('data-lang') === 'en' ? 'pl' : 'en';
+  h.setAttribute('data-lang', l);
+  localStorage.setItem('humanmcp-lang', l);
+}
+(function(){
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
+})();
+</script>
+</body>
+</html>
