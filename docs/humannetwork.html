@@ -61,6 +61,8 @@ input{font-family:inherit;font-size:inherit;}
 .ab{font-size:9px;padding:5px 9px;border:1px solid var(--gb);border-radius:1px;background:var(--gd);color:var(--gold);letter-spacing:.04em;transition:background .15s;}
 .ab:hover{background:rgba(201,169,110,.15);}
 .ab:disabled{opacity:.35;}
+@keyframes pulseAdd{0%,100%{box-shadow:0 0 0 0 rgba(201,169,110,.5);transform:scale(1);}50%{box-shadow:0 0 12px 4px rgba(201,169,110,.4);transform:scale(1.08);}}
+.ab.pulse{animation:pulseAdd .7s ease 3;border-color:var(--gold);background:rgba(201,169,110,.2);}
 .ae{font-size:9px;color:var(--red);margin-top:.3rem;}
 .ah{font-size:8px;color:var(--dim);margin-top:.25rem;letter-spacing:.05em;}
 
@@ -564,7 +566,7 @@ function App(){
               <div className="emp">
                 <div className="etit">{t.nothing}</div>
                 <div className="esub">{t.addServer}</div>
-                <button className="etry" onClick={()=>{setAddUrl('https://kapoost.humanmcp.net');setView('people');}}>{t.tryKapoost}</button>
+                <button className="etry" onClick={()=>{setAddUrl('https://kapoost.humanmcp.net');setView('people');setTimeout(()=>{const b=document.querySelector('.ab');if(b){b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');b.scrollIntoView({behavior:'smooth',block:'nearest'});}},100);}}>{t.tryKapoost}</button>
               </div>
             ) : open ? (
               // Detail view
