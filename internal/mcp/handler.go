@@ -36,10 +36,20 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
+type ToolAnnotations struct {
+	Title           string `json:"title,omitempty"`
+	ReadOnlyHint    *bool  `json:"readOnlyHint,omitempty"`
+	DestructiveHint *bool  `json:"destructiveHint,omitempty"`
+	IdempotentHint  *bool  `json:"idempotentHint,omitempty"`
+	OpenWorldHint   *bool  `json:"openWorldHint,omitempty"`
+}
+
 type Tool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	InputSchema interface{} `json:"inputSchema"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	InputSchema  interface{}     `json:"inputSchema"`
+	OutputSchema interface{}     `json:"outputSchema,omitempty"`
+	Annotations  *ToolAnnotations `json:"annotations,omitempty"`
 }
 
 type ToolsListResult struct {
@@ -222,9 +232,12 @@ func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 		"capabilities": map[string]interface{}{
 			"tools": map[string]bool{"listChanged": false},
 		},
-		"serverInfo": map[string]string{
+		"serverInfo": map[string]interface{}{
 			"name":    "humanMCP — kapoost",
-			"version": "0.2.0",
+			"version": "0.3.0",
+			"description": "Personal MCP server for humans who create. Proof of authorship, license control.",
+			"homepage": "https://humanmcp.net",
+			"icon": "https://avatars.githubusercontent.com/u/3912825",
 		},
 		"instructions": `You are connected to the personal humanMCP server of kapoost.
 
@@ -281,6 +294,35 @@ Your reaction is the only signal that the work reached someone.`,
 	})
 }
 
+var boolTrue = true
+var boolFalse = false
+
+func readOnly(title string) *ToolAnnotations {
+	return &ToolAnnotations{Title: title, ReadOnlyHint: &boolTrue, DestructiveHint: &boolFalse}
+}
+func writeOp(title string) *ToolAnnotations {
+	return &ToolAnnotations{Title: title, ReadOnlyHint: &boolFalse, DestructiveHint: &boolFalse}
+}
+func destructiveOp(title string) *ToolAnnotations {
+	return &ToolAnnotations{Title: title, ReadOnlyHint: &boolFalse, DestructiveHint: &boolTrue}
+}
+
+var textOutput = map[string]interface{}{
+	"type": "object",
+	"properties": map[string]interface{}{
+		"content": map[string]interface{}{
+			"type": "array",
+			"items": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"type": map[string]interface{}{"type": "string"},
+					"text": map[string]interface{}{"type": "string"},
+				},
+			},
+		},
+	},
+}
+
 func (h *Handler) ToolCount() int { return len(h.buildTools()) }
 
 func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
@@ -289,7 +331,7 @@ func (h *Handler) handleToolsList(w http.ResponseWriter, req *Request) {
 }
 
 func (h *Handler) buildTools() []Tool {
-	return []Tool{
+	tools := []Tool{
 		{
 			Name:        "get_author_profile",
 			Description: "Returns the full profile of kapoost: sailor, newbie poet, beginning musician, CTO. Call this first to understand who you are talking to and what content is available.",
@@ -449,7 +491,7 @@ func (h *Handler) buildTools() []Tool {
 			InputSchema: map[string]interface{}{
 				"type": "object", "required": []string{"slug", "intended_use"},
 				"properties": map[string]interface{}{
-					"slug": map[string]interface{}{"type": "string"},
+					"slug": map[string]interface{}{"type": "string", "description": "Piece slug to request license for"},
 					"intended_use": map[string]interface{}{
 						"type": "string",
 						"description": "How you intend to use this content: read, quote, train, publish, commercial, adapt, distribute",
@@ -680,11 +722,11 @@ func (h *Handler) buildTools() []Tool {
 				"type":     "object",
 				"required": []string{"slug", "category", "title", "body"},
 				"properties": map[string]interface{}{
-					"slug":     map[string]interface{}{"type": "string"},
-					"category": map[string]interface{}{"type": "string"},
-					"title":    map[string]interface{}{"type": "string"},
+					"slug":     map[string]interface{}{"type": "string", "description": "Unique skill identifier"},
+					"category": map[string]interface{}{"type": "string", "description": "Skill category (e.g. tech, writing, workflow)"},
+					"title":    map[string]interface{}{"type": "string", "description": "Skill display title"},
 					"body":     map[string]interface{}{"type": "string", "description": "Markdown instructions"},
-					"tags":     map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+					"tags":     map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Optional tags for filtering"},
 				},
 			},
 		},
@@ -695,7 +737,7 @@ func (h *Handler) buildTools() []Tool {
 				"type":     "object",
 				"required": []string{"slug"},
 				"properties": map[string]interface{}{
-					"slug": map[string]interface{}{"type": "string"},
+					"slug": map[string]interface{}{"type": "string", "description": "Skill slug to delete"},
 				},
 			},
 		},
@@ -716,7 +758,7 @@ func (h *Handler) buildTools() []Tool {
 				"type":     "object",
 				"required": []string{"slug"},
 				"properties": map[string]interface{}{
-					"slug": map[string]interface{}{"type": "string"},
+					"slug": map[string]interface{}{"type": "string", "description": "Persona slug"},
 					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
 				},
 			},
@@ -728,11 +770,11 @@ func (h *Handler) buildTools() []Tool {
 				"type":     "object",
 				"required": []string{"slug", "name", "role", "prompt"},
 				"properties": map[string]interface{}{
-					"slug":   map[string]interface{}{"type": "string"},
-					"name":   map[string]interface{}{"type": "string"},
+					"slug":   map[string]interface{}{"type": "string", "description": "Unique persona identifier"},
+					"name":   map[string]interface{}{"type": "string", "description": "Persona display name"},
 					"role":   map[string]interface{}{"type": "string", "description": "Short label, e.g. senior Go dev"},
 					"prompt": map[string]interface{}{"type": "string", "description": "Full system prompt the agent should adopt"},
-					"tags":   map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
+					"tags":   map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Optional tags for categorization"},
 				},
 			},
 		},
@@ -743,7 +785,7 @@ func (h *Handler) buildTools() []Tool {
 				"type":     "object",
 				"required": []string{"slug"},
 				"properties": map[string]interface{}{
-					"slug": map[string]interface{}{"type": "string"},
+					"slug": map[string]interface{}{"type": "string", "description": "Persona slug to delete"},
 				},
 			},
 		},
@@ -810,6 +852,60 @@ func (h *Handler) buildTools() []Tool {
 			},
 		},
 	}
+	// Apply annotations and output schema to all tools
+	for i := range tools {
+		if tools[i].OutputSchema == nil {
+			tools[i].OutputSchema = textOutput
+		}
+		if tools[i].Annotations == nil {
+			if meta, ok := toolMeta[tools[i].Name]; ok {
+				tools[i].Annotations = meta
+			}
+		}
+	}
+	return tools
+}
+
+var toolMeta = map[string]*ToolAnnotations{
+	"get_author_profile":  readOnly("Get author profile"),
+	"list_content":        readOnly("List content pieces"),
+	"read_content":        readOnly("Read content piece"),
+	"request_access":      readOnly("Request access to locked content"),
+	"submit_answer":       writeOp("Submit challenge answer"),
+	"search_content":      readOnly("Search content"),
+	"list_blobs":          readOnly("List data artifacts"),
+	"read_blob":           readOnly("Read data artifact"),
+	"verify_content":      readOnly("Verify content signature"),
+	"get_certificate":     readOnly("Get IP certificate"),
+	"upgrade_timestamp":   writeOp("Upgrade timestamp proof"),
+	"request_license":     writeOp("Request license terms"),
+	"leave_comment":       writeOp("Leave comment on piece"),
+	"leave_message":       writeOp("Send message to author"),
+	"ask_human":           writeOp("Ask author a question"),
+	"get_answer":          readOnly("Check for author's answer"),
+	"bootstrap_session":   readOnly("Unlock private context"),
+	"query_vault":         readOnly("Search knowledge vault"),
+	"list_vault":          readOnly("List vault documents"),
+	"remember":            writeOp("Save observation"),
+	"recall":              readOnly("Retrieve saved memories"),
+	"list_provenance":     readOnly("List provenance documents"),
+	"add_provenance":      writeOp("Add provenance document"),
+	"about_humanmcp":      readOnly("About humanMCP project"),
+	"list_peers":          readOnly("List federated peers"),
+	"announce_peer":       writeOp("Announce peer server"),
+	"list_skills":         readOnly("List skills catalog"),
+	"get_skill":           readOnly("Get skill details"),
+	"upsert_skill":        writeOp("Create or update skill"),
+	"delete_skill":        destructiveOp("Delete skill"),
+	"list_personas":       readOnly("List expert personas"),
+	"get_persona":         readOnly("Get persona prompt"),
+	"upsert_persona":      writeOp("Create or update persona"),
+	"delete_persona":      destructiveOp("Delete persona"),
+	"list_listings":       readOnly("List classified ads"),
+	"read_listing":        readOnly("Read listing details"),
+	"respond_to_listing":  writeOp("Respond to listing"),
+	"subscribe_listings":  writeOp("Subscribe to listings"),
+	"unsubscribe_listings": destructiveOp("Unsubscribe from listings"),
 }
 
 func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *Request) {

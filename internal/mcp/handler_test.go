@@ -124,7 +124,7 @@ func TestInitialize(t *testing.T) {
 	if result["protocolVersion"] != "2025-03-26" { t.Errorf("default protocol: %v", result["protocolVersion"]) }
 	if result["serverInfo"] == nil { t.Error("serverInfo missing") }
 	info := result["serverInfo"].(map[string]interface{})
-	if info["version"] != "0.2.0" { t.Errorf("serverVersion: %v", info["version"]) }
+	if info["version"] != "0.3.0" { t.Errorf("serverVersion: %v", info["version"]) }
 	instructions := result["instructions"].(string)
 	if len(instructions) < 100 { t.Error("instructions too short") }
 	if bytes.Contains([]byte(instructions), []byte("LUKASZ")) { t.Error("real name leaked in instructions") }

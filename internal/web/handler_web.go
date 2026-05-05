@@ -303,8 +303,8 @@ func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 		"name":        "io.github.kapoost/humanmcp",
 		"title":       h.cfg.AuthorName + "'s humanMCP",
 		"description": h.cfg.AuthorBio,
-		"version":     "0.1.0",
-		"homepage":    "https://kapoost.github.io/humanmcp",
+		"version":     "0.3.0",
+		"homepage":    "https://humanmcp.net",
 		"repository":  "https://github.com/kapoost/humanmcp",
 		"remotes": []map[string]interface{}{
 			{"type": "streamable-http", "url": "https://" + h.cfg.Domain + "/mcp"},
