@@ -1,5 +1,7 @@
 # humanMCP
 
+[![smithery badge](https://smithery.ai/badge/kapoost/humanMCP)](https://smithery.ai/servers/kapoost/humanMCP)
+
 A personal content server speaking Model Context Protocol (MCP/JSON-RPC 2.0).
 
 **Live:** https://kapoost.humanmcp.net
