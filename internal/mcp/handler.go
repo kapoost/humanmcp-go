@@ -203,6 +203,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleToolsList(w, &req)
 	case "tools/call":
 		h.handleToolsCall(w, r, &req)
+	case "resources/list":
+		writeResult(w, req.ID, map[string]interface{}{"resources": []interface{}{}})
+	case "prompts/list":
+		writeResult(w, req.ID, map[string]interface{}{"prompts": []interface{}{}})
+	case "notifications/initialized", "initialized":
+		// client notification — no response needed
+		w.WriteHeader(http.StatusOK)
 	default:
 		writeError(w, req.ID, -32601, "method not found: "+req.Method)
 	}
@@ -230,7 +237,9 @@ func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 	writeResult(w, req.ID, map[string]interface{}{
 		"protocolVersion": negotiated,
 		"capabilities": map[string]interface{}{
-			"tools": map[string]bool{"listChanged": false},
+			"tools":     map[string]bool{"listChanged": false},
+			"resources": map[string]bool{"listChanged": false},
+			"prompts":   map[string]bool{"listChanged": false},
 		},
 		"serverInfo": map[string]interface{}{
 			"name":    "humanMCP — kapoost",
