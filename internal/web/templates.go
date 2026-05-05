@@ -2047,7 +2047,6 @@ a:hover{text-decoration:underline}
   <div class="mc-label">TRANSMIT MESSAGE</div>
   <form method="POST" action="/contact">
     <input type="text" name="from" placeholder="name or handle" maxlength="32">
-    {{if .Pieces}}<select name="regarding"><option value="">— GENERAL —</option>{{range .Pieces}}<option value="{{.Slug}}">{{.Title}}</option>{{end}}</select>{{end}}
     <textarea name="text" placeholder="message payload..." maxlength="2000"></textarea>
     <button type="submit" class="mc-btn" style="border-color:var(--mc-accent);color:var(--mc-accent)">TRANSMIT</button>
   </form>
