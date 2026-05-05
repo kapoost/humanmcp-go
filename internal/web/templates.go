@@ -1920,11 +1920,6 @@ a:hover{text-decoration:underline}
 .mc-fp-t{background:#2a1a00;color:var(--mc-orange);border:1px solid #4a3a1a}
 .mc-fp-u{background:#1a2a1a;color:var(--mc-green);border:1px solid #2a4a2a}
 
-.mc-transmit{background:var(--mc-surface);border:1px solid var(--mc-border);padding:14px 16px;margin-bottom:16px}
-.mc-transmit input,.mc-transmit textarea,.mc-transmit select{width:100%;padding:6px 8px;background:var(--mc-bg);border:1px solid var(--mc-border);color:var(--mc-fg);font-family:var(--mc-mono);font-size:12px;margin-bottom:8px}
-.mc-transmit input:focus,.mc-transmit textarea:focus{outline:none;border-color:var(--mc-accent)}
-.mc-transmit textarea{resize:vertical;min-height:60px}
-.mc-transmit select{cursor:pointer}
 
 @media(max-width:900px){.mc-body{grid-template-columns:1fr}.mc-col{border-right:none;border-bottom:1px solid var(--mc-border)}}
 @media(max-width:600px){.mc-stats{flex-wrap:wrap}.mc-stat{min-width:25%}}
@@ -2043,14 +2038,6 @@ a:hover{text-decoration:underline}
 {{end}}
 {{end}}
 
-<div class="mc-transmit">
-  <div class="mc-label">TRANSMIT MESSAGE</div>
-  <form method="POST" action="/contact">
-    <input type="text" name="from" placeholder="name or handle" maxlength="32">
-    <textarea name="text" placeholder="message payload..." maxlength="2000"></textarea>
-    <button type="submit" class="mc-btn" style="border-color:var(--mc-accent);color:var(--mc-accent)">TRANSMIT</button>
-  </form>
-</div>
 
 {{with .Stats}}
 {{if .RecentEvents}}
