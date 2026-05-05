@@ -1920,6 +1920,16 @@ a:hover{text-decoration:underline}
 .mc-fp-t{background:#2a1a00;color:var(--mc-orange);border:1px solid #4a3a1a}
 .mc-fp-u{background:#1a2a1a;color:var(--mc-green);border:1px solid #2a4a2a}
 
+.mc-trends{background:var(--mc-surface);border:1px solid var(--mc-border);padding:12px 16px;margin-bottom:0}
+.mc-trend-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mc-mono)}
+.mc-trend-table th{text-align:right;color:var(--mc-muted);font-weight:400;padding:2px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.mc-trend-table th:first-child{text-align:left}
+.mc-trend-table td{text-align:right;padding:3px 8px;border-top:1px solid var(--mc-border)}
+.mc-trend-label{text-align:left!important;color:var(--mc-accent);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.mc-spark{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:12px}
+.mc-sb{flex:1;background:var(--mc-accent);min-width:2px;border-radius:1px 1px 0 0;opacity:.7}
+.mc-sb:hover{opacity:1}
+.mc-spark-label{display:flex;justify-content:space-between;font-size:9px;color:var(--mc-muted);margin-top:2px}
 
 @media(max-width:900px){.mc-body{grid-template-columns:1fr}.mc-col{border-right:none;border-bottom:1px solid var(--mc-border)}}
 @media(max-width:600px){.mc-stats{flex-wrap:wrap}.mc-stat{min-width:25%}}
@@ -1949,6 +1959,25 @@ a:hover{text-decoration:underline}
   <div class="mc-stat"><div class="mc-stat-num">{{.TotalSearches}}</div><div class="mc-stat-label">searches</div></div>
 </div>
 {{end}}
+
+{{if .IsOwner}}{{with .Stats}}
+<div class="mc-trends">
+  <table class="mc-trend-table">
+    <thead><tr><th></th><th>reads</th><th>visitors</th><th>agents</th><th>humans</th><th>searches</th><th>msgs</th></tr></thead>
+    <tbody>
+      <tr><td class="mc-trend-label">today</td><td>{{.Today.Reads}}</td><td>{{.Today.Visitors}}</td><td>{{.Today.Agents}}</td><td>{{.Today.Humans}}</td><td>{{.Today.Searches}}</td><td>{{.Today.Messages}}</td></tr>
+      <tr><td class="mc-trend-label">yesterday</td><td>{{.Yesterday.Reads}}</td><td>{{.Yesterday.Visitors}}</td><td>{{.Yesterday.Agents}}</td><td>{{.Yesterday.Humans}}</td><td>{{.Yesterday.Searches}}</td><td>{{.Yesterday.Messages}}</td></tr>
+      <tr><td class="mc-trend-label">7 days</td><td>{{.Last7Days.Reads}}</td><td>{{.Last7Days.Visitors}}</td><td>{{.Last7Days.Agents}}</td><td>{{.Last7Days.Humans}}</td><td>{{.Last7Days.Searches}}</td><td>{{.Last7Days.Messages}}</td></tr>
+      <tr><td class="mc-trend-label">30 days</td><td>{{.Last30Days.Reads}}</td><td>{{.Last30Days.Visitors}}</td><td>{{.Last30Days.Agents}}</td><td>{{.Last30Days.Humans}}</td><td>{{.Last30Days.Searches}}</td><td>{{.Last30Days.Messages}}</td></tr>
+    </tbody>
+  </table>
+  <div class="mc-spark" id="mc-spark"></div>
+  <div class="mc-spark-label"><span>14d ago</span><span>today</span></div>
+</div>
+<script>
+(function(){var d=[{{range .DailyCounts}}{{.}},{{end}}];var mx=Math.max.apply(null,d)||1;var b=document.getElementById('mc-spark');d.forEach(function(v,i){var e=document.createElement('div');e.className='mc-sb';e.style.height=Math.max(1,Math.round(v/mx*36))+'px';e.title=(13-i)+' days ago: '+v;b.appendChild(e)})})();
+</script>
+{{end}}{{end}}
 
 <div class="mc-body">
 

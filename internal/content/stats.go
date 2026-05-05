@@ -86,8 +86,26 @@ type Stats struct {
 	// Hour-of-day distribution (0-23)
 	HourlyReads [24]int `json:"hourly_reads"`
 
+	// Time windows
+	Today        DayStats `json:"today"`
+	Yesterday    DayStats `json:"yesterday"`
+	Last7Days    DayStats `json:"last_7_days"`
+	Last30Days   DayStats `json:"last_30_days"`
+
+	// Daily sparkline (last 14 days, oldest first)
+	DailyCounts [14]int `json:"daily_counts"`
+
 	// Recent events
 	RecentEvents []Event `json:"recent_events"`
+}
+
+type DayStats struct {
+	Reads      int `json:"reads"`
+	Agents     int `json:"agents"`
+	Humans     int `json:"humans"`
+	Searches   int `json:"searches"`
+	Messages   int `json:"messages"`
+	Visitors   int `json:"visitors"`
 }
 
 type StatStore struct {
@@ -266,6 +284,68 @@ func (ss *StatStore) Compute() (*Stats, error) {
 	}
 
 	s.UniqueVisitors = len(uniqueVH)
+
+	// Time window stats
+	now := time.Now().UTC()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	yesterdayStart := todayStart.Add(-24 * time.Hour)
+	day7Start := todayStart.Add(-7 * 24 * time.Hour)
+	day30Start := todayStart.Add(-30 * 24 * time.Hour)
+	day14Start := todayStart.Add(-14 * 24 * time.Hour)
+
+	windowVH := [4]map[string]bool{{}, {}, {}, {}} // today, yesterday, 7d, 30d
+
+	for _, e := range all {
+		at := e.At
+
+		// Daily sparkline (14 days)
+		if !at.Before(day14Start) {
+			dayIdx := int(todayStart.Sub(time.Date(at.Year(), at.Month(), at.Day(), 0, 0, 0, 0, time.UTC)).Hours() / 24)
+			if dayIdx >= 0 && dayIdx < 14 {
+				s.DailyCounts[13-dayIdx]++
+			}
+		}
+
+		// Time window accumulation
+		var windows []*DayStats
+		if !at.Before(todayStart) {
+			windows = append(windows, &s.Today)
+			if e.VisitorHash != "" { windowVH[0][e.VisitorHash] = true }
+		}
+		if !at.Before(yesterdayStart) && at.Before(todayStart) {
+			windows = append(windows, &s.Yesterday)
+			if e.VisitorHash != "" { windowVH[1][e.VisitorHash] = true }
+		}
+		if !at.Before(day7Start) {
+			windows = append(windows, &s.Last7Days)
+			if e.VisitorHash != "" { windowVH[2][e.VisitorHash] = true }
+		}
+		if !at.Before(day30Start) {
+			windows = append(windows, &s.Last30Days)
+			if e.VisitorHash != "" { windowVH[3][e.VisitorHash] = true }
+		}
+
+		for _, w := range windows {
+			switch e.Type {
+			case EventRead, EventListingView:
+				w.Reads++
+			case EventMessage:
+				w.Messages++
+			case EventSearch:
+				w.Searches++
+			}
+			switch e.Caller {
+			case CallerAgent:
+				w.Agents++
+			case CallerHuman:
+				w.Humans++
+			}
+		}
+	}
+	s.Today.Visitors = len(windowVH[0])
+	s.Yesterday.Visitors = len(windowVH[1])
+	s.Last7Days.Visitors = len(windowVH[2])
+	s.Last30Days.Visitors = len(windowVH[3])
 
 	// Last 30 events, newest first
 	for i := len(all) - 1; i >= 0 && len(s.RecentEvents) < 30; i-- {
