@@ -15,6 +15,7 @@ type Message struct {
 	From      string    `json:"from"`       // optional handle, max 32 chars
 	Text      string    `json:"text"`       // max 2000 chars
 	Regarding string    `json:"regarding"`  // optional slug it refers to
+	Kind      string    `json:"kind"`       // message, comment, question, license
 	At        time.Time `json:"at"`
 }
 
@@ -29,6 +30,11 @@ func NewMessageStore(contentDir string) *MessageStore {
 
 // Save validates and persists a message. Returns the message ID or an error.
 func (ms *MessageStore) Save(from, text, regarding string) (*Message, error) {
+	return ms.SaveKind(from, text, regarding, "message")
+}
+
+// SaveKind saves with explicit kind (message, comment, question, license).
+func (ms *MessageStore) SaveKind(from, text, regarding, kind string) (*Message, error) {
 	// --- strict sanitisation ---
 
 	from = sanitiseField(from, 64)
@@ -53,18 +59,24 @@ func (ms *MessageStore) Save(from, text, regarding string) (*Message, error) {
 		return nil, fmt.Errorf("cannot create messages dir: %w", err)
 	}
 
+	if kind == "" {
+		kind = "message"
+	}
+
 	id := fmt.Sprintf("%d", time.Now().UnixNano())
 	m := &Message{
 		ID:        id,
 		From:      from,
 		Text:      text,
 		Regarding: regarding,
+		Kind:      kind,
 		At:        time.Now().UTC(),
 	}
 
 	// Write as plain text — owner reads these as files
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("id:        %s\n", m.ID))
+	sb.WriteString(fmt.Sprintf("kind:      %s\n", m.Kind))
 	sb.WriteString(fmt.Sprintf("at:        %s\n", m.At.Format("2006-01-02 15:04 UTC")))
 	if m.From != "" {
 		sb.WriteString(fmt.Sprintf("from:      %s\n", m.From))
@@ -127,6 +139,8 @@ func parseMessageFile(content string) *Message {
 		}
 		if strings.HasPrefix(line, "id:") {
 			m.ID = strings.TrimSpace(strings.TrimPrefix(line, "id:"))
+		} else if strings.HasPrefix(line, "kind:") {
+			m.Kind = strings.TrimSpace(strings.TrimPrefix(line, "kind:"))
 		} else if strings.HasPrefix(line, "from:") {
 			m.From = strings.TrimSpace(strings.TrimPrefix(line, "from:"))
 		} else if strings.HasPrefix(line, "regarding:") {
