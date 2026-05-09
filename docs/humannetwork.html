@@ -660,7 +660,7 @@ function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem(LL)||'en');
   const [subs,setSubs]=useState(()=>{try{return JSON.parse(localStorage.getItem(LS)||'[]');}catch{return[];}});
   const [view,setView]=useState('feed');
-  const [viewMode,setViewMode]=useState('wall');
+  const [viewMode,setViewMode]=useState('grid');
   const [open,setOpen]=useState(null);
   const [bodies,setBodies]=useState({});
   const [bodyL,setBodyL]=useState(null);
