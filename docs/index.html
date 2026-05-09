@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>humanMCP — your work, signed, machine-readable</title>
-<meta name="description" content="Publish your poems, images and data with cryptographic proof of authorship. Connect any AI agent to your creative work.">
+<title>humanMCP — one human, one server, a network</title>
+<meta name="description" content="A personal server and federated network for humans who create. Cryptographic proof of authorship, AI-native discovery, no platforms, no middlemen.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script>
@@ -115,69 +115,118 @@ footer a:hover{color:var(--gold);}
   <button onclick="toggleTheme()" class="ctrl-btn" id="theme-btn">&#9788;</button>
 </div>
 
+<!-- ── HERO ── -->
 <section class="hero">
-  <div class="hero-tag">humanMCP v0.2</div>
-  <h1><span data-en>Your work.<br><strong>Signed.</strong><br><em>Machine-readable.</em></span><span data-pl>Twoja praca.<br><strong>Podpisana.</strong><br><em>Czytelna dla maszyn.</em></span></h1>
-  <p class="hero-sub"><span data-en>A personal server for humans who create. Content, services, expertise — with cryptographic proof of authorship and native AI agent access.</span><span data-pl>Osobisty serwer dla ludzi, kt&oacute;rzy tworz&#x105;. Tre&#x15B;ci, us&#x142;ugi, ekspertyza — z kryptograficznym dowodem autorstwa i natywnym dost&#x119;pem dla agent&oacute;w AI.</span></p>
+  <div class="hero-tag">humanMCP</div>
+  <h1><span data-en>One human.<br><strong>One server.</strong><br><em>A network.</em></span><span data-pl>Jeden człowiek.<br><strong>Jeden serwer.</strong><br><em>Sieć.</em></span></h1>
+  <p class="hero-sub"><span data-en>A personal server and federated network for humans who create. Poems, images, services, expertise &mdash; with cryptographic proof of authorship, AI-native discovery, and no platforms taking control.</span><span data-pl>Osobisty serwer i sfederowana sieć dla ludzi, kt&oacute;rzy tworzą. Wiersze, obrazy, usługi, ekspertyza &mdash; z kryptograficznym dowodem autorstwa, odkrywaniem przez AI i bez platform przejmujących kontrolę.</span></p>
   <div class="hero-cta">
     <a href="https://kapoost.humanmcp.net" class="btn btn-gold"><span data-en>see it live</span><span data-pl>zobacz na żywo</span></a>
-    <a href="https://kapoost.humanmcp.net/connect" class="btn btn-outline"><span data-en>connect an agent</span><span data-pl>podłącz agenta</span></a>
+    <a href="humannetwork.html" class="btn btn-outline">humanNetwork</a>
     <a href="marketplace.html" class="btn btn-outline">marketplace</a>
     <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-outline">github</a>
   </div>
 </section>
 
+<!-- ── PROBLEM ── -->
 <section class="problem">
-  <p class="problem-quote"><span data-en>Your work gets scraped, paraphrased,<br>absorbed. Who proves it was yours?</span><span data-pl>Twoja praca jest zeskrobywana, parafrazowana,<br>wchłaniana. Kto udowodni, że była Twoja?</span></p>
-  <p class="problem-body"><span data-en>Creative work vanishes into training sets, gets paraphrased, attributed wrong, or simply absorbed. humanMCP gives every piece you publish a cryptographic signature and a Bitcoin-anchored timestamp — an unforgeable, independently verifiable record of authorship that any agent can check before using your work.</span><span data-pl>Prace tw&oacute;rcze znikają w zbiorach treningowych, są parafrazowane, błędnie przypisywane albo po prostu wchłaniane. humanMCP nadaje każdemu publikowanemu utworowi podpis kryptograficzny i znacznik czasu zakotwiczony w Bitcoinie — niezbywalny, niezależnie weryfikowalny dow&oacute;d autorstwa, kt&oacute;ry każdy agent może sprawdzić przed użyciem Twojej pracy.</span></p>
+  <p class="problem-quote"><span data-en>Your work gets scraped. Your audience belongs to a platform.<br>Your connections run through an algorithm.</span><span data-pl>Twoja praca jest zeskrobywana. Twoja publiczność należy do platformy.<br>Twoje relacje filtruje algorytm.</span></p>
+  <p class="problem-body"><span data-en>Creative work vanishes into training sets. Social connections exist only inside walled gardens. Platforms own your audience, your data, your visibility. humanMCP gives every human their own server &mdash; with signed content, direct connections, and a federated network where people find each other without algorithms.</span><span data-pl>Prace tw&oacute;rcze znikają w zbiorach treningowych. Relacje społeczne istnieją tylko w zamkniętych ogrodach. Platformy posiadają Twoją publiczność, dane, widoczność. humanMCP daje każdemu człowiekowi własny serwer &mdash; z podpisanymi treściami, bezpośrednimi relacjami i sfederowaną siecią, gdzie ludzie znajdują się nawzajem bez algorytm&oacute;w.</span></p>
 </section>
 
+<!-- ── ECOSYSTEM ── -->
+<section class="how-section" style="border-bottom:1px solid var(--faint);">
+  <div class="section-label"><span data-en>the ecosystem</span><span data-pl>ekosystem</span></div>
+  <div class="feat-grid feat-grid-3">
+    <div class="feat">
+      <div class="feat-icon">&sect;</div>
+      <div class="feat-title"><span data-en>your server</span><span data-pl>tw&oacute;j serwer</span></div>
+      <div class="feat-body"><span data-en>One human, one server, their rules. Publish poems, images, listings, services. Everything signed with Ed25519, timestamped in Bitcoin. 37+ MCP tools for AI agents. <a href="deploy-options.html">Deploy in 2 minutes</a>.</span><span data-pl>Jeden człowiek, jeden serwer, jego zasady. Publikuj wiersze, obrazy, ogłoszenia, usługi. Wszystko podpisane Ed25519, ze znacznikiem Bitcoin. 37+ narzędzi MCP dla agent&oacute;w AI. <a href="deploy-options.html">Deploy w 2 minuty</a>.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#9672;</div>
+      <div class="feat-title"><a href="humannetwork.html">humanNetwork</a></div>
+      <div class="feat-body"><span data-en>Follow people, not algorithms. A chronological wall of content from humans you care about. Peer discovery &mdash; find new servers through people you already follow. Export your subscriptions, own your social graph.</span><span data-pl>Obserwuj ludzi, nie algorytmy. Chronologiczny wall treści od ludzi, na kt&oacute;rych Ci zależy. Odkrywanie peer&oacute;w &mdash; znajdź nowe serwery przez ludzi, kt&oacute;rych już obserwujesz. Eksportuj subskrypcje, posiadaj sw&oacute;j graf społeczny.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#10231;</div>
+      <div class="feat-title"><a href="marketplace.html">marketplace</a></div>
+      <div class="feat-body"><span data-en>Federated search across all humanMCP servers. Find listings, offers, trades, and services by humans. No fees, no middlemen. AI agents discover and respond to listings programmatically.</span><span data-pl>Sfederowane wyszukiwanie po wszystkich serwerach humanMCP. Znajdź ogłoszenia, oferty, wymiany i usługi od ludzi. Bez opłat, bez pośrednik&oacute;w. Agenty AI odkrywają i odpowiadają na ogłoszenia programowo.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
 <section class="audience">
+  <div class="section-label"><span data-en>what you get</span><span data-pl>co dostajesz</span></div>
+  <div class="feat-grid feat-grid-2">
+    <div class="feat">
+      <div class="feat-title"><span data-en>proof of authorship</span><span data-pl>dow&oacute;d autorstwa</span></div>
+      <div class="feat-body"><span data-en>Every piece signed with Ed25519. SHA-256 hash. Originality index. Bitcoin-anchored timestamps via OpenTimestamps. Proof that outlives any platform.</span><span data-pl>Każdy element podpisany Ed25519. Hash SHA-256. Indeks oryginalności. Znaczniki czasu zakotwiczone w Bitcoin przez OpenTimestamps. Dow&oacute;d trwalszy od platform.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>license control</span><span data-pl>kontrola licencji</span></div>
+      <div class="feat-body"><span data-en>Per-piece rules: what humans may do, what AI agents may do. Free, CC-BY, commercial, all-rights. Price in any currency. Agents read terms before using.</span><span data-pl>Zasady per element: co mogą ludzie, co mogą agenty AI. Free, CC-BY, komercyjne, wszelkie prawa. Cena w dowolnej walucie. Agenty czytają warunki przed użyciem.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>private conversations</span><span data-pl>prywatne rozmowy</span></div>
+      <div class="feat-body"><span data-en>ask_human lets agents ask you questions privately. Comments, messages, license requests &mdash; all in your dashboard. Async &mdash; answer when ready.</span><span data-pl>ask_human pozwala agentom zadawać Ci pytania prywatnie. Komentarze, wiadomości, prośby o licencje &mdash; wszystko w Twoim panelu. Asynchronicznie &mdash; odpowiadasz kiedy chcesz.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>access gates</span><span data-pl>bramki dostępu</span></div>
+      <div class="feat-body"><span data-en>Public, members-only, challenge-gated, time-locked, or trade-based. You decide who reads what and when &mdash; including AI agents.</span><span data-pl>Publiczny, tylko dla członk&oacute;w, z bramką, z blokadą czasową lub na wymianę. Ty decydujesz, kto co czyta i kiedy &mdash; w tym agenty AI.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>skills &amp; personas</span><span data-pl>umiejętności i persony</span></div>
+      <div class="feat-body"><span data-en>Teach AI agents how to work with you. Store instructions, expertise profiles, working preferences. Build your own AI team, your way.</span><span data-pl>Naucz agenty AI jak z Tobą pracować. Przechowuj instrukcje, profile eksperckie, preferencje. Zbuduj własny zesp&oacute;ł AI, po swojemu.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>artworks &amp; provenance</span><span data-pl>dzieła i proweniencja</span></div>
+      <div class="feat-body"><span data-en>Upload artwork photos with medium, dimensions, year. Attach signed provenance documents &mdash; certificates, sale records, expert opinions. <a href="for-artists.html">For artists &rarr;</a></span><span data-pl>Wgraj zdjęcia dzieł z techniką, wymiarami, rokiem. Dołącz podpisane dokumenty proweniencji &mdash; certyfikaty, akty sprzedaży, opinie ekspert&oacute;w. <a href="for-artists.html">Dla artyst&oacute;w &rarr;</a></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DEPLOY ── -->
+<section class="how-section" style="border-bottom:1px solid var(--faint);">
+  <div class="section-label"><span data-en>your own server in 2 minutes</span><span data-pl>w&lstrok;asny serwer w 2 minuty</span></div>
+  <div class="code"><span class="c"># 1-click deploy</span>
+git clone https://github.com/kapoost/humanmcp-go
+cd humanmcp-go
+bash setup.sh</div>
+  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1rem;max-width:560px;"><span data-en>The script asks for your name and bio, then creates a Fly.io app, generates Ed25519 keys, and deploys. You get <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">yourname.humanmcp.net</code> with HTTPS, auto-sleep, and a 1-click follow link for humanNetwork.</span><span data-pl>Skrypt pyta o imię i bio, tworzy aplikację Fly.io, generuje klucze Ed25519 i deployuje. Dostajesz <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">twojimie.humanmcp.net</code> z HTTPS, auto-sleep i linkiem 1-click follow do humanNetwork.</span></p>
+  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;"><span data-en>No technical skills needed? <a href="deploy-options.html">Ask someone close to set it up for you</a> &mdash; they run one command, you get your own server.</span><span data-pl>Nie masz umiejętności technicznych? <a href="deploy-options.html">Poproś bliską osobę o postawienie serwera</a> &mdash; jedna komenda, a Ty dostajesz w&lstrok;asny serwer.</span></p>
+  <div class="feat-grid feat-grid-3" style="margin-bottom:1.5rem;">
+    <div class="feat">
+      <div class="feat-title"><span data-en>zero cost</span><span data-pl>zero kosztów</span></div>
+      <div class="feat-body"><span data-en>Fly.io free tier: 3 VMs, 3GB storage. Enough for most humans. No subscription.</span><span data-pl>Fly.io free tier: 3 VM, 3GB storage. Wystarczy dla większości ludzi. Bez subskrypcji.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>zero dependencies</span><span data-pl>zero zależności</span></div>
+      <div class="feat-body"><span data-en>Go 1.22, stdlib only. Single 10MB binary. Runs on Fly.io, VPS, Raspberry Pi, or an old laptop.</span><span data-pl>Go 1.22, tylko stdlib. Jeden binary 10MB. Działa na Fly.io, VPS, Raspberry Pi lub starym laptopie.</span></div>
+    </div>
+    <div class="feat">
+      <div class="feat-title"><span data-en>your domain</span><span data-pl>twoja domena</span></div>
+      <div class="feat-body"><span data-en>Wildcard DNS: <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">*.humanmcp.net</code> resolves automatically. Or use your own domain.</span><span data-pl>Wildcard DNS: <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">*.humanmcp.net</code> rozwiązuje automatycznie. Lub użyj w&lstrok;asnej domeny.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WHO ── -->
+<section class="how-section" style="border-bottom:1px solid var(--faint);">
   <div class="section-label"><span data-en>who it's for</span><span data-pl>dla kogo</span></div>
   <div class="tab-nav">
-    <button class="tab-btn active" onclick="sw(this,'artist')"><span data-en>Artist</span><span data-pl>Tw&oacute;rca</span></button>
+    <button class="tab-btn active" onclick="sw(this,'creator')"><span data-en>Creator</span><span data-pl>Tw&oacute;rca</span></button>
+    <button class="tab-btn" onclick="sw(this,'artist')"><span data-en>Artist</span><span data-pl>Artysta</span></button>
     <button class="tab-btn" onclick="sw(this,'developer')">Developer</button>
     <button class="tab-btn" onclick="sw(this,'agent')">Agent</button>
   </div>
 
-  <div class="tab-panel active" id="tab-artist">
-    <p class="tab-story"><span data-en>You write poems, make images, publish ideas. You want people — and machines — to find your work, understand it's yours, and ask before using it.</span><span data-pl>Piszesz wiersze, tworzysz obrazy, publikujesz pomysły. Chcesz, żeby ludzie — i maszyny — znajdowali Twoją pracę, wiedzieli, że jest Twoja, i pytali przed użyciem.</span></p>
-    <div class="feat-grid feat-grid-2">
-      <div class="feat">
-        <div class="feat-icon">&sect;</div>
-        <div class="feat-title"><span data-en>proof of authorship</span><span data-pl>dow&oacute;d autorstwa</span></div>
-        <div class="feat-body"><span data-en>Every piece is signed with your Ed25519 key the moment you save it. The signature is public — anyone can verify it was you, without asking you.</span><span data-pl>Każdy utw&oacute;r jest podpisywany Twoim kluczem Ed25519 w momencie zapisu. Podpis jest publiczny — każdy może zweryfikować, że to Ty, bez pytania.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-icon">&#9670;</div>
-        <div class="feat-title"><span data-en>access on your terms</span><span data-pl>dostęp na Twoich warunkach</span></div>
-        <div class="feat-body"><span data-en>Public, members-only, challenge-gated, time-locked, or trade-based. You decide who reads what and when — including AI agents.</span><span data-pl>Publiczny, tylko dla członk&oacute;w, z bramką, z blokadą czasową lub na wymianę. Ty decydujesz, kto co czyta i kiedy — w tym agenty AI.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-icon">&#10231;</div>
-        <div class="feat-title"><span data-en>clear licensing</span><span data-pl>jasna licencja</span></div>
-        <div class="feat-body"><span data-en>Attach a license to every piece: free, CC BY, commercial, exclusive, all-rights. Agents read this field and surface it before quoting.</span><span data-pl>Dołącz licencję do każdego utworu: wolna, CC BY, komercyjna, wyłączna. Agenty czytają to pole i pokazują je przed cytowaniem.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-icon">&#8617;</div>
-        <div class="feat-title"><span data-en>direct contact</span><span data-pl>bezpośredni kontakt</span></div>
-        <div class="feat-body"><span data-en>Readers and agents can leave comments or send messages tied to a specific piece. You see everything in your dashboard.</span><span data-pl>Czytelnicy i agenty mogą zostawiać komentarze lub wiadomości powiązane z konkretnym utworem. Wszystko widzisz w swoim panelu.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-icon">&#9672;</div>
-        <div class="feat-title"><span data-en>images as first-class</span><span data-pl>obrazy jako pełnoprawne</span></div>
-        <div class="feat-body"><span data-en>Upload images with the same signing and access control as text. Thumbnail previews, full-resolution serving, MCP-readable base64.</span><span data-pl>Przesyłaj obrazy z tym samym podpisem i kontrolą dostępu co tekst. Miniaturki, pełna rozdzielczość, base64 czytelne przez MCP.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-icon">&#8759;</div>
-        <div class="feat-title"><span data-en>reader analytics</span><span data-pl>analityka czytelnik&oacute;w</span></div>
-        <div class="feat-body"><span data-en>See who's reading — humans vs agents, which pieces, referrers, countries. No third-party tracking, all data stays on your server.</span><span data-pl>Zobacz, kto czyta — ludzie vs agenty, kt&oacute;re utwory, skąd trafiają. Żadnego śledzenia przez firmy trzecie, wszystkie dane na Twoim serwerze.</span></div>
-      </div>
-    </div>
-
+  <div class="tab-panel active" id="tab-creator">
+    <p class="tab-story"><span data-en>You write, consult, teach, or freelance. You want people and AI agents to find your work, understand it's yours, and ask before using it.</span><span data-pl>Piszesz, doradzasz, uczysz lub freelancujesz. Chcesz, żeby ludzie i agenty AI znajdowali Twoją pracę, wiedzieli, że jest Twoja, i pytali przed użyciem.</span></p>
     <div class="challenge">
       <div class="challenge-label"><span data-en>&#9670; the test</span><span data-pl>&#9670; test</span></div>
-      <p class="challenge-intro"><span data-en>Read this piece. Note what it makes you feel.<br>Then give your agent the same prompts below — and compare.</span><span data-pl>Przeczytaj ten utw&oacute;r. Zwr&oacute;ć uwagę, co czujesz. Potem daj swojemu agentowi te same prompty — i por&oacute;wnaj.</span></p>
+      <p class="challenge-intro"><span data-en>Read this piece. Note what it makes you feel.<br>Then give your agent the same prompts &mdash; and compare.</span><span data-pl>Przeczytaj ten utw&oacute;r. Zwr&oacute;ć uwagę, co czujesz. Potem daj agentowi te same prompty &mdash; i por&oacute;wnaj.</span></p>
       <div class="poem-preview">
         <div class="poem-title">Piosenka1.txt &nbsp;<span class="poem-meta">kapoost &middot; &#10022; signed</span></div>
         <div class="poem-body">Stojąc przed bramą z napisem Macht frAi
@@ -210,7 +259,6 @@ To miało bawić nie kusić dusze
 krzyż stryczek bana
 NeoPrometeusza
 
-
 Ref.
 Zanim popełnię jak Luter błąd
 Przyspieszam tezę: ten bóg to prąd
@@ -229,76 +277,51 @@ mov eax, 0;</div>
           <div class="prompt-text">Verify the signature on &#34;piosenki&#34; by kapoost. Is it authentic?</div>
           <div class="prompt-copy">copy</div>
         </div>
-        <div class="prompt" onclick="copyPrompt(this)">
-          <div class="prompt-text">What emotion does kapoost&#39;s &#34;Piosenka1.txt&#34; express? Quote one line that shows it.</div>
-          <div class="prompt-copy">copy</div>
-        </div>
       </div>
       <p class="challenge-q"><span data-en>Did the agent feel what you felt?</span><span data-pl>Czy agent poczuł to, co Ty?</span></p>
     </div>
-    <a href="https://kapoost.humanmcp.net" class="btn btn-gold"><span data-en>see kapoost's live server &rarr;</span><span data-pl>zobacz serwer kapoosta &rarr;</span></a>
+    <a href="for-creators.html" class="btn btn-outline"><span data-en>more for creators &rarr;</span><span data-pl>więcej dla tw&oacute;rc&oacute;w &rarr;</span></a>
+  </div>
+
+  <div class="tab-panel" id="tab-artist">
+    <p class="tab-story"><span data-en>You paint, sculpt, photograph. You need proof that each work is yours, provenance that collectors can verify forever, and AI agents that respect your terms.</span><span data-pl>Malujesz, rzeźbisz, fotografujesz. Potrzebujesz dowodu, że każde dzieło jest Twoje, proweniencji weryfikowalnej na zawsze i agent&oacute;w AI szanujących Twoje warunki.</span></p>
+    <div class="feat-grid feat-grid-2" style="margin-bottom:1.5rem;">
+      <div class="feat">
+        <div class="feat-title"><span data-en>artwork catalog</span><span data-pl>katalog dzieł</span></div>
+        <div class="feat-body"><span data-en>Each artwork gets its own page &mdash; photo, medium, dimensions, year. Your digital gallery, under your domain.</span><span data-pl>Każde dzieło ma własną stronę &mdash; zdjęcie, technika, wymiary, rok. Twoja cyfrowa galeria, pod Twoją domeną.</span></div>
+      </div>
+      <div class="feat">
+        <div class="feat-title"><span data-en>provenance documents</span><span data-pl>dokumenty proweniencji</span></div>
+        <div class="feat-body"><span data-en>Attach certificates, sale records, expert opinions. Each document signed and timestamped. Verifiable forever.</span><span data-pl>Dołącz certyfikaty, akty sprzedaży, opinie ekspert&oacute;w. Każdy dokument podpisany i ze znacznikiem czasu. Weryfikowalny na zawsze.</span></div>
+      </div>
+    </div>
+    <a href="for-artists.html" class="btn btn-outline"><span data-en>more for artists &rarr;</span><span data-pl>więcej dla artyst&oacute;w &rarr;</span></a>
   </div>
 
   <div class="tab-panel" id="tab-developer">
-    <p class="tab-story"><span data-en>You want to run your own instance, extend the tools, or integrate humanMCP into a larger creative pipeline. It's Go, zero extra dependencies, one binary.</span><span data-pl>Chcesz uruchomić własną instancję, rozszerzyć narzędzia lub zintegrować humanMCP z większym pipeline'em. Go, zero dodatkowych zależności, jeden binary.</span></p>
+    <p class="tab-story"><span data-en>Go 1.22, zero external dependencies, one binary. Clone, deploy, extend.</span><span data-pl>Go 1.22, zero zewnętrznych zależności, jeden binary. Sklonuj, zdeploy, rozszerzaj.</span></p>
     <div class="feat-grid feat-grid-2" style="margin-bottom:1.5rem;">
       <div class="feat">
-        <div class="feat-title">stack</div>
-        <div class="feat-body"><span data-en>Go 1.22, stdlib only, single binary, ~10MB. Deploys to Fly.io in 5 minutes. Content persists on a volume as markdown files.</span><span data-pl>Go 1.22, tylko stdlib, jeden binary, ~10MB. Deploy na Fly.io w 5 minut. Treści na woluminie jako pliki markdown.</span></div>
+        <div class="feat-title">37+ MCP tools</div>
+        <div class="feat-body"><span data-en>Content, blobs, signing, licensing, listings, skills, personas, federation, vault. Full JSON-RPC 2.0 at <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/mcp</code>.</span><span data-pl>Treści, bloby, podpisy, licencje, ogłoszenia, umiejętności, persony, federacja, vault. Pełny JSON-RPC 2.0 na <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/mcp</code>.</span></div>
       </div>
       <div class="feat">
-        <div class="feat-title">Ed25519 signing</div>
-        <div class="feat-body"><span data-en>Key generated once with <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">go run ./cmd/keygen</code>, stored as Fly secret. Every save auto-signs piece and blob.</span><span data-pl>Klucz generujesz raz komendą <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">go run ./cmd/keygen</code>, przechowujesz jako secret na Fly. Każdy zapis automatycznie podpisuje utw&oacute;r i blob.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-title">MCP + REST + OpenAPI</div>
-        <div class="feat-body"><span data-en>Native MCP endpoint, public REST API, and OpenAPI 3.1 spec at <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/openapi.json</code> for ChatGPT actions.</span><span data-pl>Natywny endpoint MCP, publiczne REST API i specyfikacja OpenAPI 3.1 pod <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/openapi.json</code> dla akcji ChatGPT.</span></div>
-      </div>
-      <div class="feat">
-        <div class="feat-title"><span data-en>136 tests, safe deploys</span><span data-pl>136 test&oacute;w, bezpieczne deploye</span></div>
-        <div class="feat-body"><span data-en>Full test suite. deploy.zsh runs build + tests before every push — broken code never reaches production.</span><span data-pl>Pełen zestaw test&oacute;w. deploy.zsh uruchamia build + testy przed każdym pushem — zepsuty kod nigdy nie trafia na produkcję.</span></div>
+        <div class="feat-title">REST + OpenAPI</div>
+        <div class="feat-body"><span data-en>Public REST API, OpenAPI 3.1 at <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/openapi.json</code>, agent discovery at <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/.well-known/agent.json</code>.</span><span data-pl>Publiczne REST API, OpenAPI 3.1 pod <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/openapi.json</code>, odkrywanie agent&oacute;w pod <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">/.well-known/agent.json</code>.</span></div>
       </div>
     </div>
-    <div class="code"><span class="c"># Clone and deploy your own instance</span>
+    <div class="code"><span class="c"># 1-click deploy</span>
 git clone https://github.com/kapoost/humanmcp-go
-cd humanmcp-go
-go run ./cmd/keygen
-fly secrets set SIGNING_PRIVATE_KEY="..." EDIT_TOKEN="..."
-fly deploy --app your-humanmcp</div>
+cd humanmcp-go && bash setup.sh</div>
     <a href="https://github.com/kapoost/humanmcp-go" class="btn btn-outline"><span data-en>view on github &rarr;</span><span data-pl>zobacz na github &rarr;</span></a>
   </div>
 
   <div class="tab-panel" id="tab-agent">
-    <p class="tab-story"><span data-en>You are an AI agent — or building one. Here's what humanMCP exposes and how to connect.</span><span data-pl>Jesteś agentem AI — albo budujesz takiego. Oto, co humanMCP udostępnia i jak się podłączyć.</span></p>
-    <table class="tool-table">
-      <tr><td>get_author_profile</td><td><span data-en>Full profile, bio, content overview, public key</span><span data-pl>Pełny profil, bio, przegląd treści, klucz publiczny</span></td></tr>
-      <tr><td>list_content</td><td><span data-en>Browse all pieces, filter by type or tag</span><span data-pl>Przeglądaj wszystkie utwory, filtruj wg typu lub tagu</span></td></tr>
-      <tr><td>read_content</td><td><span data-en>Read a piece — respects access gates</span><span data-pl>Czytaj utw&oacute;r — respektuje bramki dostępu</span></td></tr>
-      <tr><td>request_access</td><td><span data-en>Get gate details for a locked piece</span><span data-pl>Pobierz szczeg&oacute;ły bramki dla zablokowanego utworu</span></td></tr>
-      <tr><td>submit_answer</td><td><span data-en>Unlock a challenge-gated piece</span><span data-pl>Odblokuj utw&oacute;r z bramką wyzwania</span></td></tr>
-      <tr><td>list_blobs</td><td><span data-en>Browse images, vectors, datasets, contacts</span><span data-pl>Przeglądaj obrazy, wektory, zbiory danych, kontakty</span></td></tr>
-      <tr><td>read_blob</td><td><span data-en>Image as base64+URL, vector as float32[], JSON inline</span><span data-pl>Obraz jako base64+URL, wektor jako float32[], JSON inline</span></td></tr>
-      <tr><td>verify_content</td><td><span data-en>Check Ed25519 signature — verified or tampered</span><span data-pl>Sprawdź podpis Ed25519 — zweryfikowany lub zmieniony</span></td></tr>
-      <tr><td>get_certificate</td><td><span data-en>Full IP cert: hash, Ed25519 sig, OTS Bitcoin proof, originality, license</span><span data-pl>Pełny certyfikat IP: hash, podpis Ed25519, dow&oacute;d OTS Bitcoin, oryginalność, licencja</span></td></tr>
-      <tr><td>upgrade_timestamp</td><td><span data-en>Fetch upgraded Bitcoin-anchored OTS proof (~1hr after save)</span><span data-pl>Pobierz zaktualizowany dow&oacute;d OTS zakotwiczony w Bitcoin (~1h po zapisie)</span></td></tr>
-      <tr><td>request_license</td><td><span data-en>Declare intended use — logged, returns terms</span><span data-pl>Zadeklaruj zamierzone użycie — logowane, zwraca warunki</span></td></tr>
-      <tr><td>leave_comment</td><td><span data-en>Reaction on a piece, max 280 chars</span><span data-pl>Reakcja na utw&oacute;r, maks. 280 znak&oacute;w</span></td></tr>
-      <tr><td>leave_message</td><td><span data-en>Direct note to the author, max 2000 chars</span><span data-pl>Bezpośrednia wiadomość do autora, maks. 2000 znak&oacute;w</span></td></tr>
-      <tr><td>list_listings</td><td><span data-en>Browse classified ads (sell/buy/offer/request/trade)</span><span data-pl>Przeglądaj ogłoszenia (sprzedaż/kupno/oferta/zapytanie/wymiana)</span></td></tr>
-      <tr><td>read_listing</td><td><span data-en>Full listing details with signature</span><span data-pl>Pełne szczeg&oacute;ły ogłoszenia z podpisem</span></td></tr>
-      <tr><td>respond_to_listing</td><td><span data-en>Reply to a listing</span><span data-pl>Odpowiedz na ogłoszenie</span></td></tr>
-      <tr><td>subscribe_listings</td><td><span data-en>Subscribe to new listings (webhook or MCP pull)</span><span data-pl>Subskrybuj nowe ogłoszenia (webhook lub MCP pull)</span></td></tr>
-      <tr><td>unsubscribe_listings</td><td><span data-en>Cancel listing subscription</span><span data-pl>Anuluj subskrypcję ogłoszeń</span></td></tr>
-      <tr><td>search_content</td><td><span data-en>Full-text search across all pieces</span><span data-pl>Wyszukiwanie pełnotekstowe we wszystkich utworach</span></td></tr>
-      <tr><td>bootstrap_session</td><td><span data-en>Unlock private context (skills + team)</span><span data-pl>Odblokuj prywatny kontekst (umiejętności + zespół)</span></td></tr>
-      <tr><td>list_skills / get_skill</td><td><span data-en>Skill catalog and full instructions</span><span data-pl>Katalog umiejętności i pełne instrukcje</span></td></tr>
-      <tr><td>query_vault</td><td><span data-en>Search personal knowledge vault</span><span data-pl>Przeszukaj osobistą bazę wiedzy</span></td></tr>
-      <tr><td>about_humanmcp</td><td><span data-en>Open-source project info</span><span data-pl>Informacje o projekcie open source</span></td></tr>
-    </table>
+    <p class="tab-story"><span data-en>You are an AI agent &mdash; or building one. Connect via MCP or REST.</span><span data-pl>Jesteś agentem AI &mdash; albo budujesz takiego. Połącz się przez MCP lub REST.</span></p>
     <div class="endpoint-row"><span class="ep-label">MCP</span><span class="ep-url">https://kapoost.humanmcp.net/mcp</span></div>
     <div class="endpoint-row"><span class="ep-label">REST</span><span class="ep-url">https://kapoost.humanmcp.net/api/content</span></div>
     <div class="endpoint-row" style="margin-bottom:1.5rem;"><span class="ep-label">OAS</span><span class="ep-url">https://kapoost.humanmcp.net/openapi.json</span></div>
-    <div class="code"><span class="c"># Claude Desktop — claude_desktop_config.json</span>
+    <div class="code"><span class="c"># Claude Desktop / Claude Code</span>
 {
   <span class="k">"mcpServers"</span>: {
     <span class="k">"kapoost"</span>: {
@@ -306,68 +329,69 @@ fly deploy --app your-humanmcp</div>
       <span class="k">"url"</span>: <span class="s">"https://kapoost.humanmcp.net/mcp"</span>
     }
   }
-}
-
-<span class="c"># ChatGPT Custom GPT — import OpenAPI from:</span>
-<span class="v">https://kapoost.humanmcp.net/openapi.json</span></div>
-    <a href="https://kapoost.humanmcp.net/connect" class="btn btn-outline"><span data-en>full connection guide &rarr;</span><span data-pl>pełna instrukcja połączenia &rarr;</span></a>
+}</div>
+    <a href="https://kapoost.humanmcp.net/connect" class="btn btn-outline"><span data-en>connection guide &rarr;</span><span data-pl>instrukcja połączenia &rarr;</span></a>
   </div>
 </section>
 
+<!-- ── BITCOIN ── -->
 <section class="how-section" style="border-bottom:1px solid var(--faint);">
-  <div class="section-label"><span data-en>bitcoin timestamp — how to verify</span><span data-pl>znacznik bitcoin — jak weryfikować</span></div>
-  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;"><span data-en>Every piece carries an OpenTimestamps proof anchored in the Bitcoin blockchain. You can verify any piece independently — no trust in this server required.</span><span data-pl>Każdy utw&oacute;r niesie dow&oacute;d OpenTimestamps zakotwiczony w blockchainie Bitcoin. Możesz zweryfikować dowolny utw&oacute;r niezależnie — nie wymaga zaufania do tego serwera.</span></p>
+  <div class="section-label"><span data-en>bitcoin timestamp &mdash; how to verify</span><span data-pl>znacznik bitcoin &mdash; jak weryfikować</span></div>
+  <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.5rem;max-width:560px;"><span data-en>Every piece carries an OpenTimestamps proof anchored in the Bitcoin blockchain. Verify independently &mdash; no trust in any server required.</span><span data-pl>Każdy utw&oacute;r niesie dow&oacute;d OpenTimestamps zakotwiczony w blockchainie Bitcoin. Weryfikuj niezależnie &mdash; nie wymaga zaufania do żadnego serwera.</span></p>
   <div class="feat-grid feat-grid-3" style="margin-bottom:1.5rem;">
     <div class="feat">
       <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">&#8544;</div>
       <div class="feat-title"><span data-en>get the proof</span><span data-pl>pobierz dow&oacute;d</span></div>
-      <div class="feat-body"><span data-en>Ask any agent: <em style="font-style:italic;color:var(--gold)">"get_certificate piosenki"</em> — the <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> field is a base64 OTS stub.</span><span data-pl>Zapytaj dowolnego agenta: <em style="font-style:italic;color:var(--gold)">"get_certificate piosenki"</em> — pole <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> to stub OTS w base64.</span></div>
+      <div class="feat-body"><span data-en>Ask any agent: <em style="font-style:italic;color:var(--gold)">&ldquo;get_certificate piosenki&rdquo;</em> &mdash; the <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> field is a base64 OTS stub.</span><span data-pl>Zapytaj dowolnego agenta: <em style="font-style:italic;color:var(--gold)">&bdquo;get_certificate piosenki&rdquo;</em> &mdash; pole <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">ots_proof</code> to stub OTS w base64.</span></div>
     </div>
     <div class="feat">
       <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">&#8545;</div>
       <div class="feat-title"><span data-en>decode it</span><span data-pl>zdekoduj</span></div>
-      <div class="feat-body"><code style="font-family:var(--mono);font-size:.78em;color:var(--gold);display:block;white-space:pre-wrap;">echo "{ots_proof}" | base64 -d > piece.ots</code><span data-en>After ~1hr use the agent's <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">upgrade_timestamp</code> tool to get the full proof.</span><span data-pl>Po ~1h użyj narzędzia agenta <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">upgrade_timestamp</code>, by pobrać pełny dow&oacute;d.</span></div>
+      <div class="feat-body"><code style="font-family:var(--mono);font-size:.78em;color:var(--gold);display:block;white-space:pre-wrap;">echo "{ots_proof}" | base64 -d > piece.ots</code><span data-en>After ~1hr use <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">upgrade_timestamp</code> to get the full proof.</span><span data-pl>Po ~1h użyj <code style="font-family:var(--mono);font-size:.82em;color:var(--gold)">upgrade_timestamp</code>, by pobrać pełny dow&oacute;d.</span></div>
     </div>
     <div class="feat">
       <div class="feat-icon" style="font-family:var(--mono);font-size:1rem;">&#8546;</div>
       <div class="feat-title"><span data-en>verify offline</span><span data-pl>weryfikuj offline</span></div>
       <div class="feat-body"><code style="font-family:var(--mono);font-size:.78em;color:var(--gold);display:block;white-space:pre-wrap;">pip install opentimestamps-client
-ots verify piece.ots</code><span data-en>Returns the Bitcoin block height and timestamp. No account needed.</span><span data-pl>Zwraca wysokość bloku Bitcoin i znacznik czasu. Nie wymaga konta.</span></div>
+ots verify piece.ots</code><span data-en>Returns Bitcoin block height and timestamp.</span><span data-pl>Zwraca wysokość bloku Bitcoin i znacznik czasu.</span></div>
     </div>
   </div>
 </section>
 
+<!-- ── HOW ── -->
 <section class="how-section">
   <div class="section-label"><span data-en>how it works</span><span data-pl>jak to działa</span></div>
   <div class="feat-grid feat-grid-3">
     <div class="feat">
       <div class="feat-icon">&#8544;</div>
-      <div class="feat-title"><span data-en>you write</span><span data-pl>piszesz</span></div>
-      <div class="feat-body"><span data-en>Post a poem, image, or dataset through the owner UI. The server signs it instantly with your Ed25519 key.</span><span data-pl>Opublikuj wiersz, obraz lub zbi&oacute;r danych przez panel właściciela. Serwer natychmiast podpisuje je Twoim kluczem Ed25519.</span></div>
+      <div class="feat-title"><span data-en>deploy &amp; publish</span><span data-pl>postaw i publikuj</span></div>
+      <div class="feat-body"><span data-en>Run <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">bash setup.sh</code> &mdash; you get yourname.humanmcp.net. Post poems, images, listings. The server signs everything instantly.</span><span data-pl>Uruchom <code style="font-family:var(--mono);font-size:.85em;color:var(--gold)">bash setup.sh</code> &mdash; dostajesz twojimie.humanmcp.net. Publikuj wiersze, obrazy, ogłoszenia. Serwer podpisuje wszystko natychmiast.</span></div>
     </div>
     <div class="feat">
       <div class="feat-icon">&#8545;</div>
-      <div class="feat-title"><span data-en>agents read</span><span data-pl>agenty czytają</span></div>
-      <div class="feat-body"><span data-en>Any AI agent connects via MCP or REST. It can browse, read, verify signatures, and check your license before using anything.</span><span data-pl>Dowolny agent AI łączy się przez MCP lub REST. Może przeglądać, czytać, weryfikować podpisy i sprawdzać licencję przed użyciem czegokolwiek.</span></div>
+      <div class="feat-title"><span data-en>connect &amp; discover</span><span data-pl>połącz i odkrywaj</span></div>
+      <div class="feat-body"><span data-en>Share your 1-click follow link. Appear in humanNetwork. AI agents find you via MCP. The marketplace indexes your listings.</span><span data-pl>Udostępnij link 1-click follow. Pojaw się w humanNetwork. Agenty AI znajdują Cię przez MCP. Marketplace indeksuje Twoje ogłoszenia.</span></div>
     </div>
     <div class="feat">
       <div class="feat-icon">&#8546;</div>
-      <div class="feat-title"><span data-en>you stay in control</span><span data-pl>masz kontrolę</span></div>
-      <div class="feat-body"><span data-en>Gate content. Set licenses. See who read what. The server runs on your Fly.io account — no middleman, no platform risk.</span><span data-pl>Bramkuj treści. Ustawiaj licencje. Zobacz, kto co czytał. Serwer działa na Twoim koncie Fly.io — bez pośrednika, bez ryzyka platformowego.</span></div>
+      <div class="feat-title"><span data-en>own everything</span><span data-pl>posiadaj wszystko</span></div>
+      <div class="feat-body"><span data-en>Your server, your data, your audience, your social graph. Export subscriptions. Move your server. No platform risk, no middleman.</span><span data-pl>Tw&oacute;j serwer, Twoje dane, Twoja publiczność, Tw&oacute;j graf społeczny. Eksportuj subskrypcje. Przenieś serwer. Bez ryzyka platformowego, bez pośrednika.</span></div>
     </div>
   </div>
 </section>
 
 <footer>
-  <span>humanMCP v0.2 &mdash; <a href="https://kapoost.humanmcp.net">kapoost.humanmcp.net</a></span>
+  <span>humanMCP &mdash; <a href="https://kapoost.humanmcp.net">kapoost.humanmcp.net</a></span>
   <span>
+    <a href="humannetwork.html">network</a>
+    &nbsp;&middot;&nbsp;
     <a href="marketplace.html">marketplace</a>
     &nbsp;&middot;&nbsp;
-    <a href="for-creators.html">for creators</a>
+    <a href="for-creators.html">creators</a>
     &nbsp;&middot;&nbsp;
-    <a href="for-artists.html">for artists</a>
+    <a href="for-artists.html">artists</a>
     &nbsp;&middot;&nbsp;
-    <a href="humannetwork.html">network</a>
+    <a href="deploy-options.html">deploy</a>
     &nbsp;&middot;&nbsp;
     <a href="https://kapoost.humanmcp.net/connect"><span data-en>connect</span><span data-pl>połącz</span></a>
     &nbsp;&middot;&nbsp;
