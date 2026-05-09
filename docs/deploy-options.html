@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>humanMCP — opcje instalacji</title>
+<style>
+:root{--bg:#0e0d0b;--fg:#ede8df;--mut:#7a7268;--dim:#3a3830;--gold:#c9a96e;--grn:#6aab7e;--red:#d07070;--blu:#7aade0;--b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);--mono:'Menlo','Consolas','Courier New',monospace;--serif:Georgia,serif;}
+@media(prefers-color-scheme:light){:root{--bg:#faf8f3;--fg:#1a1610;--mut:#7a7060;--dim:#cdc9bc;--gold:#7a5510;--grn:#1d5c30;--red:#982020;--blu:#1a4e8c;--b1:rgba(0,0,0,.07);--b2:rgba(0,0,0,.13);}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;line-height:1.7;padding:2rem;max-width:960px;margin:0 auto;}
+h1{font-family:var(--serif);font-size:1.8rem;font-weight:300;margin-bottom:.3rem;}
+h2{font-size:.85rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin:2.5rem 0 .8rem;border-bottom:1px solid var(--b1);padding-bottom:.4rem;}
+p{color:var(--mut);margin-bottom:1rem;font-size:12px;}
+a{color:var(--gold);}
+
+table{width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:12px;}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);padding:.5rem .6rem;border-bottom:2px solid var(--b2);}
+td{padding:.55rem .6rem;border-bottom:1px solid var(--b1);vertical-align:top;}
+tr:hover td{background:rgba(201,169,110,.03);}
+.y{color:var(--grn);}
+.n{color:var(--red);}
+.m{color:var(--gold);}
+.tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-right:2px;letter-spacing:.5px;}
+.tag-free{background:rgba(106,171,126,.1);color:var(--grn);border:1px solid rgba(106,171,126,.2);}
+.tag-paid{background:rgba(208,112,112,.07);color:var(--red);border:1px solid rgba(208,112,112,.15);}
+.tag-best{background:rgba(201,169,110,.1);color:var(--gold);border:1px solid rgba(201,169,110,.2);}
+.tag-tech{background:rgba(122,173,224,.07);color:var(--blu);border:1px solid rgba(122,173,224,.15);}
+
+.cmd{background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:3px;padding:.6rem .8rem;font-size:11px;line-height:1.8;overflow-x:auto;margin:.5rem 0 1rem;white-space:pre;}
+.note{font-size:11px;color:var(--mut);padding:.5rem .8rem;border-left:2px solid var(--gold);margin:1rem 0;}
+
+.flow{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0 1.5rem;}
+.step{display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--mut);}
+.step::before{content:counter(step);counter-increment:step;font-size:9px;width:18px;height:18px;border-radius:50%;background:var(--gold);color:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+.flow{counter-reset:step;}
+.arrow{color:var(--dim);font-size:14px;}
+</style>
+</head>
+<body>
+
+<h1>humanMCP — opcje instalacji</h1>
+<p>Jeden serwer, jeden czlowiek, jego zasady. Cztery sposoby na start.</p>
+
+<table>
+<thead>
+<tr>
+  <th style="width:20%">opcja</th>
+  <th style="width:15%">dla kogo</th>
+  <th style="width:12%">koszt</th>
+  <th style="width:12%">konto</th>
+  <th style="width:12%">karta</th>
+  <th style="width:12%">domena</th>
+  <th style="width:17%">trudnosc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>A. Subdomena u bliskiego</strong><br><span class="tag tag-best">polecane bliskim</span></td>
+  <td>rodzina, przyjaciele, bliscy</td>
+  <td><span class="y">0 zl</span></td>
+  <td><span class="y">nie trzeba</span></td>
+  <td><span class="y">nie trzeba</span></td>
+  <td>alice.<em>twojadom</em>.net</td>
+  <td>1 komenda<br><span class="tag tag-tech">host robi</span></td>
+</tr>
+<tr>
+  <td><strong>B. Fly.io (wlasne)</strong><br><span class="tag tag-free">free tier</span></td>
+  <td>tworccy, techniczniejsi</td>
+  <td><span class="y">0 zl</span><br><span style="font-size:10px;color:var(--mut)">free tier: 3 VM, 3GB</span></td>
+  <td><span class="m">email + rejestracja</span></td>
+  <td><span class="n">tak (weryfikacja)</span><br><span style="font-size:10px;color:var(--mut)">nie pobiera oplat</span></td>
+  <td>name-humanmcp.fly.dev<br><span style="font-size:10px;color:var(--mut)">+ wlasna za 0 zl</span></td>
+  <td>3 komendy<br><span class="tag tag-tech">bash setup.sh</span></td>
+</tr>
+<tr>
+  <td><strong>C. VPS</strong><br><span class="tag tag-paid">od 16 zl/msc</span></td>
+  <td>pelna kontrola</td>
+  <td><span class="n">~16-20 zl/msc</span><br><span style="font-size:10px;color:var(--mut)">Hetzner, OVH</span></td>
+  <td><span class="m">konto u dostawcy</span></td>
+  <td><span class="n">tak</span></td>
+  <td>dowolna wlasna</td>
+  <td>docker + nginx<br><span class="tag tag-tech">srednia</span></td>
+</tr>
+<tr>
+  <td><strong>D. Raspberry Pi / NAS</strong><br><span class="tag tag-free">sprzet w domu</span></td>
+  <td>hakerzy, majsterkowicze</td>
+  <td><span class="y">0 zl</span><br><span style="font-size:10px;color:var(--mut)">jesli masz RPi</span></td>
+  <td><span class="y">nie trzeba</span></td>
+  <td><span class="y">nie trzeba</span></td>
+  <td>dyndns / tunel</td>
+  <td>docker + tunel<br><span class="tag tag-tech">zaawansowana</span></td>
+</tr>
+</tbody>
+</table>
+
+<h2>A. Subdomena u bliskiego (dla rodziny)</h2>
+
+<p>Ty (host) stawiasz serwer bliskiej osoby na swoim koncie Fly. Ona nie potrzebuje konta, karty, ani terminala.</p>
+
+<div class="flow">
+  <div class="step">bliski podaje imie i bio</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">host odpala komende</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">serwer dziala</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">host wysyla link + token</div>
+</div>
+
+<div class="cmd">fly apps create alice-humanmcp --org personal
+fly volumes create humanmcp_data --size 1 --region ams --app alice-humanmcp -y
+fly secrets set EDIT_TOKEN="$(openssl rand -hex 16)" \
+  AUTHOR_NAME="Alice" \
+  DOMAIN="alice-humanmcp.fly.dev" \
+  --app alice-humanmcp
+fly deploy --app alice-humanmcp</div>
+
+<div class="note">
+  Host placi 0 zl (free tier: 3 maszyny na konto).<br>
+  Wiecej niz 3 osoby &rarr; $1.94/msc za kazda kolejna VM (256MB).<br>
+  Bliski loguje sie tokenem, dodaje tresc, nie potrzebuje terminala.<br>
+  Opcjonalnie: subdomena alice.twojadom.net &rarr; <code>fly certs add alice.twojadom.net --app alice-humanmcp</code>
+</div>
+
+<p><strong>Co bliski dostaje:</strong></p>
+<div class="cmd">Serwer:  https://alice-humanmcp.fly.dev
+Login:   https://alice-humanmcp.fly.dev/login
+Follow:  https://humanmcp.net/humannetwork.html?add=https://alice-humanmcp.fly.dev
+Connect: https://alice-humanmcp.fly.dev/connect</div>
+
+<h2>B. Fly.io (wlasny deploy)</h2>
+
+<div class="flow">
+  <div class="step">zainstaluj flyctl</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">fly auth signup (email + karta)</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">bash setup.sh</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">gotowe</div>
+</div>
+
+<div class="cmd">git clone https://github.com/kapoost/humanmcp-go.git
+cd humanmcp-go
+bash setup.sh</div>
+
+<div class="note">
+  Skrypt pyta o imie, bio, region. Tworzy app, volume, klucze, deploy.<br>
+  Karta kredytowa wymagana przez Fly do weryfikacji (anty-abuse), nie jest obciazana.<br>
+  Free tier: 3 shared VM (256MB), 3GB persistent volume, HTTPS, auto-sleep.
+</div>
+
+<h2>C. VPS (Docker)</h2>
+
+<div class="cmd">ssh root@twoj-vps
+git clone https://github.com/kapoost/humanmcp-go.git
+cd humanmcp-go
+docker build -t humanmcp .
+docker run -d --name humanmcp \
+  -p 8080:8080 \
+  -v humanmcp_data:/data \
+  -e EDIT_TOKEN=secret \
+  -e AUTHOR_NAME=yourname \
+  -e DOMAIN=yourdomain.com \
+  humanmcp</div>
+
+<div class="note">
+  Potrzebujesz nginx jako reverse proxy + certbot (Let's Encrypt) dla HTTPS.<br>
+  Hetzner CX22: ~16 zl/msc, DigitalOcean: ~$4/msc, OVH: ~$3.50/msc.
+</div>
+
+<h2>D. Raspberry Pi</h2>
+
+<div class="cmd">git clone https://github.com/kapoost/humanmcp-go.git
+cd humanmcp-go
+go build -o humanmcp ./cmd/server/
+EDIT_TOKEN=secret AUTHOR_NAME=yourname ./humanmcp</div>
+
+<div class="note">
+  Dziala na RPi 3/4/5, NAS (Synology z Docker), starym laptopie.<br>
+  Tunel do internetu: <a href="https://cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> (darmowy) lub <a href="https://tailscale.com/kb/1223/funnel">Tailscale Funnel</a>.<br>
+  Binary: ~7MB, zuzwa ~15MB RAM. Zero zewnetrznych zaleznosci.
+</div>
+
+<h2>Porownanie techniczne</h2>
+
+<table>
+<thead>
+<tr>
+  <th></th>
+  <th>A. Subdomena</th>
+  <th>B. Fly.io</th>
+  <th>C. VPS</th>
+  <th>D. RPi</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>HTTPS</td><td class="y">auto (Fly)</td><td class="y">auto (Fly)</td><td class="m">certbot</td><td class="m">tunel</td></tr>
+<tr><td>Uptime</td><td class="y">99.9%</td><td class="y">99.9%</td><td class="y">99%+</td><td class="m">zalezy</td></tr>
+<tr><td>Auto-sleep</td><td class="y">tak (0 zl idle)</td><td class="y">tak</td><td class="n">nie</td><td class="n">nie</td></tr>
+<tr><td>Backup</td><td class="m">fly ssh + scp</td><td class="m">fly ssh + scp</td><td class="y">pelny</td><td class="y">pelny</td></tr>
+<tr><td>Wlasna domena</td><td class="y">fly certs</td><td class="y">fly certs</td><td class="y">DNS</td><td class="m">tunel</td></tr>
+<tr><td>Konto wymagane</td><td class="y">nie (host)</td><td class="n">tak + karta</td><td class="n">tak</td><td class="y">nie</td></tr>
+<tr><td>Terminal</td><td class="y">nie (host)</td><td class="m">3 komendy</td><td class="n">tak</td><td class="n">tak</td></tr>
+<tr><td>Pojemnosc</td><td>1GB</td><td>1-3GB</td><td>20-80GB</td><td>SD card</td></tr>
+<tr><td>Cold start</td><td>~2s</td><td>~2s</td><td>0 (always on)</td><td>0</td></tr>
+</tbody>
+</table>
+
+<h2>Flow: bliski dolacza do sieci</h2>
+
+<div class="flow">
+  <div class="step">host stawia serwer (opcja A)</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">wysyla token + link logowania</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">bliski loguje sie i pisze</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">announce na /connect</div>
+  <span class="arrow">&rarr;</span>
+  <div class="step">widoczny w humanNetwork</div>
+</div>
+
+<p style="margin-top:3rem;color:var(--dim);font-size:10px;letter-spacing:.1em;">
+  humanMCP &mdash; <a href="https://github.com/kapoost/humanmcp-go">github</a> &middot;
+  <a href="https://humanmcp.net">humanmcp.net</a> &middot;
+  <a href="https://humanmcp.net/humannetwork.html">humanNetwork</a>
+</p>
+
+</body>
+</html>
