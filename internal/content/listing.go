@@ -42,6 +42,7 @@ type Listing struct {
 	Published time.Time     `json:"published"`
 	ExpiresAt time.Time     `json:"expires_at,omitempty"`
 	ImageRef  string        `json:"image_ref,omitempty"` // path to uploaded image (e.g. files/listing-slug.jpg)
+	Lang      string        `json:"lang,omitempty"`      // ISO 639-1: "pl", "en"
 	Signature string        `json:"signature,omitempty"`
 }
 

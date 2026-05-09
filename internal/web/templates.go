@@ -1187,6 +1187,14 @@ input[type=radio]:checked + .type-label{border-color:var(--accent);background:va
           <option value="none" {{if .Piece}}{{if eq .Piece.AgentUse "none"}}selected{{end}}{{end}}>no access</option>
         </select>
       </div>
+      <div>
+        <label class="fl" style="font-size:.75rem;opacity:.7;">Language</label>
+        <select name="lang">
+          <option value="" {{if .Piece}}{{if eq .Piece.Lang ""}}selected{{end}}{{end}}>— auto —</option>
+          <option value="pl" {{if .Piece}}{{if eq .Piece.Lang "pl"}}selected{{end}}{{end}}>polski</option>
+          <option value="en" {{if .Piece}}{{if eq .Piece.Lang "en"}}selected{{end}}{{end}}>English</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -2363,7 +2371,7 @@ a:hover{text-decoration:underline}
     <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Tags (comma-separated)</label>
     <input name="tags" value="{{if .Listing}}{{join .Listing.Tags ", "}}{{end}}" placeholder="sailing, parts, s2000" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
     <div>
       <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Status</label>
       <select name="status" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
@@ -2381,6 +2389,15 @@ a:hover{text-decoration:underline}
         <option value="public" {{if eq $la "public"}}selected{{end}}>public</option>
         <option value="members" {{if eq $la "members"}}selected{{end}}>members</option>
         <option value="locked" {{if eq $la "locked"}}selected{{end}}>locked</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.82rem;font-weight:500;display:block;margin-bottom:.3rem;">Lang</label>
+      <select name="lang" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg);">
+        {{$ll := ""}}{{if .Listing}}{{$ll = .Listing.Lang}}{{end}}
+        <option value="" {{if eq $ll ""}}selected{{end}}>— auto —</option>
+        <option value="pl" {{if eq $ll "pl"}}selected{{end}}>PL</option>
+        <option value="en" {{if eq $ll "en"}}selected{{end}}>EN</option>
       </select>
     </div>
     <div>

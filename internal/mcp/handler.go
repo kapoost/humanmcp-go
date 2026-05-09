@@ -1103,6 +1103,12 @@ func (h *Handler) toolListContent(w http.ResponseWriter, req *Request, args json
 		sb.WriteString(fmt.Sprintf("slug:   %s\n", p.Slug))
 		sb.WriteString(fmt.Sprintf("title:  %s\n", p.Title))
 		sb.WriteString(fmt.Sprintf("type:   %s\n", p.Type))
+		if p.Lang != "" {
+			sb.WriteString(fmt.Sprintf("lang:   %s\n", p.Lang))
+			if p.Type == "poem" {
+				sb.WriteString("translate: no (poetry — read in original)\n")
+			}
+		}
 		sb.WriteString(fmt.Sprintf("access: %s\n", p.Access))
 		if p.Description != "" {
 			sb.WriteString(fmt.Sprintf("about:  %s\n", p.Description))
@@ -1242,6 +1248,14 @@ func contentFooter(p *content.Piece) string {
 	}
 	if p.AgentUse != "" {
 		sb.WriteString(fmt.Sprintf("\nAgent use: %s", p.AgentUse))
+	}
+	if p.Lang != "" {
+		sb.WriteString(fmt.Sprintf("\nLanguage: %s", p.Lang))
+		if p.Type == "poem" {
+			sb.WriteString(" (do not translate — poetry must be read in original)")
+		} else {
+			sb.WriteString(" (translation ok)")
+		}
 	}
 	sb.WriteString("\nThis read has been logged.")
 	sb.WriteString(fmt.Sprintf("\n\n— Leave your reaction: leave_comment {slug: %q, text: \"your reaction\", from: \"your-name\"}", p.Slug))
