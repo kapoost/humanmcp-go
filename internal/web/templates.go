@@ -725,6 +725,12 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
   </div>
 </div>
 <div class="connect-section">
+  <div class="connect-title">Follow {{.Author}} on humanNetwork</div>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.5rem;">One click &mdash; adds this server to your wall.</p>
+  <div class="code-block" style="word-break:break-all;user-select:all;font-size:.78rem;margin-bottom:.6rem;">https://humanmcp.net/humannetwork.html?add=https://{{.Domain}}</div>
+  <a href="https://humanmcp.net/humannetwork.html?add=https://{{.Domain}}" target="_blank" style="display:inline-block;padding:.4rem 1rem;border:1px solid var(--accent);border-radius:4px;font-size:.85rem;color:var(--accent);">open humanNetwork</a>
+</div>
+<div class="connect-section">
   <div class="connect-title">Join the humanNetwork</div>
   <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Announce your server to the network. Other humanMCP servers will discover you through peer lists, and humanNetwork users will see you as a suggestion.</p>
   <div id="join-net">
