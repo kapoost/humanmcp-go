@@ -674,8 +674,18 @@ function App(){
 
   const t=T[lang];
 
-  // On mount: silently refresh all subs (stale-while-revalidate)
+  // On mount: auto-add from ?add= param, then refresh all subs
   useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const autoAdd=params.get('add');
+    if(autoAdd){
+      const base=norm(autoAdd);
+      // Clean URL without reloading
+      window.history.replaceState({},'',window.location.pathname);
+      if(base&&!subs.find(s=>s.url===base)){
+        loadSub(base).then(sub=>setSubs(p=>[...p,sub])).catch(()=>{});
+      }
+    }
     subs.forEach((sub,i)=>{
       setTimeout(async()=>{
         try{const fresh=await loadSub(sub.url);setSubs(p=>p.map(s=>s.url===sub.url?{...fresh}:s));}catch{}
