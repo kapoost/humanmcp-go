@@ -725,6 +725,36 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
   </div>
 </div>
 <div class="connect-section">
+  <div class="connect-title">Join the humanNetwork</div>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Announce your server to the network. Other humanMCP servers will discover you through peer lists, and humanNetwork users will see you as a suggestion.</p>
+  <div id="join-net">
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+      <input id="jn-url" type="text" placeholder="https://yourname.humanmcp.net" style="flex:1;min-width:200px;padding:.4rem .6rem;border:1px solid var(--border);border-radius:4px;font-size:.82rem;background:var(--tag-bg);color:var(--fg);font-family:var(--mono);">
+      <button id="jn-btn" onclick="joinNetwork()" style="padding:.4rem 1rem;border:1px solid var(--accent);border-radius:4px;font-size:.82rem;color:var(--accent);background:transparent;cursor:pointer;font-family:var(--mono);">announce</button>
+    </div>
+    <div id="jn-msg" style="font-size:.8rem;margin-top:.4rem;"></div>
+  </div>
+  <script>
+  async function joinNetwork(){
+    const url=document.getElementById('jn-url').value.trim().replace(/\/$/,'');
+    const msg=document.getElementById('jn-msg');
+    const btn=document.getElementById('jn-btn');
+    if(!url){msg.style.color='var(--accent5)';msg.textContent='Enter your server URL';return;}
+    btn.disabled=true;btn.textContent='...';msg.textContent='';
+    try{
+      const hub='https://{{.Domain}}/mcp';
+      const bh={'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
+      await fetch(hub,{method:'POST',headers:bh,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'JoinNetwork',version:'0.1'}}})});
+      const r=await fetch(hub,{method:'POST',headers:bh,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'announce_peer',arguments:{url:url}}})});
+      const data=await r.json();
+      const text=(data.result?.content||[]).find(b=>b.type==='text')?.text||'Done';
+      msg.style.color='var(--accent)';msg.textContent=text;
+    }catch(e){msg.style.color='var(--accent5)';msg.textContent='Error: '+e.message;}
+    btn.disabled=false;btn.textContent='announce';
+  }
+  </script>
+</div>
+<div class="connect-section">
   <div class="connect-title">Run your own humanMCP</div>
   <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Fork the project and publish your own content on your own terms.</p>
   <a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="display:inline-block;padding:.4rem 1rem;border:1px solid var(--border);border-radius:4px;font-size:.85rem;color:var(--fg);">View on GitHub</a>
