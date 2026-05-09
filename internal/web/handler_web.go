@@ -295,6 +295,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Login/logout for web UI
 	mux.HandleFunc("/login", h.handleLogin)
 	mux.HandleFunc("/logout", h.handleLogout)
+
+	// Docs redirects — serve GitHub Pages docs from server domain
+	for _, page := range []string{"for-artists", "for-creators", "marketplace", "humannetwork", "deploy-options"} {
+		p := page
+		mux.HandleFunc("/"+p, func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "https://humanmcp.net/"+p+".html", http.StatusMovedPermanently)
+		})
+	}
 }
 
 func (h *Handler) handleWellKnown(w http.ResponseWriter, r *http.Request) {
