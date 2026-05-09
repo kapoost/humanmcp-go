@@ -98,6 +98,13 @@ footer a:hover{color:var(--gold);}
     .prompt:hover .prompt-copy{color:var(--gold);}
     .challenge-q{font-size:1.15rem;font-style:italic;color:var(--fg);font-family:var(--serif);}
 
+.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:300;}
+.help-overlay.on{display:flex;}
+.help-box{background:var(--bg2);border:1px solid var(--gold-border);border-radius:4px;padding:1.5rem 2rem;max-width:320px;width:90%;}
+.help-box h3{font-family:var(--mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.14em;color:var(--gold);margin-bottom:.8rem;}
+.help-row{display:flex;justify-content:space-between;font-size:.8rem;padding:.2rem 0;color:var(--muted);}
+.help-key{font-family:var(--mono);color:var(--fg);font-size:.72rem;background:var(--bg);padding:1px 6px;border-radius:2px;border:1px solid var(--faint);}
+
 </style>
 </head>
 <body>
@@ -369,6 +376,15 @@ ots verify piece.ots</code><span data-en>Returns the Bitcoin block height and ti
 </footer>
 
 </div>
+<div class="help-overlay" id="help">
+  <div class="help-box">
+    <h3><span data-en>Keyboard shortcuts</span><span data-pl>Skróty klawiszowe</span></h3>
+    <div class="help-row"><span><span data-en>Theme</span><span data-pl>Motyw</span></span><span class="help-key">d</span></div>
+    <div class="help-row"><span><span data-en>Language</span><span data-pl>Język</span></span><span class="help-key">l</span></div>
+    <div class="help-row"><span>Scroll</span><span><span class="help-key">j</span> <span class="help-key">k</span></span></div>
+    <div class="help-row"><span><span data-en>Help</span><span data-pl>Pomoc</span></span><span class="help-key">?</span></div>
+  </div>
+</div>
 <script>
 function toggleTheme(){
   var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
@@ -396,6 +412,15 @@ function sw(btn, id) {
   btn.classList.add('active');
   document.getElementById('tab-' + id).classList.add('active');
 }
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  if(e.key==='d'){toggleTheme();return;}
+  if(e.key==='l'){toggleLang();return;}
+  if(e.key==='j'){window.scrollBy(0,120);return;}
+  if(e.key==='k'){window.scrollBy(0,-120);return;}
+  if(e.key==='?'){document.getElementById('help').classList.toggle('on');return;}
+  if(e.key==='Escape'){document.getElementById('help').classList.remove('on');return;}
+});
 </script>
 </body>
 </html>
