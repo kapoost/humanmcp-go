@@ -82,6 +82,13 @@ input{font-family:inherit;font-size:inherit;}
 .sbmt{padding:1.5rem 1rem;font-size:9px;color:var(--mut);text-align:center;line-height:1.9;letter-spacing:.04em;}
 .badge-new{font-size:7px;padding:1px 5px;border-radius:8px;background:var(--gold);color:#1a1610;font-weight:700;letter-spacing:.04em;margin-left:.35rem;}
 
+/* Discovered */
+.disc{border-top:1px solid var(--b1);}
+.disc-row{opacity:.7;transition:opacity .15s;}
+.disc-row:hover{opacity:1;}
+.disc-add{font-size:11px;color:var(--gold);font-weight:700;}
+.disc-add:hover{color:var(--fg);}
+
 /* Filters */
 .filters{padding:.6rem .9rem;border-top:1px solid var(--b1);}
 .filters-hd{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:.4rem;}
@@ -230,6 +237,8 @@ const T = {
     grid: 'grid',
     filters: 'Filters',
     newItems: 'new',
+    discovered: 'Discovered',
+    addQ: 'add?',
   },
   pl: {
     people: 'Ludzie',
@@ -254,6 +263,8 @@ const T = {
     grid: 'siatka',
     filters: 'Filtry',
     newItems: 'nowe',
+    discovered: 'Odkryte',
+    addQ: 'dodaj?',
   }
 };
 
@@ -417,7 +428,27 @@ function countNew(sub){
   return(sub.pieces||[]).filter(p=>{const d=gf(p,'published');return d&&new Date(d)>new Date(since);}).length;
 }
 
-function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,t}){
+// Discover peers from all subs
+async function discoverPeers(subs){
+  const known=new Set(subs.map(s=>norm(s.url)));
+  const found=new Map(); // url -> {name,bio,via}
+  await Promise.all(subs.map(async sub=>{
+    try{
+      const r=await fetch(`${sub.url}/api/peers`);
+      if(!r.ok)return;
+      const data=await r.json();
+      for(const p of (data.peers||[])){
+        const u=norm(p.url||'');
+        if(u&&!known.has(u)&&!found.has(u)){
+          found.set(u,{url:u,name:p.name||u.replace('https://',''),bio:p.bio||'',via:gf(sub.profile,'title')||sub.url.replace('https://','')});
+        }
+      }
+    }catch{}
+  }));
+  return[...found.values()];
+}
+
+function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,t}){
   return(<>
     <div className="sbhd">{t.people}</div>
     <div className="sbsc">
@@ -455,6 +486,21 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
         })
       }
     </div>
+    {discovered.length>0&&<div className="disc">
+      <div className="sbhd">{t.discovered}</div>
+      {discovered.map(d=>(
+        <div key={d.url} className="pr disc-row">
+          <div className="pav" style={{background:avBg(d.url)}}>{initials(d.name)}</div>
+          <div className="pi">
+            <div className="pn">{d.name}</div>
+            <div className="pm">{d.bio||d.url.replace('https://','')}</div>
+          </div>
+          <div className="pa">
+            <button className="disc-add" onClick={()=>addDiscovered(d.url)}>+</button>
+          </div>
+        </div>
+      ))}
+    </div>}
     <div className="filters">
       <div className="filters-hd">{t.filters}</div>
       <div className="filters-row">
@@ -623,6 +669,7 @@ function App(){
   const [addE,setAddE]=useState('');
   const [previews,setPreviews]=useState({});
   const [typeFilters,setTypeFilters]=useState(()=>new Set(ALL_TYPES));
+  const [discovered,setDiscovered]=useState([]);
   const loadedKeys=useRef(new Set());
 
   const t=T[lang];
@@ -635,6 +682,16 @@ function App(){
       },i*1500);
     });
   },[]);
+
+  // Discover peers from all subs
+  useEffect(()=>{
+    if(subs.length===0)return;
+    const timer=setTimeout(async()=>{
+      const peers=await discoverPeers(subs);
+      setDiscovered(peers);
+    },3000);
+    return()=>clearTimeout(timer);
+  },[subs.map(s=>s.url).join(',')]);
 
   // Mark as seen when feed is viewed
   useEffect(()=>{
@@ -695,6 +752,12 @@ function App(){
     catch(e){setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:false,err:e.message}:s));}
   }
   function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
+  async function addDiscovered(url){
+    const base=norm(url);
+    if(subs.find(s=>s.url===base))return;
+    setDiscovered(d=>d.filter(p=>norm(p.url)!==base));
+    try{const sub=await loadSub(base);setSubs(p=>[...p,sub]);}catch{}
+  }
   const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule','artwork','listing']);
   const feed=subs.flatMap(sub=>(sub.pieces||[])
     .filter(p=>{
@@ -704,7 +767,7 @@ function App(){
     .map(p=>({...p,_sub:sub})))
     .sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
-  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,t};
+  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,t};
 
   function openPiece(piece,key){
     setOpen(key);
