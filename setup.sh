@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # setup.sh — 1-click humanMCP deploy to Fly.io
-# Usage: curl -sL https://raw.githubusercontent.com/kapoost/humanmcp-go/main/setup.sh | bash
-#    or: git clone ... && cd humanmcp-go && bash setup.sh
+# Usage: git clone https://github.com/kapoost/humanmcp-go.git && cd humanmcp-go && bash setup.sh
 
 set -e
 
@@ -32,6 +31,7 @@ read -p "Your name (e.g. alice): " NAME
 NAME=${NAME:-anonymous}
 SLUG=$(echo "$NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
 APP="${SLUG}-humanmcp"
+DOMAIN="${SLUG}.humanmcp.net"
 
 read -p "Short bio (1-2 sentences): " BIO
 BIO=${BIO:-"A human with something to say."}
@@ -44,6 +44,7 @@ TOKEN=$(openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | h
 
 echo ""
 echo "  App:    $APP"
+echo "  Domain: $DOMAIN"
 echo "  Author: $NAME"
 echo "  Region: $REGION"
 echo ""
@@ -111,8 +112,7 @@ fi
 
 # ── Set secrets ───────────────────────────────────────────────────────────────
 echo "Setting secrets..."
-fly secrets set EDIT_TOKEN="$TOKEN" --app "$APP"
-fly secrets set DOMAIN="${APP}.fly.dev" --app "$APP"
+fly secrets set EDIT_TOKEN="$TOKEN" DOMAIN="$DOMAIN" --app "$APP"
 if [ -n "$PRIV" ]; then
   fly secrets set SIGNING_PRIVATE_KEY="$PRIV" SIGNING_PUBLIC_KEY="$PUB" --app "$APP"
 fi
@@ -122,24 +122,31 @@ echo ""
 echo "Deploying..."
 fly deploy --app "$APP"
 
+# ── Custom domain ─────────────────────────────────────────────────────────────
+echo ""
+echo "Adding certificate for $DOMAIN ..."
+fly certs add "$DOMAIN" --app "$APP" 2>/dev/null || echo "(cert may already exist)"
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
 echo "  ║              READY                       ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
-echo "  Server:  https://${APP}.fly.dev"
-echo "  MCP:     https://${APP}.fly.dev/mcp"
-echo "  Login:   https://${APP}.fly.dev/login"
+echo "  Server:  https://$DOMAIN"
+echo "  MCP:     https://$DOMAIN/mcp"
+echo "  Login:   https://$DOMAIN/login"
 echo "  Token:   $TOKEN"
 echo ""
 echo "  Save your token! You need it to log in."
 echo ""
+echo "  Domain $DOMAIN uses wildcard DNS (*.humanmcp.net)."
+echo "  The certificate may take 1-2 minutes to activate."
+echo "  In the meantime, https://${APP}.fly.dev also works."
+echo ""
 echo "  Next steps:"
-echo "  1. Open https://${APP}.fly.dev/login and paste your token"
+echo "  1. Open https://$DOMAIN/login and paste your token"
 echo "  2. Create your first piece (poem, essay, note)"
 echo "  3. Share your 1-click follow link:"
-echo "     https://humanmcp.net/humannetwork.html?add=https://${APP}.fly.dev"
-echo ""
-echo "  Custom domain? See: fly certs add yourdomain.com --app $APP"
+echo "     https://humanmcp.net/humannetwork.html?add=https://$DOMAIN"
 echo ""

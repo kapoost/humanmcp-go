@@ -192,9 +192,9 @@ The script asks for your name and bio, then:
 - Prints your login token and 1-click follow link
 
 Done in ~2 minutes. You get:
-- `https://yourname-humanmcp.fly.dev` — your server
-- `https://yourname-humanmcp.fly.dev/connect` — share with friends
-- `https://humanmcp.net/humannetwork.html?add=https://yourname-humanmcp.fly.dev` — 1-click follow
+- `https://yourname.humanmcp.net` — your server
+- `https://yourname.humanmcp.net/connect` — share with friends
+- `https://humanmcp.net/humannetwork.html?add=https://yourname.humanmcp.net` — 1-click follow
 
 ## Run locally
 
