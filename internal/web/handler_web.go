@@ -984,6 +984,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 		p.License = r.FormValue("license")
 		p.HumanUse = r.FormValue("human_use")
 		p.AgentUse = r.FormValue("agent_use")
+		p.Lang = r.FormValue("lang")
 		p.Price = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
@@ -1064,6 +1065,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		p.License      = r.FormValue("license")
 		p.HumanUse     = r.FormValue("human_use")
 		p.AgentUse     = r.FormValue("agent_use")
+		p.Lang         = r.FormValue("lang")
 		p.Price        = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		p.Challenge   = r.FormValue("challenge")
@@ -1360,6 +1362,7 @@ func (h *Handler) handleListingNew(w http.ResponseWriter, r *http.Request) {
 			Title:  r.FormValue("title"),
 			Body:   r.FormValue("body"),
 			Price:  r.FormValue("price"),
+			Lang:   r.FormValue("lang"),
 			Status: content.ListingStatus(r.FormValue("status")),
 			Access: content.AccessLevel(r.FormValue("access")),
 		}
@@ -1425,6 +1428,7 @@ func (h *Handler) handleListingEdit(w http.ResponseWriter, r *http.Request) {
 		l.Title = r.FormValue("title")
 		l.Body = r.FormValue("body")
 		l.Price = r.FormValue("price")
+		l.Lang = r.FormValue("lang")
 		l.Status = content.ListingStatus(r.FormValue("status"))
 		l.Access = content.AccessLevel(r.FormValue("access"))
 		l.PriceSats = 0
@@ -1541,6 +1545,8 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 		Slug        string   `json:"slug"`
 		Title       string   `json:"title"`
 		Type        string   `json:"type"`
+		Lang        string   `json:"lang,omitempty"`
+		Translate   bool     `json:"translate"`
 		Tags        []string `json:"tags"`
 		Published   string   `json:"published"`
 		Access      string   `json:"access"`
@@ -1575,6 +1581,8 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 			Slug:        p.Slug,
 			Title:       p.Title,
 			Type:        p.Type,
+			Lang:        p.Lang,
+			Translate:   p.Type != "poem",
 			Tags:        p.Tags,
 			Published:   p.Published.Format(time.RFC3339),
 			Access:      string(p.Access),
@@ -1617,6 +1625,8 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 			Slug:        l.Slug,
 			Title:       l.Title,
 			Type:        lType,
+			Lang:        l.Lang,
+			Translate:   true,
 			Tags:        l.Tags,
 			Published:   l.Published.Format(time.RFC3339),
 			Access:      string(l.Access),
