@@ -82,6 +82,10 @@ input{font-family:inherit;font-size:inherit;}
 .sbmt{padding:1.5rem 1rem;font-size:9px;color:var(--mut);text-align:center;line-height:1.9;letter-spacing:.04em;}
 .badge-new{font-size:7px;padding:1px 5px;border-radius:8px;background:var(--gold);color:#1a1610;font-weight:700;letter-spacing:.04em;margin-left:.35rem;}
 
+/* Export/Import */
+.sb-io{display:flex;gap:.4rem;padding:.5rem .9rem;border-top:1px solid var(--b1);}
+.sb-io-btn{flex:1;text-align:center;font-size:8px;padding:3px 0;cursor:pointer;}
+
 /* Discovered */
 .disc{border-top:1px solid var(--b1);}
 .disc-row{opacity:.7;transition:opacity .15s;}
@@ -239,6 +243,11 @@ const T = {
     newItems: 'new',
     discovered: 'Discovered',
     addQ: 'add?',
+    exportSubs: 'export',
+    importSubs: 'import',
+    exported: 'Saved!',
+    imported: 'Loaded!',
+    importErr: 'Invalid file',
   },
   pl: {
     people: 'Ludzie',
@@ -265,6 +274,11 @@ const T = {
     newItems: 'nowe',
     discovered: 'Odkryte',
     addQ: 'dodaj?',
+    exportSubs: 'eksportuj',
+    importSubs: 'importuj',
+    exported: 'Zapisano!',
+    imported: 'Wczytano!',
+    importErr: 'Nieprawid\u0142owy plik',
   }
 };
 
@@ -448,7 +462,7 @@ async function discoverPeers(subs){
   return[...found.values()];
 }
 
-function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,t}){
+function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,exportSubs,importSubs,t}){
   return(<>
     <div className="sbhd">{t.people}</div>
     <div className="sbsc">
@@ -512,6 +526,10 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
         ))}
       </div>
     </div>
+    {subs.length>0&&<div className="sb-io">
+      <button className="hbtn sb-io-btn" onClick={exportSubs}>{t.exportSubs}</button>
+      <label className="hbtn sb-io-btn">{t.importSubs}<input type="file" accept=".json" style={{display:'none'}} onChange={e=>{if(e.target.files[0])importSubs(e.target.files[0]);e.target.value='';}}/></label>
+    </div>}
   </>);
 }
 
@@ -768,6 +786,34 @@ function App(){
     setDiscovered(d=>d.filter(p=>norm(p.url)!==base));
     try{const sub=await loadSub(base);setSubs(p=>[...p,sub]);}catch{}
   }
+  function exportSubs(){
+    const data=JSON.stringify({humannetwork:1,servers:subs.map(s=>({url:s.url,name:gf(s.profile,'title')||''}))},null,2);
+    const blob=new Blob([data],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='humannetwork.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function importSubs(file){
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      try{
+        const data=JSON.parse(e.target.result);
+        const servers=data.servers||data;
+        if(!Array.isArray(servers))throw new Error('bad format');
+        const existing=new Set(subs.map(s=>s.url));
+        for(const s of servers){
+          const url=norm(s.url||s);
+          if(url&&!existing.has(url)){
+            existing.add(url);
+            try{const sub=await loadSub(url);setSubs(p=>[...p,sub]);}catch{}
+          }
+        }
+      }catch{setAddE(t.importErr);}
+    };
+    reader.readAsText(file);
+  }
   const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule','artwork','listing']);
   const feed=subs.flatMap(sub=>(sub.pieces||[])
     .filter(p=>{
@@ -777,7 +823,7 @@ function App(){
     .map(p=>({...p,_sub:sub})))
     .sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
-  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,t};
+  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,discovered,addDiscovered,exportSubs,importSubs,t};
 
   function openPiece(piece,key){
     setOpen(key);
