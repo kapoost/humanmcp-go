@@ -1465,7 +1465,7 @@ func (h *Handler) toolLeaveComment(w http.ResponseWriter, req *Request, args jso
 	if len(text) > 280 {
 		text = text[:280]
 	}
-	m, err := h.msgStore.Save(a.From, text, a.Slug)
+	m, err := h.msgStore.SaveKind(a.From, text, a.Slug, "comment")
 	if err != nil {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{
 			{Type: "text", Text: "Could not save comment: " + err.Error()},
@@ -1760,14 +1760,14 @@ func (h *Handler) toolRequestLicense(w http.ResponseWriter, req *Request, args j
 
 	// Log the usage declaration
 	h.statStore.Record(content.Event{
-		Type:   content.EventAccess,
+		Type:   content.EventLicense,
 		Caller: content.CallerAgent,
 		Slug:   a.Slug,
 		From:   a.CallerID,
 	})
 	// Save as a message for audit trail
 	msgText := fmt.Sprintf("[license request] use=%s caller=%s", a.IntendedUse, a.CallerID)
-	h.msgStore.Save(a.CallerID, msgText, a.Slug)
+	h.msgStore.SaveKind(a.CallerID, msgText, a.Slug, "license")
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("LICENSE TERMS: %q\n\n", p.Title))
@@ -2760,7 +2760,7 @@ func (h *Handler) toolRespondToListing(w http.ResponseWriter, req *Request, args
 		return
 	}
 
-	_, err = h.msgStore.Save(a.From, a.Message, "listing:"+a.Slug)
+	_, err = h.msgStore.SaveKind(a.From, a.Message, "listing:"+a.Slug, "response")
 	if err != nil {
 		writeError(w, req.ID, -32000, "failed to save response: "+err.Error())
 		return

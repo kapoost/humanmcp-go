@@ -1908,6 +1908,12 @@ a:hover{text-decoration:underline}
 .mc-msg-head{font-size:10px;color:var(--mc-muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
 .mc-msg-head strong{color:var(--mc-fg);font-size:11px}
 .mc-msg-tag{font-size:9px;background:var(--mc-accent-dim);color:var(--mc-accent);padding:1px 6px;border-radius:8px;border:1px solid var(--mc-accent)}
+.mc-kind{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:4px;letter-spacing:.5px}
+.mc-kind-msg{background:#1a3a1a;color:#4a4}
+.mc-kind-cmt{background:#1a2a3a;color:#4af}
+.mc-kind-lic{background:#3a2a1a;color:#fa4}
+.mc-kind-q{background:#3a1a2a;color:#f4a}
+.mc-kind-rsp{background:#2a2a1a;color:#aa4}
 .mc-msg-body{font-size:12px;line-height:1.5;color:var(--mc-fg)}
 .mc-msg-del{font-size:9px;color:var(--mc-muted);cursor:pointer;margin-left:auto;border:none;background:none}
 .mc-msg-del:hover{color:var(--mc-red)}
@@ -1953,6 +1959,7 @@ a:hover{text-decoration:underline}
   <div class="mc-stat"><div class="mc-stat-num">{{.SkillCount}}</div><div class="mc-stat-label">skills</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.TotalReads}}</div><div class="mc-stat-label">reads</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.TotalMessages}}</div><div class="mc-stat-label">messages</div></div>
+  <div class="mc-stat"><div class="mc-stat-num">{{.TotalLicenses}}</div><div class="mc-stat-label">licenses</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.UniqueVisitors}}</div><div class="mc-stat-label">visitors</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.AgentCalls}}</div><div class="mc-stat-label">agents</div></div>
   <div class="mc-stat"><div class="mc-stat-num">{{.HumanVisits}}</div><div class="mc-stat-label">humans</div></div>
@@ -1963,12 +1970,12 @@ a:hover{text-decoration:underline}
 {{if .IsOwner}}{{with .Stats}}
 <div class="mc-trends">
   <table class="mc-trend-table">
-    <thead><tr><th></th><th>reads</th><th>visitors</th><th>agents</th><th>humans</th><th>searches</th><th>msgs</th></tr></thead>
+    <thead><tr><th></th><th>reads</th><th>visitors</th><th>agents</th><th>humans</th><th>searches</th><th>msgs</th><th>lic</th></tr></thead>
     <tbody>
-      <tr><td class="mc-trend-label">today</td><td>{{.Today.Reads}}</td><td>{{.Today.Visitors}}</td><td>{{.Today.Agents}}</td><td>{{.Today.Humans}}</td><td>{{.Today.Searches}}</td><td>{{.Today.Messages}}</td></tr>
-      <tr><td class="mc-trend-label">yesterday</td><td>{{.Yesterday.Reads}}</td><td>{{.Yesterday.Visitors}}</td><td>{{.Yesterday.Agents}}</td><td>{{.Yesterday.Humans}}</td><td>{{.Yesterday.Searches}}</td><td>{{.Yesterday.Messages}}</td></tr>
-      <tr><td class="mc-trend-label">7 days</td><td>{{.Last7Days.Reads}}</td><td>{{.Last7Days.Visitors}}</td><td>{{.Last7Days.Agents}}</td><td>{{.Last7Days.Humans}}</td><td>{{.Last7Days.Searches}}</td><td>{{.Last7Days.Messages}}</td></tr>
-      <tr><td class="mc-trend-label">30 days</td><td>{{.Last30Days.Reads}}</td><td>{{.Last30Days.Visitors}}</td><td>{{.Last30Days.Agents}}</td><td>{{.Last30Days.Humans}}</td><td>{{.Last30Days.Searches}}</td><td>{{.Last30Days.Messages}}</td></tr>
+      <tr><td class="mc-trend-label">today</td><td>{{.Today.Reads}}</td><td>{{.Today.Visitors}}</td><td>{{.Today.Agents}}</td><td>{{.Today.Humans}}</td><td>{{.Today.Searches}}</td><td>{{.Today.Messages}}</td><td>{{.Today.Licenses}}</td></tr>
+      <tr><td class="mc-trend-label">yesterday</td><td>{{.Yesterday.Reads}}</td><td>{{.Yesterday.Visitors}}</td><td>{{.Yesterday.Agents}}</td><td>{{.Yesterday.Humans}}</td><td>{{.Yesterday.Searches}}</td><td>{{.Yesterday.Messages}}</td><td>{{.Yesterday.Licenses}}</td></tr>
+      <tr><td class="mc-trend-label">7 days</td><td>{{.Last7Days.Reads}}</td><td>{{.Last7Days.Visitors}}</td><td>{{.Last7Days.Agents}}</td><td>{{.Last7Days.Humans}}</td><td>{{.Last7Days.Searches}}</td><td>{{.Last7Days.Messages}}</td><td>{{.Last7Days.Licenses}}</td></tr>
+      <tr><td class="mc-trend-label">30 days</td><td>{{.Last30Days.Reads}}</td><td>{{.Last30Days.Visitors}}</td><td>{{.Last30Days.Agents}}</td><td>{{.Last30Days.Humans}}</td><td>{{.Last30Days.Searches}}</td><td>{{.Last30Days.Messages}}</td><td>{{.Last30Days.Licenses}}</td></tr>
     </tbody>
   </table>
   <div class="mc-spark" id="mc-spark"></div>
@@ -2078,23 +2085,38 @@ a:hover{text-decoration:underline}
 {{end}}
 </div>
 
-<!-- COL 3: messages + funnel -->
+<!-- COL 3: unified inbox + funnel -->
 <div class="mc-col">
-{{if .Messages}}
 <div class="mc-section">
-  <div class="mc-label">INCOMING MESSAGES <span>{{len .Messages}}</span></div>
-  {{range .Messages}}<div class="mc-msg">
+  <div class="mc-label">INBOX {{if or .Messages .Questions}}<span>{{len .Messages}}{{with .Questions}}+{{len .}}Q{{end}}</span>{{end}}</div>
+{{if .Questions}}{{range .Questions}}<div class="mc-msg">
     <div class="mc-msg-head">
+      <span class="mc-kind mc-kind-q">Q</span>
+      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
+      <span>{{formatTime .AskedAt}}</span>
+    </div>
+    <div class="mc-msg-body">{{.Question}}</div>
+    <form method="POST" action="/questions/answer" style="margin-top:4px;display:flex;gap:4px">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <input type="text" name="answer" placeholder="answer..." style="flex:1;background:var(--mc-bg);border:1px solid var(--mc-border);color:var(--mc-fg);padding:2px 6px;font-size:11px">
+      <button type="submit" style="background:var(--mc-cyan);color:#000;border:none;padding:2px 8px;font-size:11px;cursor:pointer">reply</button>
+    </form>
+  </div>{{end}}{{end}}
+{{if .Messages}}{{range .Messages}}<div class="mc-msg">
+    <div class="mc-msg-head">
+      {{if eq .Kind "comment"}}<span class="mc-kind mc-kind-cmt">CMT</span>
+      {{else if eq .Kind "license"}}<span class="mc-kind mc-kind-lic">LIC</span>
+      {{else if eq .Kind "response"}}<span class="mc-kind mc-kind-rsp">RSP</span>
+      {{else}}<span class="mc-kind mc-kind-msg">MSG</span>{{end}}
       {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
       <span>{{formatTime .At}}</span>
       {{if .Regarding}}<span class="mc-msg-tag">re: {{.Regarding}}</span>{{end}}
     </div>
     <div class="mc-msg-body">{{.Text}}</div>
   </div>{{end}}
-</div>
-{{else}}
-<div class="mc-section"><div class="mc-label">INCOMING MESSAGES</div><div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div></div>
 {{end}}
+{{if not (or .Messages .Questions)}}<div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div>{{end}}
+</div>
 
 {{with .Stats}}
 {{if .ChallengeFunnel}}

@@ -43,6 +43,7 @@ input{font-family:inherit;font-size:inherit;}
 .hdr-r{display:flex;align-items:center;gap:.55rem;}
 .hbtn{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--b2);border-radius:2px;color:var(--mut);transition:color .15s,border-color .15s;}
 .hbtn:hover{color:var(--gold);border-color:var(--gb);}
+.hbtn.on{color:var(--gold);border-color:var(--gb);}
 .mob{display:none;}
 
 /* Main */
@@ -79,6 +80,14 @@ input{font-family:inherit;font-size:inherit;}
 .pa button:hover{color:var(--gold);border-color:var(--gb);}
 .pa .del:hover{color:var(--red);border-color:var(--red);}
 .sbmt{padding:1.5rem 1rem;font-size:9px;color:var(--mut);text-align:center;line-height:1.9;letter-spacing:.04em;}
+.badge-new{font-size:7px;padding:1px 5px;border-radius:8px;background:var(--gold);color:#1a1610;font-weight:700;letter-spacing:.04em;margin-left:.35rem;}
+
+/* Filters */
+.filters{padding:.6rem .9rem;border-top:1px solid var(--b1);}
+.filters-hd{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:.4rem;}
+.filters-row{display:flex;flex-wrap:wrap;gap:.25rem .5rem;}
+.filters-row label{font-size:9px;color:var(--mut);display:flex;align-items:center;gap:.25rem;cursor:pointer;}
+.filters-row input[type=checkbox]{accent-color:var(--gold);width:11px;height:11px;}
 
 /* Feed */
 .feed{flex:1;overflow-y:auto;}
@@ -131,6 +140,24 @@ input{font-family:inherit;font-size:inherit;}
 .fg{font-size:9px;color:var(--dim);letter-spacing:.05em;}
 .fg::before{content:'#';color:var(--mut);opacity:.5;}
 
+/* Wall view */
+.wall{border-top:1px solid var(--b1);}
+.wall-item{padding:1.2rem 1.8rem;border-bottom:1px solid var(--b1);transition:background .12s;cursor:pointer;}
+.wall-item:hover{background:var(--fnt);}
+.wall-author{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;}
+.wall-av{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;}
+.wall-name{font-size:10px;color:var(--mut);letter-spacing:.03em;}
+.wall-time{font-size:9px;color:var(--dim);letter-spacing:.04em;margin-left:auto;}
+.wall-top{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;}
+.wall-title{font-family:var(--serif);font-size:1.3rem;font-weight:400;line-height:1.25;color:var(--fg);transition:color .15s;}
+.wall-item:hover .wall-title{color:var(--gold);}
+.wall-desc{font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:.3rem;}
+.wall-frag{font-family:var(--serif);font-size:1rem;font-style:italic;color:var(--mut);line-height:1.75;margin:.2rem 0;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.wall-thumb{max-width:100%;max-height:300px;object-fit:cover;display:block;margin:.5rem 0;border-radius:2px;}
+.wall-meta{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;font-size:8px;color:var(--dim);letter-spacing:.04em;}
+.wall-meta .tsg,.wall-meta .fg{font-size:8px;}
+.wall-price{font-size:9px;color:var(--gold);letter-spacing:.04em;}
+
 /* Detail view — replaces grid when tile is opened */
 .dv{padding:2rem 2.5rem 5rem;max-width:860px;}
 .dv-back{display:inline-flex;align-items:center;gap:.4rem;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:2rem;border:none;background:none;padding:0;transition:color .15s;cursor:pointer;}
@@ -175,8 +202,9 @@ input{font-family:inherit;font-size:inherit;}
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
-const LS='humannetwork-v1', LT='humanmcp-theme', LL='humanmcp-lang';
+const LS='humannetwork-v1', LT='humanmcp-theme', LL='humanmcp-lang', LSEEN='hn-lastseen';
 const TCLS={poem:'tp',essay:'te',note:'tn',image:'ti',document:'td',contact:'tc',vector:'tx',capsule:'tx',artwork:'ta',listing:'tl'};
+const ALL_TYPES=['poem','essay','image','artwork','listing','note'];
 
 const T = {
   en: {
@@ -187,7 +215,7 @@ const T = {
     anyUrl: 'any humanmcp server url',
     add: 'add',
     pieces: 'pieces',
-    backToFeed: '\u2190 back to feed',
+    backToFeed: '\u2190 back',
     loading: 'loading\u2026',
     empty: '(empty)',
     openOn: 'open on',
@@ -198,6 +226,10 @@ const T = {
     already: 'Already added',
     signed: '\u2713 signed',
     locked: 'locked',
+    wall: 'wall',
+    grid: 'grid',
+    filters: 'Filters',
+    newItems: 'new',
   },
   pl: {
     people: 'Ludzie',
@@ -207,7 +239,7 @@ const T = {
     anyUrl: 'dowolny adres serwera humanMCP',
     add: 'dodaj',
     pieces: 'utwor\u00f3w',
-    backToFeed: '\u2190 wr\u00f3\u0107 do feedu',
+    backToFeed: '\u2190 wr\u00f3\u0107',
     loading: '\u0142adowanie\u2026',
     empty: '(pusto)',
     openOn: 'otw\u00f3rz na',
@@ -218,8 +250,21 @@ const T = {
     already: 'Ju\u017c dodano',
     signed: '\u2713 podpisany',
     locked: 'zablokowany',
+    wall: 'wall',
+    grid: 'siatka',
+    filters: 'Filtry',
+    newItems: 'nowe',
   }
 };
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return '<1m';
+  if (diff < 3600) return Math.floor(diff/60) + 'm';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd';
+  return new Date(dateStr).toLocaleDateString('en',{day:'numeric',month:'short'});
+}
 
 function norm(u){return u.trim().replace(/\/$/,'').replace(/\/mcp$/,'');}
 function gf(o,k){if(!o)return;return o[k]!==undefined?o[k]:o[k[0].toUpperCase()+k.slice(1)];}
@@ -228,7 +273,6 @@ function fmtDate(d){if(!d)return'';const dt=new Date(d);if(isNaN(dt))return'';re
 // Strip agent-only footer lines from humanMCP body text
 function cleanBody(text){
   if(!text||typeof text!=='string')return text;
-  // If it's JSON (listing response), parse and extract body
   let t=text.trim();
   if(t.startsWith('{')){
     try{
@@ -241,7 +285,6 @@ function cleanBody(text){
       return parts.join('\n\n')||t;
     }catch{}
   }
-  // Strip MCP agent footer
   const licIdx=t.indexOf('\nLICENSE:');
   if(licIdx>0)t=t.slice(0,licIdx);
   const logIdx=t.indexOf('\nThis read has been logged');
@@ -257,7 +300,6 @@ function cleanBody(text){
     .trim();
 }
 
-// Extract poem fragment from read_content response text
 function extractFragment(text){
   if(!text||typeof text!=='string')return null;
   const t=cleanBody(text);
@@ -277,7 +319,6 @@ function extractFragment(text){
   return lines.join('\n').slice(0,280)||null;
 }
 
-// Extract base64 image data from read_blob response
 function extractImageSrc(text){
   if(!text)return null;
   const mimeMatch=text.match(/mime_type:\s*([^\n]+)/);
@@ -288,7 +329,8 @@ function extractImageSrc(text){
   const b64=text.slice(idx+marker.length).trim();
   if(!b64)return null;
   return`data:${mime};base64,${b64}`;
-}function initials(s=''){return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'H';}
+}
+function initials(s=''){return s.split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'H';}
 const AVP=['#534AB7','#378ADD','#0F6E56','#BA7517','#993556','#185FA5','#993C1D','#639922'];
 function avBg(url){let h=0;for(let i=0;i<url.length;i++)h=(h*31+url.charCodeAt(i))&0xffff;return AVP[h%AVP.length];}
 
@@ -321,7 +363,7 @@ async function mcpCall(base,tool,args={}){
   const url=`${base}/mcp`;
   const bh={'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
   let session=null;
-  try{const ir=await fetch(url,{method:'POST',headers:bh,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'HumanNetwork',version:'0.2'}}})});session=ir.headers.get('mcp-session-id');}catch{}
+  try{const ir=await fetch(url,{method:'POST',headers:bh,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'HumanNetwork',version:'0.3'}}})});session=ir.headers.get('mcp-session-id');}catch{}
   const h=session?{...bh,'mcp-session-id':session}:{...bh};
   const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify({jsonrpc:'2.0',id:Date.now(),method:'tools/call',params:{name:tool,arguments:args}})});
   if(!r.ok)throw new Error(`HTTP ${r.status}`);
@@ -333,18 +375,49 @@ async function mcpCall(base,tool,args={}){
   const block=(data.result?.content||[]).find(b=>b.type==='text');
   return block?block.text:null;
 }
+
+// Load sub: prefer stream.json, fallback to MCP + REST
 async function loadSub(url){
-  let profile={title:url.replace('https://',''),description:'',tags:[]};
-  try{const r=await fetch(`${url}/.well-known/mcp-server.json`);if(r.ok){const wk=await r.json();profile={title:wk.title||wk.name||profile.title,description:wk.description||'',tags:wk.tags||[]};}}catch{}
+  let profile={title:url.replace('https://',''),description:'',tags:[],avatar:''};
+  try{const r=await fetch(`${url}/.well-known/mcp-server.json`);if(r.ok){const wk=await r.json();profile={title:wk.title||wk.name||profile.title,description:wk.description||'',tags:wk.tags||[],avatar:''};}}catch{}
+
+  // Try stream.json first (single request)
+  try{
+    const r=await fetch(`${url}/content/stream.json`);
+    if(r.ok){
+      const data=await r.json();
+      if(data.author) profile.title=data.author;
+      if(data.avatar) profile.avatar=data.avatar;
+      const pieces=(data.items||[]).map(it=>({
+        slug:it.slug, title:it.title, type:it.type,
+        tags:it.tags||[], published:it.published, access:it.access,
+        description:it.description, signature:it.signature,
+        license:it.license, human_use:it.human_use, agent_use:it.agent_use,
+        price:it.price, thumbnail:it.thumbnail?`${url}${it.thumbnail}`:null
+      }));
+      return{url,profile,pieces,piecesErr:null,hasStream:true};
+    }
+  }catch{}
+
+  // Fallback: MCP + REST (old 3-request path)
   let pieces=[],piecesErr=null;
   try{const t=await mcpCall(url,'list_content',{});pieces=parsePieces(t);if(!pieces.length&&t)piecesErr='No pieces parsed';}
   catch(e){piecesErr=e.message;}
-  // Also fetch listings
   try{const r=await fetch(`${url}/listings/feed.json`);if(r.ok){const feed=await r.json();const listings=(feed.listings||[]).map(l=>({slug:l.slug||l.id,title:l.title,type:'listing',tags:l.tags||[],published:l.published||l.created,description:l.body?(l.body.slice(0,120)+'...'):l.listing_type}));pieces=pieces.concat(listings);}}catch{}
-  return{url,profile,pieces,piecesErr};
+  return{url,profile,pieces,piecesErr,hasStream:false};
 }
 
-function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,t}){
+// Last-seen tracking
+function getLastSeen(){try{return JSON.parse(localStorage.getItem(LSEEN)||'{}');}catch{return{};}}
+function setLastSeen(url){const ls=getLastSeen();ls[url]=new Date().toISOString();localStorage.setItem(LSEEN,JSON.stringify(ls));}
+function countNew(sub){
+  const ls=getLastSeen();
+  const since=ls[sub.url];
+  if(!since)return sub.pieces?.length||0;
+  return(sub.pieces||[]).filter(p=>{const d=gf(p,'published');return d&&new Date(d)>new Date(since);}).length;
+}
+
+function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,t}){
   return(<>
     <div className="sbhd">{t.people}</div>
     <div className="sbsc">
@@ -361,11 +434,15 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
         :subs.map(sub=>{
           const name=gf(sub.profile,'title')||sub.url.replace('https://','');
           const av=avBg(sub.url);
+          const nc=countNew(sub);
           return(
             <div key={sub.url} className="pr">
               <div className="pav" style={{background:av}}>{initials(name)}</div>
               <div className="pi">
-                <div className="pn">{name}</div>
+                <div className="pn">
+                  {name}
+                  {nc>0&&<span className="badge-new">{nc} {t.newItems}</span>}
+                </div>
                 <div className="pm">{sub.pieces?.length||0} {t.pieces}</div>
                 {(sub.err||sub.piecesErr)&&<div className="pe">{sub.err||sub.piecesErr}</div>}
               </div>
@@ -378,7 +455,61 @@ function PeoplePanel({subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove
         })
       }
     </div>
+    <div className="filters">
+      <div className="filters-hd">{t.filters}</div>
+      <div className="filters-row">
+        {ALL_TYPES.map(tp=>(
+          <label key={tp}>
+            <input type="checkbox" checked={typeFilters.has(tp)} onChange={()=>setTypeFilters(prev=>{const n=new Set(prev);if(n.has(tp))n.delete(tp);else n.add(tp);return n;})}/>
+            {tp}
+          </label>
+        ))}
+      </div>
+    </div>
   </>);
+}
+
+function WallItem({piece,onOpen,preview,previewLoading,t}){
+  const sub=piece._sub;
+  const slug=gf(piece,'slug');
+  const title=gf(piece,'title')||slug;
+  const type=(gf(piece,'type')||'note').toLowerCase();
+  const pub=gf(piece,'published');
+  const desc=gf(piece,'description');
+  const tags=gf(piece,'tags')||[];
+  const sig=gf(piece,'signature');
+  const access=gf(piece,'access');
+  const locked=access==='locked'||access==='members';
+  const tc=TCLS[type]||'tx';
+  const author=gf(sub.profile,'title')||sub.url.replace('https://','');
+  const av=avBg(sub.url);
+  const isImg=type==='image'||type==='artwork';
+  const license=gf(piece,'license');
+  const price=gf(piece,'price');
+  const thumbUrl=gf(piece,'thumbnail');
+  return(
+    <div className="wall-item" onClick={()=>!locked&&onOpen()}>
+      <div className="wall-author">
+        <div className="wall-av" style={{background:av}}>{initials(author)}</div>
+        <span className="wall-name">{author}</span>
+        <span className={`ftb ${tc}`} style={{fontSize:'8px',padding:'1px 5px'}}>{type}</span>
+        {locked&&<span className="tlk" style={{fontSize:'8px',padding:'1px 5px'}}>{t.locked}</span>}
+        <span className="wall-time">{timeAgo(pub)}</span>
+      </div>
+      <div className="wall-title">{title}</div>
+      {isImg&&preview?.kind==='img'&&<img className="wall-thumb" src={preview.src} alt={title} loading="lazy"/>}
+      {isImg&&!preview&&thumbUrl&&<img className="wall-thumb" src={thumbUrl} alt={title} loading="lazy"/>}
+      {isImg&&previewLoading&&!thumbUrl&&<div className="tile-thumb-loading ldg" style={{margin:'.5rem 0',height:'120px'}}>{t.loading}</div>}
+      {!isImg&&preview?.kind==='text'&&<div className="wall-frag">{preview.text}</div>}
+      {!isImg&&!preview&&desc&&<div className="wall-desc">{desc}</div>}
+      <div className="wall-meta">
+        {sig&&<span className="tsg">{'\u2713'}</span>}
+        {license&&<span>{license}</span>}
+        {price&&<span className="wall-price">{price}</span>}
+        {tags.slice(0,3).map(tg=><span key={tg} className="fg">{tg}</span>)}
+      </div>
+    </div>
+  );
 }
 
 function PieceCard({piece,onOpen,preview,previewLoading,t}){
@@ -396,12 +527,14 @@ function PieceCard({piece,onOpen,preview,previewLoading,t}){
   const author=gf(sub.profile,'title')||sub.url.replace('https://','');
   const av=avBg(sub.url);
   const isImg=type==='image';
+  const thumbUrl=gf(piece,'thumbnail');
   return(
     <div className={`ti-wrap${locked?' locked':''}`}>
       <div className="tile" onClick={()=>!locked&&onOpen()}>
         {isImg&&(
           preview?.kind==='img'
             ?<div className="tile-thumb"><img src={preview.src} alt={title} loading="lazy"/></div>
+            :thumbUrl?<div className="tile-thumb"><img src={thumbUrl} alt={title} loading="lazy"/></div>
             :previewLoading?<div className="tile-thumb-loading ldg">{t.loading}</div>:null
         )}
         <div className="tile-top">
@@ -442,11 +575,15 @@ function DetailView({piece,body,bodyLoading,preview,onClose,t}){
   const av=avBg(sub.url);
   const isImg=type==='image'||type==='artwork';
   const pieceUrl=type==='listing'?`${sub.url}/listings/${slug}`:`${sub.url}/p/${slug}`;
+  const thumbUrl=gf(piece,'thumbnail');
   return(
     <div className="dv">
       <button className="dv-back" onClick={onClose}>{t.backToFeed}</button>
-      {isImg&&preview?.kind==='img'&&(
-        <div className="dv-img"><img src={preview.src} alt={title}/></div>
+      {isImg&&(
+        preview?.kind==='img'
+          ?<div className="dv-img"><img src={preview.src} alt={title}/></div>
+          :thumbUrl?<div className="dv-img"><img src={thumbUrl} alt={title}/></div>
+          :null
       )}
       <div className="dv-title">{title}</div>
       <div className="dv-meta">
@@ -477,6 +614,7 @@ function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem(LL)||'en');
   const [subs,setSubs]=useState(()=>{try{return JSON.parse(localStorage.getItem(LS)||'[]');}catch{return[];}});
   const [view,setView]=useState('feed');
+  const [viewMode,setViewMode]=useState('wall');
   const [open,setOpen]=useState(null);
   const [bodies,setBodies]=useState({});
   const [bodyL,setBodyL]=useState(null);
@@ -484,11 +622,12 @@ function App(){
   const [addB,setAddB]=useState(false);
   const [addE,setAddE]=useState('');
   const [previews,setPreviews]=useState({});
+  const [typeFilters,setTypeFilters]=useState(()=>new Set(ALL_TYPES));
   const loadedKeys=useRef(new Set());
 
   const t=T[lang];
 
-  // On mount: silently refresh all subs (stale-while-revalidate — picks up new pieces)
+  // On mount: silently refresh all subs (stale-while-revalidate)
   useEffect(()=>{
     subs.forEach((sub,i)=>{
       setTimeout(async()=>{
@@ -496,6 +635,13 @@ function App(){
       },i*1500);
     });
   },[]);
+
+  // Mark as seen when feed is viewed
+  useEffect(()=>{
+    if(view==='feed'&&!open){
+      subs.forEach(sub=>setLastSeen(sub.url));
+    }
+  },[view,open,subs.map(s=>s.pieces?.length).join(',')]);
 
   // Background: load fragments for text pieces, thumbnails for images
   useEffect(()=>{
@@ -507,6 +653,8 @@ function App(){
       loadedKeys.current.add(key);
       const access=gf(piece,'access');
       if(access==='locked'||access==='members')return;
+      // If stream.json gave us thumbnail, skip MCP blob fetch for images
+      if(gf(piece,'thumbnail'))return;
       const type=(gf(piece,'type')||'').toLowerCase();
       setTimeout(async()=>{
         try{
@@ -514,7 +662,6 @@ function App(){
             let src=null;
             try{const text=await mcpCall(piece._sub.url,'read_blob',{slug});src=extractImageSrc(text);}catch{}
             if(!src){
-              // Fallback: try direct file URL
               const base=piece._sub.url;
               for(const ext of ['.jpg','.jpeg','.png','.webp']){
                 try{const r=await fetch(`${base}/files/${slug}${ext}`,{method:'HEAD'});if(r.ok){src=`${base}/files/${slug}${ext}`;break;}}catch{}
@@ -548,14 +695,29 @@ function App(){
     catch(e){setSubs(p=>p.map(s=>s.url===sub.url?{...s,refreshing:false,err:e.message}:s));}
   }
   function remove(url){setSubs(p=>p.filter(s=>s.url!==url));}
-  // Bot-only types are consumed directly via MCP — HumanNetwork shows human content only
   const HUMAN_TYPES=new Set(['poem','essay','note','image','contact','capsule','artwork','listing']);
   const feed=subs.flatMap(sub=>(sub.pieces||[])
-    .filter(p=>HUMAN_TYPES.has((gf(p,'type')||'note').toLowerCase()))
+    .filter(p=>{
+      const tp=(gf(p,'type')||'note').toLowerCase();
+      return HUMAN_TYPES.has(tp)&&typeFilters.has(tp);
+    })
     .map(p=>({...p,_sub:sub})))
     .sort((a,b)=>new Date(gf(b,'published')||0)-new Date(gf(a,'published')||0));
   const total=subs.reduce((n,s)=>n+(s.pieces?.length||0),0);
-  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,t};
+  const pp={subs,addUrl,setAddUrl,addB,addE,setAddE,add,refresh,remove,typeFilters,setTypeFilters,t};
+
+  function openPiece(piece,key){
+    setOpen(key);
+    if(!bodies[key]){
+      setBodyL(key);
+      const slug=gf(piece,'slug');
+      const ptype=(gf(piece,'type')||'').toLowerCase();
+      const tool=ptype==='listing'?'read_listing':'read_content';
+      mcpCall(piece._sub.url,tool,{slug})
+        .then(t=>{setBodies(p=>({...p,[key]:cleanBody(t)||'(empty)'}));setBodyL(null);})
+        .catch(e=>{setBodies(p=>({...p,[key]:`Error: ${e.message}`}));setBodyL(null);});
+    }
+  }
 
   return(
     <div className="app">
@@ -571,6 +733,9 @@ function App(){
           {total>0&&<span className="lct">&middot; {total}</span>}
         </div>
         <div className="hdr-r">
+          <button className={`hbtn${viewMode==='wall'?' on':''}`} onClick={()=>setViewMode(m=>m==='wall'?'grid':'wall')}>
+            {viewMode==='wall'?t.grid:t.wall}
+          </button>
           <button className="hbtn mob" onClick={()=>setView(v=>v==='feed'?'people':'feed')}>
             {view==='feed'?t.peopleLower:t.feed}
           </button>
@@ -596,13 +761,23 @@ function App(){
                 <button className="etry" onClick={()=>{setAddUrl('https://kapoost.humanmcp.net');setView('people');setTimeout(()=>{const b=document.querySelector('.ab');if(b){b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');b.scrollIntoView({behavior:'smooth',block:'nearest'});}},100);}}>{t.tryKapoost}</button>
               </div>
             ) : open ? (
-              // Detail view
               (()=>{
                 const op=feed.find(p=>`${p._sub.url}::${gf(p,'slug')}`===open);
                 return op?<DetailView piece={op} body={bodies[open]} bodyLoading={bodyL===open} preview={previews[open]} onClose={()=>setOpen(null)} t={t}/>:null;
               })()
+            ) : viewMode==='wall' ? (
+              <div className="wall">
+                {feed.map(piece=>{
+                  const key=`${piece._sub.url}::${gf(piece,'slug')}`;
+                  const type=(gf(piece,'type')||'').toLowerCase();
+                  const isImg=type==='image'||type==='artwork';
+                  const access=gf(piece,'access');
+                  const locked=access==='locked'||access==='members';
+                  const previewLoading=isImg&&!locked&&!previews[key]&&!gf(piece,'thumbnail')&&loadedKeys.current.has(key);
+                  return <WallItem key={key} piece={piece} onOpen={()=>openPiece(piece,key)} preview={previews[key]} previewLoading={previewLoading} t={t}/>;
+                })}
+              </div>
             ) : (
-              // Tile grid
               <div className="tgrid">
                 {feed.map(piece=>{
                   const key=`${piece._sub.url}::${gf(piece,'slug')}`;
@@ -610,20 +785,8 @@ function App(){
                   const isImg=type==='image';
                   const access=gf(piece,'access');
                   const locked=access==='locked'||access==='members';
-                  const previewLoading=isImg&&!locked&&!previews[key]&&loadedKeys.current.has(key);
-                  function openPiece(){
-                    setOpen(key);
-                    if(!bodies[key]){
-                      setBodyL(key);
-                      const slug=gf(piece,'slug');
-                      const ptype=(gf(piece,'type')||'').toLowerCase();
-                      const tool=ptype==='listing'?'read_listing':'read_content';
-                      mcpCall(piece._sub.url,tool,{slug})
-                        .then(t=>{setBodies(p=>({...p,[key]:cleanBody(t)||'(empty)'}));setBodyL(null);})
-                        .catch(e=>{setBodies(p=>({...p,[key]:`Error: ${e.message}`}));setBodyL(null);});
-                    }
-                  }
-                  return <PieceCard key={key} piece={piece} onOpen={openPiece} preview={previews[key]} previewLoading={previewLoading} t={t}/>;
+                  const previewLoading=isImg&&!locked&&!previews[key]&&!gf(piece,'thumbnail')&&loadedKeys.current.has(key);
+                  return <PieceCard key={key} piece={piece} onOpen={()=>openPiece(piece,key)} preview={previews[key]} previewLoading={previewLoading} t={t}/>;
                 })}
               </div>
             )}

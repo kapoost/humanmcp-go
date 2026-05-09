@@ -27,6 +27,7 @@ const (
 	EventSubscribeNew   EventType = "subscribe"
 	EventSubscribeMatch EventType = "subscribe_match"
 	EventSearch         EventType = "search"
+	EventLicense        EventType = "license"
 )
 
 type CallerType string
@@ -69,10 +70,12 @@ type Stats struct {
 	TotalSubscribers int `json:"total_subscribers"`
 	ListingViews   int `json:"listing_views"`
 	TotalSearches  int `json:"total_searches"`
+	TotalLicenses  int `json:"total_licenses"`
 
 	// Breakdowns
-	ReadsBySlug    map[string]int `json:"reads_by_slug"`
-	InterestBySlug map[string]int `json:"interest_by_slug"`
+	ReadsBySlug      map[string]int `json:"reads_by_slug"`
+	InterestBySlug   map[string]int `json:"interest_by_slug"`
+	LicensesBySlug   map[string]int `json:"licenses_by_slug"`
 	TagReads       map[string]int `json:"tag_reads"`
 	TopAgents      map[string]int `json:"top_agents"`
 	TopReferrers   map[string]int `json:"top_referrers"`
@@ -105,6 +108,7 @@ type DayStats struct {
 	Humans     int `json:"humans"`
 	Searches   int `json:"searches"`
 	Messages   int `json:"messages"`
+	Licenses   int `json:"licenses"`
 	Visitors   int `json:"visitors"`
 }
 
@@ -169,6 +173,7 @@ func (ss *StatStore) Compute() (*Stats, error) {
 	s := &Stats{
 		ReadsBySlug:     make(map[string]int),
 		InterestBySlug:  make(map[string]int),
+		LicensesBySlug:  make(map[string]int),
 		TagReads:        make(map[string]int),
 		TopAgents:       make(map[string]int),
 		TopReferrers:    make(map[string]int),
@@ -270,6 +275,11 @@ func (ss *StatStore) Compute() (*Stats, error) {
 				f[0]++
 				s.ChallengeFunnel[e.Slug] = f
 			}
+		case EventLicense:
+			s.TotalLicenses++
+			if e.Slug != "" {
+				s.LicensesBySlug[e.Slug]++
+			}
 		case EventListingView:
 			s.ListingViews++
 			if e.Slug != "" {
@@ -333,6 +343,8 @@ func (ss *StatStore) Compute() (*Stats, error) {
 				w.Messages++
 			case EventSearch:
 				w.Searches++
+			case EventLicense, EventAccess:
+				w.Licenses++
 			}
 			switch e.Caller {
 			case CallerAgent:

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -265,6 +266,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/listings/edit/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingEdit)))
 	mux.Handle("/listings/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingDelete)))
 	mux.HandleFunc("/listings/feed.json", h.handleListingsFeed)
+	mux.HandleFunc("/content/stream.json", h.handleContentStream)
 
 	// Artworks & Provenance
 	mux.HandleFunc("/artworks", h.handleArtworks)
@@ -845,7 +847,9 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 	if isOwner {
 		msgs, _ := h.msgStore.List()
 		code, expiry := h.sessionCode.Current()
+		questions, _ := h.questionStore.ListPending()
 		data["Messages"] = msgs
+		data["Questions"] = questions
 		data["SessionCode"] = code
 		data["SessionExp"] = expiry
 	} else {
@@ -1504,6 +1508,142 @@ func (h *Handler) handleListingsFeed(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"listings":  filtered,
 		"generated": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// --- Content Stream (unified pieces + listings for humanNetwork) ---
+
+func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
+	h.store.Load()
+	isPersona := h.buildPersonaFilter()
+
+	sinceStr := r.URL.Query().Get("since")
+	typeFilter := r.URL.Query().Get("type")
+
+	// Build thumbnail map from blobs
+	blobs, _ := h.blobStore.Load()
+	thumbMap := map[string]string{}
+	for _, b := range blobs {
+		if b.FileRef != "" && b.BlobType == content.BlobImage {
+			thumbMap[b.Slug] = "/files/" + strings.TrimPrefix(b.FileRef, "files/")
+		}
+	}
+
+	type streamItem struct {
+		Slug        string   `json:"slug"`
+		Title       string   `json:"title"`
+		Type        string   `json:"type"`
+		Tags        []string `json:"tags"`
+		Published   string   `json:"published"`
+		Access      string   `json:"access"`
+		Description string   `json:"description,omitempty"`
+		Signature   string   `json:"signature,omitempty"`
+		License     string   `json:"license,omitempty"`
+		HumanUse    string   `json:"human_use,omitempty"`
+		AgentUse    string   `json:"agent_use,omitempty"`
+		Price       string   `json:"price,omitempty"`
+		Thumbnail   string   `json:"thumbnail,omitempty"`
+		pubTime     time.Time
+	}
+
+	var items []streamItem
+
+	// Pieces
+	for _, p := range h.store.List(false) {
+		if isPersona(p) {
+			continue
+		}
+		if sinceStr != "" {
+			if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+				if !p.Published.After(t) {
+					continue
+				}
+			}
+		}
+		if typeFilter != "" && p.Type != typeFilter {
+			continue
+		}
+		items = append(items, streamItem{
+			Slug:        p.Slug,
+			Title:       p.Title,
+			Type:        p.Type,
+			Tags:        p.Tags,
+			Published:   p.Published.Format(time.RFC3339),
+			Access:      string(p.Access),
+			Description: p.Description,
+			Signature:   p.Signature,
+			License:     p.License,
+			HumanUse:    p.HumanUse,
+			AgentUse:    p.AgentUse,
+			Price:       p.Price,
+			Thumbnail:   thumbMap[p.Slug],
+			pubTime:     p.Published,
+		})
+	}
+
+	// Listings
+	for _, l := range h.listingStore.List(false) {
+		if l.Access != content.AccessPublic {
+			continue
+		}
+		if sinceStr != "" {
+			if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+				if !l.Published.After(t) {
+					continue
+				}
+			}
+		}
+		lType := "listing"
+		if typeFilter != "" && typeFilter != lType {
+			continue
+		}
+		desc := l.Body
+		if len(desc) > 200 {
+			desc = desc[:200] + "..."
+		}
+		thumb := ""
+		if l.ImageRef != "" {
+			thumb = "/" + strings.TrimPrefix(l.ImageRef, "/")
+		}
+		items = append(items, streamItem{
+			Slug:        l.Slug,
+			Title:       l.Title,
+			Type:        lType,
+			Tags:        l.Tags,
+			Published:   l.Published.Format(time.RFC3339),
+			Access:      string(l.Access),
+			Description: desc,
+			Signature:   l.Signature,
+			Price:       l.Price,
+			Thumbnail:   thumb,
+			pubTime:     l.Published,
+		})
+	}
+
+	// Sort by published DESC
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].pubTime.After(items[j].pubTime)
+	})
+
+	// Find latest updated timestamp
+	updated := time.Time{}
+	for _, it := range items {
+		if it.pubTime.After(updated) {
+			updated = it.pubTime
+		}
+	}
+	updatedStr := ""
+	if !updated.IsZero() {
+		updatedStr = updated.Format(time.RFC3339)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"author":  h.cfg.AuthorName,
+		"avatar":  h.cfg.AuthorAvatar,
+		"updated": updatedStr,
+		"items":   items,
 	})
 }
 

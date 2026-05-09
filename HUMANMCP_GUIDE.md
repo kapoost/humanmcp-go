@@ -107,6 +107,7 @@ Po haśle sesji: `bootstrap_session`, `recall`, `remember`,
 | `/listings/edit/<slug>` | owner | Edit listing |
 | `/listings/delete/<slug>` | owner | Delete listing (POST) |
 | `/listings/feed.json` | public | JSON feed (?since=, ?type=) |
+| `/content/stream.json` | public | Unified stream: pieces + listings (?since=, ?type=) |
 | `/subscriptions/new` | public | Subscribe form |
 | `/subscriptions/confirm` | public | Confirm subscription (POST) |
 | `/subscriptions/unsubscribe/<token>` | public | Unsubscribe |
@@ -182,6 +183,15 @@ Skille są jedynym źródłem prawdy o aktualnym stanie projektu.
 ---
 
 ## Changelog
+
+### v0.4 — Content Stream + humanNetwork Wall
+
+- **`/content/stream.json`**: unified endpoint combining pieces + listings (excludes personas)
+  - Query params: `?since=` (RFC3339), `?type=` (poem, essay, listing...)
+  - Returns author, avatar, items with thumbnails, license, human_use, agent_use, price
+- **humanNetwork wall view**: chronological wall (default), grid toggle, type filters, "X new" badges
+  - Prefers stream.json (1 request) over MCP+REST fallback (3 requests)
+  - Last-seen tracking per server in localStorage
 
 ### v0.3 — Listings + Subscriptions
 

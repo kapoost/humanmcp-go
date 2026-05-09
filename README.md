@@ -110,7 +110,7 @@ Every human can run their own instance. One server, one person, their rules.
 ## Ecosystem
 
 - **[humanMCP Marketplace](https://marketplace.humanmcp.net)** — federated search across all humanMCP servers. Find listings, offers, trades by humans. [MCP endpoint](https://marketplace.humanmcp.net/mcp) · [Source](https://github.com/kapoost/humanmcp-marketplace)
-- **[humanNetwork](https://humanmcp.net/humannetwork.html)** — visual explorer aggregating content from the growing network of humanMCP servers
+- **[humanNetwork](https://humanmcp.net/humannetwork.html)** — wall-style aggregator showing chronological content from your followed humanMCP servers (stream.json preferred, MCP fallback)
 
 ## Contact
 
@@ -143,6 +143,7 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 - `GET /api/profile` — author name, bio, tags
 - `GET /api/blobs` — list data artifacts
 - `GET /listings/feed.json` — listings feed
+- `GET /content/stream.json` — unified content stream (pieces + listings, for humanNetwork)
 
 **SEO:**
 - `robots.txt`, `sitemap.xml`, `humans.txt`
