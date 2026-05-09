@@ -188,18 +188,19 @@ tr:hover td{background:var(--fnt);}
 fly volumes create humanmcp_data --size 1 --region ams --app alice-humanmcp -y
 fly secrets set EDIT_TOKEN="$(openssl rand -hex 16)" \
   AUTHOR_NAME="Alice" \
-  DOMAIN="alice-humanmcp.fly.dev" \
+  DOMAIN="alice.humanmcp.net" \
   --app alice-humanmcp
 fly deploy --app alice-humanmcp</div>
 
 <h2>Co bliski dostaje</h2>
-<div class="cmd">Serwer:  https://alice-humanmcp.fly.dev
-Login:   https://alice-humanmcp.fly.dev/login
-Follow:  https://humanmcp.net/humannetwork.html?add=https://alice-humanmcp.fly.dev</div>
+<div class="cmd">Serwer:  https://alice.humanmcp.net
+Login:   https://alice.humanmcp.net/login
+Follow:  https://humanmcp.net/humannetwork.html?add=https://alice.humanmcp.net</div>
 
 <div class="note">
   Free tier Fly: 3 maszyny na konto. Wiecej niz 3 &rarr; $1.94/msc za VM.<br>
-  Subdomena: <code>fly certs add alice.twojadom.net --app alice-humanmcp</code>
+  Domena <code>alice.humanmcp.net</code> dziala automatycznie (wildcard DNS).<br>
+  Certyfikat: <code>fly certs add alice.humanmcp.net --app alice-humanmcp</code>
 </div>
 </div>
 
