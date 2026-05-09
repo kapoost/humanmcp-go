@@ -177,6 +177,25 @@ Every piece is signed with Ed25519. `get_certificate` returns:
 - Plain Markdown files as database
 - No JS except 8-line drag-drop on `/new` page
 
+## 1-click deploy
+
+```bash
+git clone https://github.com/kapoost/humanmcp-go.git
+cd humanmcp-go
+bash setup.sh
+```
+
+The script asks for your name and bio, then:
+- Creates a Fly.io app (free tier)
+- Generates Ed25519 signing keys
+- Sets secrets and deploys
+- Prints your login token and 1-click follow link
+
+Done in ~2 minutes. You get:
+- `https://yourname-humanmcp.fly.dev` — your server
+- `https://yourname-humanmcp.fly.dev/connect` — share with friends
+- `https://humanmcp.net/humannetwork.html?add=https://yourname-humanmcp.fly.dev` — 1-click follow
+
 ## Run locally
 
 ```bash
@@ -184,7 +203,7 @@ go build ./cmd/server/
 EDIT_TOKEN=secret AUTHOR_NAME=yourname ./server
 ```
 
-## Deploy
+## Manual deploy
 
 ```bash
 fly launch --name yourname-humanmcp

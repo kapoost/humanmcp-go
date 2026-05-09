@@ -762,7 +762,10 @@ textarea{width:100%;padding:.5rem;border:1px solid var(--border);border-radius:4
 </div>
 <div class="connect-section">
   <div class="connect-title">Run your own humanMCP</div>
-  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Fork the project and publish your own content on your own terms.</p>
+  <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem;">Your own server in ~2 minutes. Free tier on Fly.io.</p>
+  <div class="code-block" style="font-size:.78rem;margin-bottom:.6rem;">git clone https://github.com/kapoost/humanmcp-go.git
+cd humanmcp-go
+bash setup.sh</div>
   <a href="https://github.com/kapoost/humanmcp-go" target="_blank" style="display:inline-block;padding:.4rem 1rem;border:1px solid var(--border);border-radius:4px;font-size:.85rem;color:var(--fg);">View on GitHub</a>
 </div>
 {{template "footer" .}}
