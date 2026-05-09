@@ -9,3 +9,7 @@ listings.json
 subscriptions.json
 stats.ndjson
 messages/
+node_modules/
+test-results/
+server
+.mcpregistry_*
