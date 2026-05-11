@@ -267,6 +267,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/listings/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingDelete)))
 	mux.HandleFunc("/listings/feed.json", h.handleListingsFeed)
 	mux.HandleFunc("/content/stream.json", h.handleContentStream)
+	mux.Handle("/api/links", h.auth.RequireOwner(http.HandlerFunc(h.handleAPILinks)))
 
 	// Artworks & Provenance
 	mux.HandleFunc("/artworks", h.handleArtworks)
@@ -985,6 +986,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 		p.HumanUse = r.FormValue("human_use")
 		p.AgentUse = r.FormValue("agent_use")
 		p.Lang = r.FormValue("lang")
+		p.URL = r.FormValue("url")
 		p.Price = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		if tags := r.FormValue("tags"); tags != "" {
@@ -1066,6 +1068,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		p.HumanUse     = r.FormValue("human_use")
 		p.AgentUse     = r.FormValue("agent_use")
 		p.Lang         = r.FormValue("lang")
+		p.URL          = r.FormValue("url")
 		p.Price        = r.FormValue("price")
 		if ps := r.FormValue("price_sats"); ps != "" { fmt.Sscanf(ps, "%d", &p.PriceSats) }
 		p.Challenge   = r.FormValue("challenge")
@@ -1556,6 +1559,7 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 		HumanUse    string   `json:"human_use,omitempty"`
 		AgentUse    string   `json:"agent_use,omitempty"`
 		Price       string   `json:"price,omitempty"`
+		URL         string   `json:"url,omitempty"`
 		Thumbnail   string   `json:"thumbnail,omitempty"`
 		pubTime     time.Time
 	}
@@ -1592,6 +1596,7 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 			HumanUse:    p.HumanUse,
 			AgentUse:    p.AgentUse,
 			Price:       p.Price,
+			URL:         p.URL,
 			Thumbnail:   thumbMap[p.Slug],
 			pubTime:     p.Published,
 		})
@@ -1662,6 +1667,67 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 		"avatar":  h.cfg.AuthorAvatar,
 		"updated": updatedStr,
 		"items":   items,
+	})
+}
+
+// --- Quick Link ---
+
+func (h *Handler) handleAPILinks(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Edit-Token")
+		w.WriteHeader(204)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", 405)
+		return
+	}
+	var req struct {
+		URL     string   `json:"url"`
+		Title   string   `json:"title"`
+		Comment string   `json:"comment"`
+		Tags    []string `json:"tags"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad json", 400)
+		return
+	}
+	if req.URL == "" {
+		http.Error(w, "url required", 400)
+		return
+	}
+	if req.Title == "" {
+		req.Title = req.URL
+	}
+
+	slug := slugify(req.Title)
+	// Avoid collision
+	if _, err := h.store.Get(slug, true); err == nil {
+		slug = slug + "-" + fmt.Sprintf("%d", time.Now().Unix())
+	}
+
+	p := &content.Piece{
+		Slug:      slug,
+		Title:     req.Title,
+		Type:      "link",
+		URL:       req.URL,
+		Body:      req.Comment,
+		Tags:      req.Tags,
+		Access:    content.AccessPublic,
+		Published: time.Now().UTC(),
+	}
+	if err := h.store.Save(p); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+		"slug":   slug,
 	})
 }
 
