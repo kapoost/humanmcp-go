@@ -267,7 +267,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/listings/delete/", h.auth.RequireOwner(http.HandlerFunc(h.handleListingDelete)))
 	mux.HandleFunc("/listings/feed.json", h.handleListingsFeed)
 	mux.HandleFunc("/content/stream.json", h.handleContentStream)
-	mux.Handle("/api/links", h.auth.RequireOwner(http.HandlerFunc(h.handleAPILinks)))
+	mux.HandleFunc("/api/links", h.handleAPILinks)
 
 	// Artworks & Provenance
 	mux.HandleFunc("/artworks", h.handleArtworks)
@@ -1673,11 +1673,10 @@ func (h *Handler) handleContentStream(w http.ResponseWriter, r *http.Request) {
 // --- Quick Link ---
 
 func (h *Handler) handleAPILinks(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Edit-Token")
-		w.WriteHeader(204)
+	// Localhost only — no auth needed
+	host := r.RemoteAddr
+	if !strings.HasPrefix(host, "127.0.0.1") && !strings.HasPrefix(host, "[::1]") && !strings.HasPrefix(host, "localhost") {
+		http.Error(w, "localhost only", 403)
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -1724,7 +1723,6 @@ func (h *Handler) handleAPILinks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
 		"slug":   slug,
