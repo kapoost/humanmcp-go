@@ -41,7 +41,10 @@ func main() {
 	// Shared stores — one instance, wired into both handlers
 	sessionCode := content.NewSessionCode(time.Duration(cfg.SessionRotateHours) * time.Hour)
 	memoryStore := content.NewMemoryStore(cfg.ContentDir)
-	skillStore := content.NewSkillStore(cfg.ContentDir)
+	skillStore := content.NewSkillStore(cfg.ContentDir, cfg.VaultURL)
+	if cfg.VaultURL != "" {
+		log.Printf("  vault:   %s (SkillStore vault-fetch enabled)", cfg.VaultURL)
+	}
 
 	// Listing + subscription stores
 	listingStore := content.NewListingStore(cfg.ContentDir)
