@@ -1932,11 +1932,15 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Requ
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("SKILL: %s [%s]\n", sk.Title, sk.Category))
 		sb.WriteString(fmt.Sprintf("updated: %s\n\n", sk.UpdatedAt.Format("2 January 2006")))
-		sb.WriteString(sk.Body)
+		if strings.TrimSpace(sk.Body) == "" {
+			sb.WriteString("⚠ Body skilla jest puste na serwerze (kod sesji ok, ale plik /data/content/skills/" + sk.Slug + ".json nie ma 'body'). Wgraj pełen plik na fly volume.")
+		} else {
+			sb.WriteString(sk.Body)
+		}
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 		return
 	}
-	text := fmt.Sprintf("SKILL: %s\ncategory: %s\n\nPełna treść dostępna po autoryzacji. Wywołaj bootstrap_session z hasłem sesji widocznym w panelu właściciela.", sk.Title, sk.Category)
+	text := fmt.Sprintf("SKILL: %s\ncategory: %s\n\nPełna treść dostępna po autoryzacji. Wywołaj bootstrap_session z aktualnym hasłem sesji (panel humanMCP /dashboard) i przekaż go jako parametr 'code'.", sk.Title, sk.Category)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
@@ -2031,11 +2035,15 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Re
 	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("PERSONA: %s — %s\n\n", p.Name, p.Role))
-		sb.WriteString(p.Prompt)
+		if strings.TrimSpace(p.Prompt) == "" {
+			sb.WriteString("⚠ Body persony jest puste na serwerze (kod sesji ok, ale plik /data/content/personas/" + p.Slug + ".json nie ma 'prompt'). Wgraj pełen plik na fly volume.")
+		} else {
+			sb.WriteString(p.Prompt)
+		}
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 		return
 	}
-	text := fmt.Sprintf("PERSONA: %s\nrole: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z hasłem sesji.", p.Name, p.Role)
+	text := fmt.Sprintf("PERSONA: %s\nrole: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z aktualnym hasłem sesji (panel humanMCP /dashboard) i przekaż go jako parametr 'code'.", p.Name, p.Role)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
 }
 
@@ -2112,14 +2120,20 @@ func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, r
 	personas, _ := h.skillStore.ListPersonas()
 
 	// full/system_prompt require vault online — sensitive data stays local
+	downgradeReason := ""
 	if format != "minimal" && !h.vaultOnline() {
+		if h.cfg.VaultURL == "" {
+			downgradeReason = "VAULT_URL nie skonfigurowany na serwerze (brak tunelu do lokalnego vaulta)."
+		} else {
+			downgradeReason = fmt.Sprintf("vault niedostępny pod %s (timeout / 5xx / tunel padł).", h.cfg.VaultURL)
+		}
+		log.Printf("[MCP] bootstrap: %s — downgrading %s → minimal", downgradeReason, format)
 		format = "minimal"
-		log.Printf("[MCP] bootstrap: vault offline, downgrading to minimal")
 	}
 
 	switch format {
 	case "minimal":
-		h.bootstrapMinimal(w, req, skills, personas)
+		h.bootstrapMinimal(w, req, skills, personas, downgradeReason)
 	case "system_prompt":
 		h.bootstrapSystemPrompt(w, req, skills, personas)
 	default:
@@ -2127,9 +2141,17 @@ func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, r
 	}
 }
 
-func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
+func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona, downgradeReason string) {
 	var sb strings.Builder
-	sb.WriteString("✓ Sesja autoryzowana.\n\n")
+	if downgradeReason != "" {
+		sb.WriteString("⚠ DOWNGRADE: bootstrap full→minimal\n")
+		sb.WriteString(fmt.Sprintf("Powód: %s\n", downgradeReason))
+		sb.WriteString("Sesja autoryzowana (kod ok), ALE pełne system prompty są zablokowane do czasu aż lokalny vault wróci online.\n")
+		sb.WriteString("Co dostajesz teraz: tylko slug + role person/skilli. Pełnych treści w tej sesji NIE będzie.\n")
+		sb.WriteString("Co zrobić: właściciel musi uruchomić lokalny vault i wystawić go pod VAULT_URL (tunel: ngrok/cloudflared/tailscale-funnel), potem fly secrets set VAULT_URL=... + redeploy.\n\n")
+	} else {
+		sb.WriteString("✓ Sesja autoryzowana (tryb minimal).\n\n")
+	}
 	sb.WriteString(fmt.Sprintf("AUTOR: %s | %s\n\n", h.cfg.AuthorName, h.cfg.Domain))
 
 	sb.WriteString(fmt.Sprintf("PERSONAS (%d) — użyj get_persona <slug> po szczegóły:\n", len(personas)))
@@ -2144,8 +2166,12 @@ func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills [
 
 	code, _ := h.sessionCode.Current()
 	sb.WriteString(fmt.Sprintf("\nTwój kod sesji: %s\n", code))
-	sb.WriteString("Przekazuj go jako parametr \"code\" w get_persona i get_skill aby odblokować pełne treści.\n")
-	sb.WriteString("\nNastępny krok: pobierz potrzebne persony i skille przed pierwszą odpowiedzią.")
+	if downgradeReason == "" {
+		sb.WriteString("Przekazuj go jako parametr \"code\" w get_persona i get_skill aby odblokować pełne treści.\n")
+		sb.WriteString("\nNastępny krok: pobierz potrzebne persony i skille przed pierwszą odpowiedzią.")
+	} else {
+		sb.WriteString("Kod możesz przekazywać, ale dopóki vault offline get_persona/get_skill też zwrócą tylko zaślepki.\n")
+	}
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
