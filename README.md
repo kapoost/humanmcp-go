@@ -61,6 +61,32 @@ Every human can run their own instance. One server, one person, their rules.
 | `list_skills` / `get_skill` | Agent instruction catalog |
 | `upsert_skill` / `delete_skill` | Manage skills (agent token) |
 
+**Personas**
+| Tool | Description |
+|---|---|
+| `list_personas` / `get_persona` | Your expert team (requires session code or VAULT_URL) |
+| `upsert_persona` / `delete_persona` | Manage personas (agent token) |
+
+## Personas & skills: where they live
+
+humanmcp-go is a **framework**. Persona prompts and skill bodies are yours — they don't ship in this repo. Two ways to supply them:
+
+1. **Owner API / mounted volume** — POST `upsert_persona` / `upsert_skill` with the `EDIT_TOKEN`, or drop JSON files into `${CONTENT_DIR}/personas/` and `${CONTENT_DIR}/skills/` on the host volume.
+
+2. **External vault (recommended)** — set `VAULT_URL` env to a server you control (e.g. a private FastAPI on your tailnet). SkillStore fetches `GET ${VAULT_URL}/persona/{id}` and `GET ${VAULT_URL}/skill/{slug}` on demand with a 5min in-memory cache. Lets your sensitive prompts stay on your machine while the public framework serves them.
+
+Persona JSON shape (vault response):
+```json
+{"id":"hermes","name":"Hermes","role":"Process Optimizer","prompt":"<full system prompt>"}
+```
+
+Skill JSON shape (vault response):
+```json
+{"slug":"system-diagram","title":"...","description":"...","persona_id":"mira","tags":[...],"instructions":"<full playbook>"}
+```
+
+When `VAULT_URL` is unreachable, bootstrap_session loudly reports the downgrade (won't silently fall back). See `internal/content/skill.go` for the fetch/cache implementation.
+
 **Listings**
 | Tool | Description |
 |---|---|
