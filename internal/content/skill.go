@@ -201,6 +201,12 @@ func vaultToPersona(v vaultPersonaResp) *Persona {
 	}
 }
 
+// ListPersonasFromDisk returns only personas stored on the fly volume.
+// This is the demo subset shown to anonymous callers (no session code, no OAuth).
+func (s *SkillStore) ListPersonasFromDisk() ([]*Persona, error) {
+	return s.listPersonasFromDisk()
+}
+
 // Disk fallback — read from /data/content/personas/*.json
 func (s *SkillStore) listPersonasFromDisk() ([]*Persona, error) {
 	s.mu.RLock()
