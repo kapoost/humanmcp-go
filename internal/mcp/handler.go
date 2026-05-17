@@ -1999,7 +1999,8 @@ func (h *Handler) toolListPersonas(w http.ResponseWriter, r *http.Request, req *
 	}
 	json.Unmarshal(args, &a)
 	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) && !h.auth.IsOwner(r) {
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "Session code required. Call bootstrap_session first to unlock personas."}}})
+		demo, _ := h.skillStore.ListPersonasFromDisk()
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("%d personas available. Call bootstrap_session with your session code to unlock the catalog.", len(demo))}}})
 		return
 	}
 	personas, err := h.skillStore.ListPersonas()
@@ -2026,25 +2027,23 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Re
 		writeError(w, req.ID, -32602, "slug required")
 		return
 	}
+	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) && !h.auth.IsOwner(r) {
+		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "Authentication required. Call bootstrap_session with your session code to unlock personas."}}})
+		return
+	}
 	p, err := h.skillStore.GetPersona(a.Slug)
 	if err != nil {
 		writeError(w, req.ID, -32602, "persona not found: "+a.Slug)
 		return
 	}
-	// Authorized: session code, OAuth, or owner token
-	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
-		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("PERSONA: %s — %s\n\n", p.Name, p.Role))
-		if strings.TrimSpace(p.Prompt) == "" {
-			sb.WriteString("⚠ Body persony jest puste na serwerze (kod sesji ok, ale plik /data/content/personas/" + p.Slug + ".json nie ma 'prompt'). Wgraj pełen plik na fly volume.")
-		} else {
-			sb.WriteString(p.Prompt)
-		}
-		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
-		return
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("PERSONA: %s — %s\n\n", p.Name, p.Role))
+	if strings.TrimSpace(p.Prompt) == "" {
+		sb.WriteString("⚠ Body persony jest puste na serwerze (kod sesji ok, ale plik /data/content/personas/" + p.Slug + ".json nie ma 'prompt'). Wgraj pełen plik na fly volume.")
+	} else {
+		sb.WriteString(p.Prompt)
 	}
-	text := fmt.Sprintf("PERSONA: %s\nrole: %s\n\nPełny system prompt dostępny po autoryzacji. Wywołaj bootstrap_session z aktualnym hasłem sesji (panel humanMCP /dashboard) i przekaż go jako parametr 'code'.", p.Name, p.Role)
-	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: text}}})
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
 func (h *Handler) toolUpsertPersona(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
