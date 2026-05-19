@@ -14,9 +14,12 @@ primary_region = "ams"
 [http_service]
   internal_port        = 8080
   force_https          = true
-  auto_stop_machines   = true
+  # Keep at least one machine warm — agents may call ask_human at any time
+  # and bootstrap_session is sensitive to cold-start latency. ~$2/mo for
+  # 256MB shared-cpu-1x running 24/7.
+  auto_stop_machines   = false
   auto_start_machines  = true
-  min_machines_running = 0
+  min_machines_running = 1
 
 [[mounts]]
   source      = "humanmcp_data"
