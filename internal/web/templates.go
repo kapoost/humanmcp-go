@@ -2170,6 +2170,16 @@ a:hover{text-decoration:underline}
   <form method="POST" action="/api/session/rotate" style="display:inline"><button type="submit" class="mc-btn">↻ rotate now</button></form>
 </div>
 {{end}}
+{{if .EditToken}}
+<div class="mc-session">
+  <div class="mc-session-title">OWNER TOKEN</div>
+  <div class="mc-session-code" id="mc-owner-token" data-token="{{.EditToken}}" style="filter:blur(5px);cursor:pointer" title="click to reveal">••••••••••••</div>
+  <div class="mc-session-meta">static — bearer for /api/* and admin tools</div>
+  <div class="mc-session-hint">Header: <em>Authorization: Bearer &lt;token&gt;</em> &middot; or cookie <em>edit_token</em></div>
+  <button type="button" class="mc-btn" onclick="(()=>{const el=document.getElementById('mc-owner-token');navigator.clipboard.writeText(el.dataset.token);el.textContent='copied';setTimeout(()=>{el.textContent='••••••••••••';el.style.filter='blur(5px)';},1500);})()">⧉ copy</button>
+  <script>document.getElementById('mc-owner-token').addEventListener('click',function(){this.style.filter='none';this.textContent=this.dataset.token;});</script>
+</div>
+{{end}}
 {{end}}
 
 

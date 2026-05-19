@@ -897,6 +897,7 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 		data["Questions"] = nil
 		data["SessionCode"] = code
 		data["SessionExp"] = expiry
+		data["EditToken"] = h.cfg.EditToken
 	} else {
 		msgs, _ := h.msgStore.List()
 		data["Messages"] = msgs
