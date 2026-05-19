@@ -12,16 +12,19 @@ import (
 )
 
 type Question struct {
-	ID       string    `json:"id"`       // random 16-byte hex token
-	From     string    `json:"from"`     // agent name / handle
-	Question string    `json:"question"` // the question text
-	Context  string    `json:"context"`  // optional context
-	Answer   string    `json:"answer"`   // human's answer (empty = pending)
-	AskedAt  time.Time `json:"asked_at"`
-	Answered time.Time `json:"answered_at,omitempty"`
+	ID        string    `json:"id"`       // random 16-byte hex token
+	From      string    `json:"from"`     // agent name / handle
+	Question  string    `json:"question"` // the question text
+	Context   string    `json:"context"`  // optional context
+	Answer    string    `json:"answer"`   // human's answer (empty = pending)
+	AskedAt   time.Time `json:"asked_at"`
+	Answered  time.Time `json:"answered_at,omitempty"`
+	FetchedAt time.Time `json:"fetched_at,omitempty"` // when agent picked up the answer (first get_answer hit)
 }
 
-func (q *Question) IsPending() bool { return q.Answer == "" }
+func (q *Question) IsPending() bool       { return q.Answer == "" }
+func (q *Question) IsFetched() bool       { return !q.FetchedAt.IsZero() }
+func (q *Question) NeedsPickup() bool     { return !q.IsPending() && !q.IsFetched() }
 
 type QuestionStore struct {
 	dir string
@@ -81,7 +84,27 @@ func (qs *QuestionStore) AnswerQuestion(id, answer string) error {
 	}
 	q.Answer = sanitiseField(answer, 4000)
 	q.Answered = time.Now().UTC()
+	q.FetchedAt = time.Time{} // reset on re-answer so agent's next get_answer marks it as picked up
 	return qs.save(q)
+}
+
+// MarkFetched stamps FetchedAt on first get_answer hit for an answered question.
+// No-op if pending or already fetched.
+func (qs *QuestionStore) MarkFetched(id string) error {
+	q, err := qs.GetAnswer(id)
+	if err != nil {
+		return err
+	}
+	if q.IsPending() || q.IsFetched() {
+		return nil
+	}
+	q.FetchedAt = time.Now().UTC()
+	return qs.save(q)
+}
+
+// ListAll returns every question sorted newest-first (owner dashboard).
+func (qs *QuestionStore) ListAll() ([]*Question, error) {
+	return qs.listAll()
 }
 
 // ListPending returns unanswered questions (owner dashboard).
@@ -143,6 +166,9 @@ func (qs *QuestionStore) save(q *Question) error {
 	if q.Answer != "" {
 		sb.WriteString(fmt.Sprintf("answered_at: %s\n", q.Answered.Format("2006-01-02 15:04 UTC")))
 	}
+	if !q.FetchedAt.IsZero() {
+		sb.WriteString(fmt.Sprintf("fetched_at: %s\n", q.FetchedAt.Format("2006-01-02 15:04 UTC")))
+	}
 	sb.WriteString(fmt.Sprintf("\n%s\n", q.Question))
 	if q.Answer != "" {
 		sb.WriteString(fmt.Sprintf("\n---answer---\n%s\n", q.Answer))
@@ -183,6 +209,10 @@ func parseQuestionFile(content string) *Question {
 			val := strings.TrimSpace(strings.TrimPrefix(line, "answered_at: "))
 			t, _ := time.Parse("2006-01-02 15:04 UTC", val)
 			q.Answered = t
+		} else if strings.HasPrefix(line, "fetched_at: ") {
+			val := strings.TrimSpace(strings.TrimPrefix(line, "fetched_at: "))
+			t, _ := time.Parse("2006-01-02 15:04 UTC", val)
+			q.FetchedAt = t
 		}
 	}
 

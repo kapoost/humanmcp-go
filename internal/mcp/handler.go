@@ -1574,6 +1574,9 @@ func (h *Handler) toolGetAnswer(w http.ResponseWriter, req *Request, args json.R
 		return
 	}
 
+	// Stamp pickup time on first successful fetch — gives the owner UI a "delivered" signal.
+	_ = h.questionStore.MarkFetched(a.QuestionID)
+
 	reply := fmt.Sprintf("Status: answered\n\nYour question: %s\nAsked: %s\nAnswered: %s\n\n— kapoost's answer —\n%s", q.Question, q.AskedAt.Format("2 Jan 2006, 15:04 UTC"), q.Answered.Format("2 Jan 2006, 15:04 UTC"), q.Answer)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
 }

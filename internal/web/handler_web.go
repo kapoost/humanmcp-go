@@ -2051,11 +2051,24 @@ func (h *Handler) handleMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleQuestions(w http.ResponseWriter, r *http.Request) {
-	questions, _ := h.questionStore.ListPending()
+	all, _ := h.questionStore.ListAll()
+	var pending, awaiting, picked []*content.Question
+	for _, q := range all {
+		switch {
+		case q.IsPending():
+			pending = append(pending, q)
+		case q.NeedsPickup():
+			awaiting = append(awaiting, q)
+		default:
+			picked = append(picked, q)
+		}
+	}
 	h.render(w, "questions.html", map[string]interface{}{
-		"Author":    h.cfg.AuthorName,
-		"Questions": questions,
-		"IsOwner":   true,
+		"Author":   h.cfg.AuthorName,
+		"Pending":  pending,
+		"Awaiting": awaiting,
+		"Picked":   picked,
+		"IsOwner":  true,
 	})
 }
 

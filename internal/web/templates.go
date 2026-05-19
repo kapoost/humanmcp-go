@@ -1660,12 +1660,18 @@ function loadStarter(){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Questions — {{.Author}}</title>
 <style>{{template "css" .}}
+.q-section{margin-bottom:2rem;}
+.q-section-title{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.75rem;padding-bottom:.35rem;border-bottom:2px solid var(--accent);}
 .q-item{padding:1rem 0;border-bottom:1px solid var(--border);}
 .q-item:last-child{border-bottom:none;}
-.q-meta{font-size:.73rem;color:var(--muted);margin-bottom:.4rem;display:flex;gap:.6rem;align-items:center;}
+.q-meta{font-size:.73rem;color:var(--muted);margin-bottom:.4rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
 .q-from{font-weight:600;color:var(--fg);font-size:.82rem;}
+.q-badge{font-size:.65rem;padding:1px 6px;border-radius:3px;border:1px solid var(--border);}
+.q-badge.awaiting{background:#fff3cd;color:#856404;border-color:#ffeeba;}
+.q-badge.picked{background:#d4edda;color:#155724;border-color:#c3e6cb;}
 .q-text{font-size:.92rem;line-height:1.6;margin-bottom:.6rem;white-space:pre-wrap;}
 .q-context{font-size:.8rem;color:var(--muted);background:var(--card);padding:.5rem .7rem;border-radius:6px;margin-bottom:.7rem;border-left:3px solid var(--border);}
+.q-answer{font-size:.88rem;color:var(--fg);background:var(--card);padding:.6rem .8rem;border-radius:6px;margin-top:.4rem;white-space:pre-wrap;border-left:3px solid var(--accent);}
 .q-form textarea{width:100%;padding:.5rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.88rem;resize:vertical;font-family:inherit;min-height:60px;}
 .q-form textarea:focus{outline:none;border-color:var(--accent);}
 .q-form button{margin-top:.4rem;padding:.35rem 1rem;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-size:.82rem;}
@@ -1675,28 +1681,71 @@ function loadStarter(){
 <div class="container">
 {{template "header-simple" .}}
 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;">
-  <h1 style="font-size:1.05rem;font-weight:500;">Questions <span style="font-size:.78rem;color:var(--muted);font-weight:400;">({{len .Questions}} pending)</span></h1>
+  <h1 style="font-size:1.05rem;font-weight:500;">Questions <span style="font-size:.78rem;color:var(--muted);font-weight:400;">{{len .Pending}} pending · {{len .Awaiting}} awaiting pickup · {{len .Picked}} delivered</span></h1>
   <a href="/messages" style="font-size:.82rem;color:var(--muted);">messages</a>
 </div>
-{{if .Questions}}
-{{range .Questions}}
-<div class="q-item">
-  <div class="q-meta">
-    {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
-    <span>{{formatDate .AskedAt}}</span>
+
+{{if .Pending}}
+<div class="q-section">
+  <div class="q-section-title">Pending — need your answer</div>
+  {{range .Pending}}
+  <div class="q-item">
+    <div class="q-meta">
+      {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
+      <span>asked {{formatDate .AskedAt}}</span>
+    </div>
+    <div class="q-text">{{.Question}}</div>
+    {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
+    <form method="POST" action="/questions/answer" class="q-form">
+      <input type="hidden" name="question_id" value="{{.ID}}">
+      <textarea name="answer" placeholder="Your answer..." rows="3"></textarea>
+      <button type="submit">Answer</button>
+    </form>
   </div>
-  <div class="q-text">{{.Question}}</div>
-  {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
-  <form method="POST" action="/questions/answer" class="q-form">
-    <input type="hidden" name="question_id" value="{{.ID}}">
-    <textarea name="answer" placeholder="Your answer..." rows="3"></textarea>
-    <button type="submit">Answer</button>
-  </form>
+  {{end}}
 </div>
 {{end}}
-{{else}}
-<div class="empty" style="text-align:center;color:var(--muted);padding:3rem 0;">No pending questions. Agents can ask you via the ask_human MCP tool.</div>
+
+{{if .Awaiting}}
+<div class="q-section">
+  <div class="q-section-title">Awaiting pickup — answered, agent has not fetched yet</div>
+  {{range .Awaiting}}
+  <div class="q-item">
+    <div class="q-meta">
+      {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
+      <span>answered {{formatDate .Answered}}</span>
+      <span class="q-badge awaiting">awaiting pickup</span>
+    </div>
+    <div class="q-text">{{.Question}}</div>
+    {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
+    <div class="q-answer">{{.Answer}}</div>
+  </div>
+  {{end}}
+</div>
 {{end}}
+
+{{if .Picked}}
+<div class="q-section">
+  <div class="q-section-title">Delivered — agent picked up the answer</div>
+  {{range .Picked}}
+  <div class="q-item">
+    <div class="q-meta">
+      {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
+      <span>answered {{formatDate .Answered}}</span>
+      <span class="q-badge picked">picked up {{formatDate .FetchedAt}}</span>
+    </div>
+    <div class="q-text">{{.Question}}</div>
+    {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
+    <div class="q-answer">{{.Answer}}</div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+{{if and (not .Pending) (not .Awaiting) (not .Picked)}}
+<div class="empty" style="text-align:center;color:var(--muted);padding:3rem 0;">No questions yet. Agents can ask via the ask_human MCP tool.</div>
+{{end}}
+
 {{template "footer" .}}
 </div>
 </body></html>
