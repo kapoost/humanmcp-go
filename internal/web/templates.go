@@ -1668,6 +1668,7 @@ function loadStarter(){
 .q-from{font-weight:600;color:var(--fg);font-size:.82rem;}
 .q-badge{font-size:.65rem;padding:1px 6px;border-radius:3px;border:1px solid var(--border);}
 .q-badge.awaiting{background:#fff3cd;color:#856404;border-color:#ffeeba;}
+.q-badge.owner-peek{background:#e2e3e5;color:#495057;border-color:#d6d8db;font-style:italic;}
 .q-badge.picked{background:#d4edda;color:#155724;border-color:#c3e6cb;}
 .q-text{font-size:.92rem;line-height:1.6;margin-bottom:.6rem;white-space:pre-wrap;}
 .q-context{font-size:.8rem;color:var(--muted);background:var(--card);padding:.5rem .7rem;border-radius:6px;margin-bottom:.7rem;border-left:3px solid var(--border);}
@@ -1714,7 +1715,8 @@ function loadStarter(){
     <div class="q-meta">
       {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
       <span>answered {{formatDate .Answered}}</span>
-      <span class="q-badge awaiting">awaiting pickup</span>
+      <span class="q-badge awaiting">awaiting agent pickup</span>
+      {{if .IsFetched}}<span class="q-badge owner-peek">owner peeked {{formatDate .FetchedAt}}</span>{{end}}
     </div>
     <div class="q-text">{{.Question}}</div>
     {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}
@@ -1732,7 +1734,7 @@ function loadStarter(){
     <div class="q-meta">
       {{if .From}}<span class="q-from">{{.From}}</span>{{end}}
       <span>answered {{formatDate .Answered}}</span>
-      <span class="q-badge picked">picked up {{formatDate .FetchedAt}}</span>
+      <span class="q-badge picked">agent picked up {{formatDate .FetchedAt}}</span>
     </div>
     <div class="q-text">{{.Question}}</div>
     {{if .Context}}<div class="q-context">{{.Context}}</div>{{end}}

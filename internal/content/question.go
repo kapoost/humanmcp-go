@@ -19,12 +19,16 @@ type Question struct {
 	Answer    string    `json:"answer"`   // human's answer (empty = pending)
 	AskedAt   time.Time `json:"asked_at"`
 	Answered  time.Time `json:"answered_at,omitempty"`
-	FetchedAt time.Time `json:"fetched_at,omitempty"` // when agent picked up the answer (first get_answer hit)
+	FetchedAt time.Time `json:"fetched_at,omitempty"` // when the answer was first picked up
+	FetchedBy string    `json:"fetched_by,omitempty"` // "agent" | "owner" — who picked it up
 }
 
-func (q *Question) IsPending() bool       { return q.Answer == "" }
-func (q *Question) IsFetched() bool       { return !q.FetchedAt.IsZero() }
-func (q *Question) NeedsPickup() bool     { return !q.IsPending() && !q.IsFetched() }
+func (q *Question) IsPending() bool        { return q.Answer == "" }
+func (q *Question) IsFetched() bool        { return !q.FetchedAt.IsZero() }
+func (q *Question) IsAgentPickedUp() bool  { return q.IsFetched() && q.FetchedBy == "agent" }
+// NeedsPickup: answered but the asking agent hasn't fetched yet.
+// Owner peeking through the UI does NOT count as delivery.
+func (q *Question) NeedsPickup() bool      { return !q.IsPending() && !q.IsAgentPickedUp() }
 
 type QuestionStore struct {
 	dir string
@@ -84,21 +88,42 @@ func (qs *QuestionStore) AnswerQuestion(id, answer string) error {
 	}
 	q.Answer = sanitiseField(answer, 4000)
 	q.Answered = time.Now().UTC()
-	q.FetchedAt = time.Time{} // reset on re-answer so agent's next get_answer marks it as picked up
+	// Reset pickup tracking on re-answer so the next call re-stamps.
+	q.FetchedAt = time.Time{}
+	q.FetchedBy = ""
 	return qs.save(q)
 }
 
-// MarkFetched stamps FetchedAt on first get_answer hit for an answered question.
-// No-op if pending or already fetched.
-func (qs *QuestionStore) MarkFetched(id string) error {
+// MarkFetched stamps FetchedAt/FetchedBy on get_answer.
+// First touch wins, with one exception: an owner peek is "upgraded" to an
+// agent pickup if the agent eventually fetches. Subsequent same-or-weaker
+// touches are no-ops.
+//
+//   call seq                  → final FetchedBy
+//   (nothing) → owner         → owner
+//   (nothing) → agent         → agent   (delivered)
+//   owner → agent             → agent   (delivered — upgrade)
+//   owner → owner             → owner
+//   agent → owner             → agent   (don't downgrade)
+//   agent → agent             → agent
+//
+// `by` must be "agent" or "owner".
+func (qs *QuestionStore) MarkFetched(id, by string) error {
 	q, err := qs.GetAnswer(id)
 	if err != nil {
 		return err
 	}
-	if q.IsPending() || q.IsFetched() {
+	if q.IsPending() {
 		return nil
 	}
+	if q.IsAgentPickedUp() {
+		return nil // already delivered to agent — final
+	}
+	if q.IsFetched() && by != "agent" {
+		return nil // owner peeking again, nothing changes
+	}
 	q.FetchedAt = time.Now().UTC()
+	q.FetchedBy = by
 	return qs.save(q)
 }
 
@@ -168,6 +193,9 @@ func (qs *QuestionStore) save(q *Question) error {
 	}
 	if !q.FetchedAt.IsZero() {
 		sb.WriteString(fmt.Sprintf("fetched_at: %s\n", q.FetchedAt.Format("2006-01-02 15:04 UTC")))
+		if q.FetchedBy != "" {
+			sb.WriteString(fmt.Sprintf("fetched_by: %s\n", q.FetchedBy))
+		}
 	}
 	sb.WriteString(fmt.Sprintf("\n%s\n", q.Question))
 	if q.Answer != "" {
@@ -213,6 +241,8 @@ func parseQuestionFile(content string) *Question {
 			val := strings.TrimSpace(strings.TrimPrefix(line, "fetched_at: "))
 			t, _ := time.Parse("2006-01-02 15:04 UTC", val)
 			q.FetchedAt = t
+		} else if strings.HasPrefix(line, "fetched_by: ") {
+			q.FetchedBy = strings.TrimSpace(strings.TrimPrefix(line, "fetched_by: "))
 		}
 	}
 

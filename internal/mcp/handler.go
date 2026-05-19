@@ -960,7 +960,7 @@ func (h *Handler) handleToolsCall(w http.ResponseWriter, r *http.Request, req *R
 	case "ask_human":
 		h.toolAskHuman(w, req, params.Arguments)
 	case "get_answer":
-		h.toolGetAnswer(w, req, params.Arguments)
+		h.toolGetAnswer(w, r, req, params.Arguments)
 	case "list_peers":
 		h.toolListPeers(w, req)
 	case "announce_peer":
@@ -1549,7 +1549,7 @@ func (h *Handler) toolAskHuman(w http.ResponseWriter, req *Request, args json.Ra
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
 }
 
-func (h *Handler) toolGetAnswer(w http.ResponseWriter, req *Request, args json.RawMessage) {
+func (h *Handler) toolGetAnswer(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		QuestionID string `json:"question_id"`
 	}
@@ -1574,8 +1574,13 @@ func (h *Handler) toolGetAnswer(w http.ResponseWriter, req *Request, args json.R
 		return
 	}
 
-	// Stamp pickup time on first successful fetch — gives the owner UI a "delivered" signal.
-	_ = h.questionStore.MarkFetched(a.QuestionID)
+	// Stamp pickup. Owner reading via EDIT_TOKEN doesn't count as agent delivery
+	// (gets a softer "owner peek" stamp that the agent can still upgrade later).
+	kind := "agent"
+	if h.auth.IsOwner(r) {
+		kind = "owner"
+	}
+	_ = h.questionStore.MarkFetched(a.QuestionID, kind)
 
 	reply := fmt.Sprintf("Status: answered\n\nYour question: %s\nAsked: %s\nAnswered: %s\n\n— kapoost's answer —\n%s", q.Question, q.AskedAt.Format("2 Jan 2006, 15:04 UTC"), q.Answered.Format("2 Jan 2006, 15:04 UTC"), q.Answer)
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: reply}}})
