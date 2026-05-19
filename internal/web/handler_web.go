@@ -856,9 +856,24 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 	if isOwner {
 		msgs, _ := h.msgStore.List()
 		code, expiry := h.sessionCode.Current()
-		questions, _ := h.questionStore.ListPending()
+		all, _ := h.questionStore.ListAll()
+		var pending, awaiting, picked []*content.Question
+		for _, q := range all {
+			switch {
+			case q.IsPending():
+				pending = append(pending, q)
+			case q.NeedsPickup():
+				awaiting = append(awaiting, q)
+			default:
+				picked = append(picked, q)
+			}
+		}
 		data["Messages"] = msgs
-		data["Questions"] = questions
+		data["Pending"] = pending
+		data["Awaiting"] = awaiting
+		data["Picked"] = picked
+		// Backward-compat for any other template referencing .Questions
+		data["Questions"] = pending
 		data["SessionCode"] = code
 		data["SessionExp"] = expiry
 	} else {

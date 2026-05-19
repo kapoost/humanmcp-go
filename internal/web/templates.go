@@ -2186,20 +2186,46 @@ a:hover{text-decoration:underline}
 <!-- COL 3: unified inbox + funnel -->
 <div class="mc-col">
 <div class="mc-section">
-  <div class="mc-label">INBOX {{if or .Messages .Questions}}<span>{{len .Messages}}{{with .Questions}}+{{len .}}Q{{end}}</span>{{end}}</div>
-{{if .Questions}}{{range .Questions}}<div class="mc-msg">
+  <div class="mc-label">INBOX {{if or .Messages .Pending .Awaiting .Picked}}<span>{{len .Messages}}M{{with .Pending}}+{{len .}}P{{end}}{{with .Awaiting}}+{{len .}}A{{end}}{{with .Picked}}+{{len .}}D{{end}}</span>{{end}}</div>
+
+{{if .Pending}}{{range .Pending}}<div class="mc-msg">
     <div class="mc-msg-head">
       <span class="mc-kind mc-kind-q">Q</span>
       {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
       <span>{{formatTime .AskedAt}}</span>
+      <span class="mc-msg-tag" style="background:#fff3cd;color:#856404">pending</span>
     </div>
     <div class="mc-msg-body">{{.Question}}</div>
     <form method="POST" action="/questions/answer" style="margin-top:4px;display:flex;gap:4px">
-      <input type="hidden" name="id" value="{{.ID}}">
+      <input type="hidden" name="question_id" value="{{.ID}}">
       <input type="text" name="answer" placeholder="answer..." style="flex:1;background:var(--mc-bg);border:1px solid var(--mc-border);color:var(--mc-fg);padding:2px 6px;font-size:11px">
       <button type="submit" style="background:var(--mc-cyan);color:#000;border:none;padding:2px 8px;font-size:11px;cursor:pointer">reply</button>
     </form>
   </div>{{end}}{{end}}
+
+{{if .Awaiting}}{{range .Awaiting}}<div class="mc-msg">
+    <div class="mc-msg-head">
+      <span class="mc-kind mc-kind-q">Q</span>
+      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
+      <span>{{formatTime .Answered}}</span>
+      <span class="mc-msg-tag" style="background:#fff3cd;color:#856404">awaiting pickup</span>
+      {{if .IsFetched}}<span class="mc-msg-tag" style="background:#e2e3e5;color:#495057;font-style:italic">owner peeked</span>{{end}}
+    </div>
+    <div class="mc-msg-body"><em>Q:</em> {{.Question}}</div>
+    <div class="mc-msg-body" style="border-left:2px solid var(--mc-cyan);padding-left:6px;margin-top:3px"><em>A:</em> {{.Answer}}</div>
+  </div>{{end}}{{end}}
+
+{{if .Picked}}{{range .Picked}}<div class="mc-msg">
+    <div class="mc-msg-head">
+      <span class="mc-kind mc-kind-q">Q</span>
+      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
+      <span>{{formatTime .Answered}}</span>
+      <span class="mc-msg-tag" style="background:#d4edda;color:#155724">delivered {{formatTime .FetchedAt}}</span>
+    </div>
+    <div class="mc-msg-body"><em>Q:</em> {{.Question}}</div>
+    <div class="mc-msg-body" style="border-left:2px solid var(--mc-cyan);padding-left:6px;margin-top:3px"><em>A:</em> {{.Answer}}</div>
+  </div>{{end}}{{end}}
+
 {{if .Messages}}{{range .Messages}}<div class="mc-msg">
     <div class="mc-msg-head">
       {{if eq .Kind "comment"}}<span class="mc-kind mc-kind-cmt">CMT</span>
@@ -2213,7 +2239,8 @@ a:hover{text-decoration:underline}
     <div class="mc-msg-body">{{.Text}}</div>
   </div>{{end}}
 {{end}}
-{{if not (or .Messages .Questions)}}<div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div>{{end}}
+
+{{if not (or .Messages .Pending .Awaiting .Picked)}}<div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div>{{end}}
 </div>
 
 {{with .Stats}}
