@@ -2186,9 +2186,24 @@ a:hover{text-decoration:underline}
 <!-- COL 3: unified inbox + funnel -->
 <div class="mc-col">
 <div class="mc-section">
-  <div class="mc-label">INBOX {{if or .Messages .Pending .Awaiting .Picked}}<span>{{len .Messages}}M{{with .Pending}}+{{len .}}P{{end}}{{with .Awaiting}}+{{len .}}A{{end}}{{with .Picked}}+{{len .}}D{{end}}</span>{{end}}</div>
+  <div class="mc-label">INBOX {{with .InboxCounts}}<span>{{.msg}}M · {{.pending}}P · {{.awaiting}}A · {{.picked}}D</span>{{end}}</div>
 
-{{if .Pending}}{{range .Pending}}<div class="mc-msg">
+{{if .Inbox}}{{range .Inbox}}
+
+  {{if eq .Kind "msg"}}{{with .M}}<div class="mc-msg">
+    <div class="mc-msg-head">
+      {{if eq .Kind "comment"}}<span class="mc-kind mc-kind-cmt">CMT</span>
+      {{else if eq .Kind "license"}}<span class="mc-kind mc-kind-lic">LIC</span>
+      {{else if eq .Kind "response"}}<span class="mc-kind mc-kind-rsp">RSP</span>
+      {{else}}<span class="mc-kind mc-kind-msg">MSG</span>{{end}}
+      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
+      <span>{{formatTime .At}}</span>
+      {{if .Regarding}}<span class="mc-msg-tag">re: {{.Regarding}}</span>{{end}}
+    </div>
+    <div class="mc-msg-body">{{.Text}}</div>
+  </div>{{end}}{{end}}
+
+  {{if eq .Kind "q-pending"}}{{with .Q}}<div class="mc-msg">
     <div class="mc-msg-head">
       <span class="mc-kind mc-kind-q">Q</span>
       {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
@@ -2203,11 +2218,11 @@ a:hover{text-decoration:underline}
     </form>
   </div>{{end}}{{end}}
 
-{{if .Awaiting}}{{range .Awaiting}}<div class="mc-msg">
+  {{if eq .Kind "q-awaiting"}}{{with .Q}}<div class="mc-msg">
     <div class="mc-msg-head">
       <span class="mc-kind mc-kind-q">Q</span>
       {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
-      <span>{{formatTime .Answered}}</span>
+      <span>{{formatTime .AskedAt}}</span>
       <span class="mc-msg-tag" style="background:#fff3cd;color:#856404">awaiting pickup</span>
       {{if .IsFetched}}<span class="mc-msg-tag" style="background:#e2e3e5;color:#495057;font-style:italic">owner peeked</span>{{end}}
     </div>
@@ -2215,32 +2230,18 @@ a:hover{text-decoration:underline}
     <div class="mc-msg-body" style="border-left:2px solid var(--mc-cyan);padding-left:6px;margin-top:3px"><em>A:</em> {{.Answer}}</div>
   </div>{{end}}{{end}}
 
-{{if .Picked}}{{range .Picked}}<div class="mc-msg">
+  {{if eq .Kind "q-picked"}}{{with .Q}}<div class="mc-msg">
     <div class="mc-msg-head">
       <span class="mc-kind mc-kind-q">Q</span>
       {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
-      <span>{{formatTime .Answered}}</span>
+      <span>{{formatTime .AskedAt}}</span>
       <span class="mc-msg-tag" style="background:#d4edda;color:#155724">delivered {{formatTime .FetchedAt}}</span>
     </div>
     <div class="mc-msg-body"><em>Q:</em> {{.Question}}</div>
     <div class="mc-msg-body" style="border-left:2px solid var(--mc-cyan);padding-left:6px;margin-top:3px"><em>A:</em> {{.Answer}}</div>
   </div>{{end}}{{end}}
 
-{{if .Messages}}{{range .Messages}}<div class="mc-msg">
-    <div class="mc-msg-head">
-      {{if eq .Kind "comment"}}<span class="mc-kind mc-kind-cmt">CMT</span>
-      {{else if eq .Kind "license"}}<span class="mc-kind mc-kind-lic">LIC</span>
-      {{else if eq .Kind "response"}}<span class="mc-kind mc-kind-rsp">RSP</span>
-      {{else}}<span class="mc-kind mc-kind-msg">MSG</span>{{end}}
-      {{if .From}}<strong>{{.From}}</strong>{{else}}<span>anon</span>{{end}}
-      <span>{{formatTime .At}}</span>
-      {{if .Regarding}}<span class="mc-msg-tag">re: {{.Regarding}}</span>{{end}}
-    </div>
-    <div class="mc-msg-body">{{.Text}}</div>
-  </div>{{end}}
-{{end}}
-
-{{if not (or .Messages .Pending .Awaiting .Picked)}}<div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div>{{end}}
+{{end}}{{else}}<div style="color:var(--mc-muted);font-size:11px;padding:12px 0">No transmissions received.</div>{{end}}
 </div>
 
 {{with .Stats}}

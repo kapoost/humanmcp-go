@@ -857,23 +857,44 @@ func (h *Handler) handleMissionControl(w http.ResponseWriter, r *http.Request) {
 		msgs, _ := h.msgStore.List()
 		code, expiry := h.sessionCode.Current()
 		all, _ := h.questionStore.ListAll()
-		var pending, awaiting, picked []*content.Question
+
+		// Unified inbox feed: messages + questions interleaved by arrival time
+		// (questions sort by AskedAt). Newest first.
+		type InboxItem struct {
+			Kind string // "msg" | "q-pending" | "q-awaiting" | "q-picked"
+			At   time.Time
+			M    *content.Message
+			Q    *content.Question
+		}
+		var feed []InboxItem
+		for _, m := range msgs {
+			feed = append(feed, InboxItem{Kind: "msg", At: m.At, M: m})
+		}
+		var pending, awaiting, picked int
 		for _, q := range all {
+			kind := "q-picked"
 			switch {
 			case q.IsPending():
-				pending = append(pending, q)
+				kind = "q-pending"
+				pending++
 			case q.NeedsPickup():
-				awaiting = append(awaiting, q)
+				kind = "q-awaiting"
+				awaiting++
 			default:
-				picked = append(picked, q)
+				picked++
 			}
+			feed = append(feed, InboxItem{Kind: kind, At: q.AskedAt, Q: q})
 		}
+		sort.Slice(feed, func(i, j int) bool { return feed[i].At.After(feed[j].At) })
+
 		data["Messages"] = msgs
-		data["Pending"] = pending
-		data["Awaiting"] = awaiting
-		data["Picked"] = picked
+		data["Inbox"] = feed
+		data["InboxCounts"] = map[string]int{
+			"msg": len(msgs), "pending": pending,
+			"awaiting": awaiting, "picked": picked,
+		}
 		// Backward-compat for any other template referencing .Questions
-		data["Questions"] = pending
+		data["Questions"] = nil
 		data["SessionCode"] = code
 		data["SessionExp"] = expiry
 	} else {
