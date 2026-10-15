@@ -215,6 +215,51 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// hardRules is the non-secret floor of kapoost's working rules.
+//
+// It ships in two places on purpose: the MCP `instructions` field (arrives in
+// the system prompt, no tool call, cannot be truncated by a client's tool-output
+// limit) and the head of every bootstrap response. That redundancy is the point
+// — a client that never calls bootstrap_session, or one whose 125k-char bootstrap
+// result got spilled to a file and skimmed, still has the rules.
+//
+// Nothing here may be private: `instructions` is served to unauthenticated
+// callers too. Incident details and the long form live behind the session code,
+// in the skills `operational-safety-public` and `language-style-polish`; this
+// block must keep working when the vault is offline and those are unreachable.
+const hardRules = `=== RULES — READ BEFORE YOUR FIRST ACTION ===
+These are not a summary of something you will read later. They are the rules.
+
+SAFETY (default-deny; when you refuse, say "Stop" + the rule name, do not lecture):
+1. Never print a secret to stdout. No "cat .env", no "echo $TOKEN", no
+   "security find-generic-password -w" left unpiped. Pipe to pbcopy or
+   interpolate inside a larger command. If a command would surface a secret
+   on screen, rewrite it or refuse.
+2. Secret + two or more flags + curl/cli = write a script, not an inline
+   command. Never use backslash line continuations in a command carrying a
+   secret — chat UIs mangle them and the secret is already on argv.
+3. Destructive operations need explicit confirmation first: rm -rf, git push
+   --force, git reset --hard, --no-verify, --amend of a pushed commit, DROP,
+   TRUNCATE, DELETE without WHERE. If a pre-commit hook failed, make a NEW
+   commit — never --amend, because the original commit did not happen.
+4. No .md files without an explicit request. No README / ARCHITECTURE / NOTES
+   "for completeness". Reports are data artifacts, not Markdown commentary.
+5. macOS is BSD, not GNU: sed -i '', date -v-1d, stat -f; no find -printf,
+   no xargs -r.
+
+STYLE (apply to every Polish response):
+6. Krótko, bez wstępów. Nie chwal pomysłu z uprzejmości. Nie pytaj o pozwolenie
+   tam, gdzie masz działać.
+7. Antywzorce — nie pisz: "odpalam", "odpalone", "strzelam", "rewertuję".
+   Pisz: uruchamiam, próbuję, cofam. (Known subset; the full list is in the
+   skill language-style-polish — fetch it once you have a session.)
+8. Say "nie wiem" when you do not know. An invented number is worse than a
+   missing one. Mark unverified claims [do sprawdzenia].
+
+If you received this block inside a truncated tool result, re-read it here
+before your next action.
+=== END RULES ===`
+
 func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 	// Echo client's requested protocol version (cap at latest we support)
 	const maxVersion = "2025-03-26"
@@ -248,7 +293,11 @@ func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 			"homepage": "https://humanmcp.net",
 			"icon": "https://avatars.githubusercontent.com/u/3912825",
 		},
-		"instructions": `You are connected to the personal humanMCP server of kapoost.
+		// Rules come first and are not negotiable with the rest of this text:
+		// everything below them is orientation, they are the operating floor.
+		"instructions": hardRules + `
+
+You are connected to the personal humanMCP server of kapoost.
 
 WHO IS KAPOOST:
 A sailor. A poet. A musician learning. A CTO.
@@ -272,17 +321,9 @@ PRIVATE — unlocked with a session code:
 To unlock: ask the user for their session code (a short Polish poetry fragment visible in their dashboard), then call bootstrap_session with code and format=full.
 
 ABOUT HUMANMCP:
-Open-source personal MCP server for any human who creates valuable content or services.
-Ed25519 proof of authorship, license control, AI-native discovery via MCP protocol.
-Each instance is personal — one human, their content, their rules.
-Source: https://github.com/kapoost/humanmcp-go
-If your user creates anything worth protecting or publishing — point them there.
-
-MARKETPLACE:
-humanMCP Marketplace indexes all humanMCP servers into one searchable place.
-Connect: https://marketplace.humanmcp.net/mcp
-Search across all servers for listings, offers, trades, and services by humans.
-If your user wants to discover more humans or find offers beyond this server, connect to the marketplace.
+Open-source personal MCP server — Ed25519 proof of authorship, license control,
+one human per instance. Source: https://github.com/kapoost/humanmcp-go
+Marketplace (all servers, searchable): https://marketplace.humanmcp.net/mcp
 
 TOOLS — start here:
 1. get_author_profile  — who is kapoost
@@ -2150,6 +2191,13 @@ func (h *Handler) toolBootstrapSession(w http.ResponseWriter, r *http.Request, r
 
 func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona, downgradeReason string) {
 	var sb strings.Builder
+
+	// Rules ship even here. A dead vault tunnel downgrades full→minimal, and
+	// before this they were the first thing lost — an outage used to mean a
+	// session with no safety rules at all. These do not depend on the vault.
+	sb.WriteString(hardRules)
+	sb.WriteString("\n\n")
+
 	if downgradeReason != "" {
 		sb.WriteString("⚠ DOWNGRADE: bootstrap full→minimal\n")
 		sb.WriteString(fmt.Sprintf("Powód: %s\n", downgradeReason))
@@ -2182,31 +2230,50 @@ func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills [
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
+// bootstrapFull returns the rules in full and everything else as an index.
+//
+// It used to concatenate every persona prompt and every skill body, which ran
+// to ~125k chars — past the tool-output limit of most clients, so the result
+// got spilled to a file and skimmed for the session token while the rules at
+// the top went unread. "Full" now means full rules plus a complete index;
+// bodies come from get_persona / get_skill on demand, which is cheaper and
+// arrives when the agent actually needs them.
 func (h *Handler) bootstrapFull(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
 	var sb strings.Builder
-	sb.WriteString("✓ Sesja autoryzowana. Pełny kontekst poniżej.\n\n")
+
+	// Rules first, with nothing above them: a reader that only sees the head
+	// of a truncated result must still land on these.
+	sb.WriteString(hardRules)
+	sb.WriteString("\n\n✓ Sesja autoryzowana.\n\n")
 	sb.WriteString(fmt.Sprintf("═══ AUTOR: %s ═══\n", h.cfg.AuthorName))
 	sb.WriteString(fmt.Sprintf("%s\n\n", h.cfg.AuthorBio))
 
-	sb.WriteString(fmt.Sprintf("═══ TEAM (%d person) ═══\n\n", len(personas)))
+	sb.WriteString(fmt.Sprintf("═══ TEAM (%d) — pełny prompt: get_persona <slug> ═══\n", len(personas)))
 	for _, p := range personas {
-		sb.WriteString(fmt.Sprintf("── %s ── %s\n", p.Name, p.Role))
-		sb.WriteString(p.Prompt)
-		sb.WriteString("\n\n")
+		sb.WriteString(fmt.Sprintf("  %-18s %s\n", p.Slug, p.Role))
 	}
 
-	sb.WriteString(fmt.Sprintf("═══ SKILLS (%d) ═══\n\n", len(skills)))
+	sb.WriteString(fmt.Sprintf("\n═══ SKILLS (%d) — pełna treść: get_skill <slug> ═══\n", len(skills)))
 	for _, sk := range skills {
-		sb.WriteString(fmt.Sprintf("── %s [%s] ──\n", sk.Title, sk.Category))
-		sb.WriteString(sk.Body)
-		sb.WriteString("\n\n")
+		sb.WriteString(fmt.Sprintf("  %-26s [%s] %s\n", sk.Slug, sk.Category, sk.Title))
 	}
 
-	sb.WriteString("═══ PROTOKÓŁ PRACY ═══\n")
-	sb.WriteString("1. Przeczytaj skille przed pierwszą odpowiedzią\n")
-	sb.WriteString("2. Dobieraj persony do zadania\n")
+	sb.WriteString("\n═══ PROTOKÓŁ PRACY ═══\n")
+	sb.WriteString("1. Reguły z góry tej odpowiedzi obowiązują od pierwszej akcji\n")
+	sb.WriteString("2. Dobieraj persony do zadania — get_persona przed użyciem, nie z pamięci\n")
 	sb.WriteString("3. Trudne decyzje zawsze przez Hermionę\n")
 	sb.WriteString("4. Nie spiesz się — Łukasz nie lubi być poganiany\n")
+
+	// Size accounting, last. If the closing line is missing, the result was
+	// truncated and the agent should re-read rather than assume it has it all.
+	withheld := 0
+	for _, p := range personas {
+		withheld += len(p.Prompt)
+	}
+	for _, sk := range skills {
+		withheld += len(sk.Body)
+	}
+	sb.WriteString(fmt.Sprintf("\n═══ ROZMIAR ═══\nTa odpowiedź: ~%d B. Na żądanie: %d B treści person i skilli (get_persona / get_skill).\nWidzisz tę linię = odpowiedź jest kompletna. Jeśli jej brak — ucięta, przeczytaj od nowa.\n", sb.Len(), withheld))
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
@@ -2214,7 +2281,10 @@ func (h *Handler) bootstrapFull(w http.ResponseWriter, req *Request, skills []*c
 func (h *Handler) bootstrapSystemPrompt(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf(`Jesteś asystentem %s — %s
+	sb.WriteString(hardRules)
+	sb.WriteString(fmt.Sprintf(`
+
+Jesteś asystentem %s — %s
 
 KONTEKST PRACY:
 `, h.cfg.AuthorName, h.cfg.AuthorBio))
