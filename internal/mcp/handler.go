@@ -2,7 +2,9 @@ package mcp
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -260,6 +262,50 @@ If you received this block inside a truncated tool result, re-read it here
 before your next action.
 === END RULES ===`
 
+// rulesAck derives the acknowledgement token from the rules block itself.
+//
+// Holding it proves the one thing the session code cannot: that the caller
+// received a complete bootstrap response and read as far as its last line.
+// The failure this exists for was an agent that fished the session token out
+// of a truncated 125k-char result and never saw the rules — the code check
+// passed, the rules did not arrive.
+//
+// Derived from hardRules, so changing a rule invalidates every outstanding
+// ack and forces a re-read. Pure function of the build: no server-side state,
+// so it holds across restarts and across Fly machines without coordination.
+func rulesAck() string {
+	sum := sha256.Sum256([]byte(hardRules))
+	return "ack-" + hex.EncodeToString(sum[:])[:10]
+}
+
+// ackOK reports whether the caller proved receipt of the rules.
+//
+// The owner token is exempt — that path is kapoost at the dashboard, a human
+// who does not need the agent rules read back. Agents (session code or OAuth)
+// are not exempt: delivering the rules is the whole point of the gate.
+func (h *Handler) ackOK(r *http.Request, ack string) bool {
+	if !h.cfg.RulesAckRequired {
+		return true
+	}
+	if h.auth.IsOwner(r) {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(ack), rulesAck())
+}
+
+// ackMissing writes the rejection. It names the remedy rather than the rule,
+// because the caller that hits this is an agent that can act on instructions.
+func (h *Handler) ackMissing(w http.ResponseWriter, req *Request, tool string) {
+	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf(
+		"Brak potwierdzenia regul — %s nie zostalo wykonane.\n\n"+
+			"Wywolaj bootstrap_session i przeczytaj odpowiedz DO KONCA. Ostatnia linia\n"+
+			"zawiera token postaci 'ack-xxxxxxxxxx'. Przekaz go jako parametr 'ack'\n"+
+			"przy kazdym prywatnym narzedziu, obok 'code'.\n\n"+
+			"Jesli przekazales ack i widzisz ten komunikat: reguly zmienily sie od czasu\n"+
+			"Twojego bootstrapu. Zbootstrapuj ponownie i przeczytaj je jeszcze raz —\n"+
+			"stary token celowo przestal dzialac.", tool)}}})
+}
+
 func (h *Handler) handleInitialize(w http.ResponseWriter, req *Request) {
 	// Echo client's requested protocol version (cap at latest we support)
 	const maxVersion = "2025-03-26"
@@ -319,6 +365,9 @@ PRIVATE — unlocked with a session code:
 - Complete team briefing via bootstrap_session
 
 To unlock: ask the user for their session code (a short Polish poetry fragment visible in their dashboard), then call bootstrap_session with code and format=full.
+Read that response to its last line: it ends with a token "ack-xxxxxxxxxx". Private
+tools need it as the "ack" parameter alongside "code" — it is how the server checks
+the rules above actually reached you, rather than being truncated away.
 
 ABOUT HUMANMCP:
 Open-source personal MCP server — Ed25519 proof of authorship, license control,
@@ -657,6 +706,7 @@ func (h *Handler) buildTools() []Tool {
 				"properties": map[string]interface{}{
 					"body":       map[string]interface{}{"type": "string", "description": "The observation (max 2000 chars)"},
 					"code":       map[string]interface{}{"type": "string", "description": "Session code for authorization"},
+					"ack":        map[string]interface{}{"type": "string", "description": "Rules-acknowledgement token from the last line of bootstrap_session"},
 					"tags":       map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Optional tags: preferences, decisions, patterns, mood, technical, personal"},
 					"agent_hint": map[string]interface{}{"type": "string", "description": "Brief note about context: what session was about"},
 				},
@@ -670,6 +720,7 @@ func (h *Handler) buildTools() []Tool {
 				"required": []string{"code"},
 				"properties": map[string]interface{}{
 					"code":  map[string]interface{}{"type": "string", "description": "Session code for authorization"},
+					"ack":   map[string]interface{}{"type": "string", "description": "Rules-acknowledgement token from the last line of bootstrap_session"},
 					"tag":   map[string]interface{}{"type": "string", "description": "Filter by tag"},
 					"limit": map[string]interface{}{"type": "integer", "description": "Max memories to return (default 10)"},
 				},
@@ -762,6 +813,7 @@ func (h *Handler) buildTools() []Tool {
 				"properties": map[string]interface{}{
 					"slug": map[string]interface{}{"type": "string", "description": "Skill slug"},
 					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
+					"ack":  map[string]interface{}{"type": "string", "description": "Rules-acknowledgement token from the last line of bootstrap_session"},
 				},
 			},
 		},
@@ -798,6 +850,7 @@ func (h *Handler) buildTools() []Tool {
 				"type": "object",
 				"properties": map[string]interface{}{
 					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
+					"ack":  map[string]interface{}{"type": "string", "description": "Rules-acknowledgement token from the last line of bootstrap_session"},
 				},
 			},
 		},
@@ -810,6 +863,7 @@ func (h *Handler) buildTools() []Tool {
 				"properties": map[string]interface{}{
 					"slug": map[string]interface{}{"type": "string", "description": "Persona slug"},
 					"code": map[string]interface{}{"type": "string", "description": "Session code from bootstrap_session"},
+					"ack":  map[string]interface{}{"type": "string", "description": "Rules-acknowledgement token from the last line of bootstrap_session"},
 				},
 			},
 		},
@@ -1965,6 +2019,7 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Requ
 	var a struct {
 		Slug string `json:"slug"`
 		Code string `json:"code"`
+		Ack  string `json:"ack"`
 	}
 	json.Unmarshal(args, &a)
 	if a.Slug == "" {
@@ -1976,8 +2031,15 @@ func (h *Handler) toolGetSkill(w http.ResponseWriter, r *http.Request, req *Requ
 		writeError(w, req.ID, -32602, "skill not found: "+a.Slug)
 		return
 	}
-	// Authorized: session code, OAuth, or owner token
-	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
+	// The ack gate stands between an authorized caller and private content —
+	// not in front of the tool. An unauthenticated caller keeps getting the
+	// public stub below, same as before.
+	authed := h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r)
+	if authed && !h.ackOK(r, a.Ack) {
+		h.ackMissing(w, req, "get_skill")
+		return
+	}
+	if authed {
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("SKILL: %s [%s]\n", sk.Title, sk.Category))
 		sb.WriteString(fmt.Sprintf("updated: %s\n\n", sk.UpdatedAt.Format("2 January 2006")))
@@ -2045,8 +2107,15 @@ func (h *Handler) toolDeleteSkill(w http.ResponseWriter, r *http.Request, req *R
 func (h *Handler) toolListPersonas(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Code string `json:"code"`
+		Ack  string `json:"ack"`
 	}
 	json.Unmarshal(args, &a)
+	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
+		if !h.ackOK(r, a.Ack) {
+			h.ackMissing(w, req, "list_personas")
+			return
+		}
+	}
 	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) && !h.auth.IsOwner(r) {
 		demo, _ := h.skillStore.ListPersonasFromDisk()
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: fmt.Sprintf("%d personas available. Call bootstrap_session with your session code to unlock the catalog.", len(demo))}}})
@@ -2070,11 +2139,18 @@ func (h *Handler) toolGetPersona(w http.ResponseWriter, r *http.Request, req *Re
 	var a struct {
 		Slug string `json:"slug"`
 		Code string `json:"code"`
+		Ack  string `json:"ack"`
 	}
 	json.Unmarshal(args, &a)
 	if a.Slug == "" {
 		writeError(w, req.ID, -32602, "slug required")
 		return
+	}
+	if h.sessionCode.Verify(a.Code) || h.isOAuthAuthorized(r) || h.auth.IsOwner(r) {
+		if !h.ackOK(r, a.Ack) {
+			h.ackMissing(w, req, "get_persona")
+			return
+		}
 	}
 	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) && !h.auth.IsOwner(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: "Authentication required. Call bootstrap_session with your session code to unlock personas."}}})
@@ -2227,6 +2303,7 @@ func (h *Handler) bootstrapMinimal(w http.ResponseWriter, req *Request, skills [
 	} else {
 		sb.WriteString("Kod możesz przekazywać, ale dopóki vault offline get_persona/get_skill też zwrócą tylko zaślepki.\n")
 	}
+	sb.WriteString(h.ackFooter())
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
 }
 
@@ -2274,8 +2351,22 @@ func (h *Handler) bootstrapFull(w http.ResponseWriter, req *Request, skills []*c
 		withheld += len(sk.Body)
 	}
 	sb.WriteString(fmt.Sprintf("\n═══ ROZMIAR ═══\nTa odpowiedź: ~%d B. Na żądanie: %d B treści person i skilli (get_persona / get_skill).\nWidzisz tę linię = odpowiedź jest kompletna. Jeśli jej brak — ucięta, przeczytaj od nowa.\n", sb.Len(), withheld))
+	sb.WriteString(h.ackFooter())
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: sb.String()}}})
+}
+
+// ackFooter closes every bootstrap response. It goes last on purpose: a caller
+// that can quote it necessarily received the whole response, rules included.
+func (h *Handler) ackFooter() string {
+	if !h.cfg.RulesAckRequired {
+		return "\n═══ POTWIERDZENIE ═══\nBramka 'ack' wyłączona na tym serwerze (RULES_ACK=off).\n"
+	}
+	return fmt.Sprintf("\n═══ POTWIERDZENIE REGUŁ ═══\n"+
+		"Prywatne narzędzia (get_skill, get_persona, list_personas, remember, recall)\n"+
+		"wymagają parametru 'ack' obok 'code'. Token jest w ostatniej linii poniżej —\n"+
+		"dotarł do Ciebie tylko wtedy, gdy ta odpowiedź nie została ucięta.\n%s\n",
+		rulesAck())
 }
 
 func (h *Handler) bootstrapSystemPrompt(w http.ResponseWriter, req *Request, skills []*content.Skill, personas []*content.Persona) {
@@ -2320,7 +2411,8 @@ Pełne opisy person i skillli dostępne przez: list_personas, get_persona <slug>
 	out.WriteString("```\n")
 	out.WriteString(systemPromptText)
 	out.WriteString("```\n\n")
-	out.WriteString("Alternatywnie: użyj format=full aby dostać pełne prompty wszystkich person.")
+	out.WriteString("Alternatywnie: użyj format=full aby dostać indeks zespołu i skilli.")
+	out.WriteString(h.ackFooter())
 
 	writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text", Text: out.String()}}})
 }
@@ -2331,6 +2423,7 @@ func (h *Handler) toolRemember(w http.ResponseWriter, r *http.Request, req *Requ
 	var a struct {
 		Body      string   `json:"body"`
 		Code      string   `json:"code"`
+		Ack       string   `json:"ack"`
 		Tags      []string `json:"tags"`
 		AgentHint string   `json:"agent_hint"`
 	}
@@ -2339,6 +2432,10 @@ func (h *Handler) toolRemember(w http.ResponseWriter, r *http.Request, req *Requ
 	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
 			Text: "Niepoprawne hasło sesji. Obserwacja nie została zapisana."}}})
+		return
+	}
+	if !h.ackOK(r, a.Ack) {
+		h.ackMissing(w, req, "remember")
 		return
 	}
 	if a.Body == "" {
@@ -2372,6 +2469,7 @@ func (h *Handler) toolRemember(w http.ResponseWriter, r *http.Request, req *Requ
 func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Request, args json.RawMessage) {
 	var a struct {
 		Code  string `json:"code"`
+		Ack   string `json:"ack"`
 		Tag   string `json:"tag"`
 		Limit int    `json:"limit"`
 	}
@@ -2380,6 +2478,10 @@ func (h *Handler) toolRecall(w http.ResponseWriter, r *http.Request, req *Reques
 	if !h.sessionCode.Verify(a.Code) && !h.isOAuthAuthorized(r) {
 		writeResult(w, req.ID, CallResult{Content: []ContentBlock{{Type: "text",
 			Text: "Niepoprawne hasło sesji."}}})
+		return
+	}
+	if !h.ackOK(r, a.Ack) {
+		h.ackMissing(w, req, "recall")
 		return
 	}
 

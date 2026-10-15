@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -41,6 +42,11 @@ type Config struct {
 
 	// VaultURL — URL lokalnej mysloodsiewni (np. http://localhost:7331)
 	VaultURL string `json:"vault_url"`
+
+	// RulesAckRequired — czy narzędzia prywatne wymagają tokenu 'ack'
+	// potwierdzającego, że agent dostał komplet bootstrapu wraz z regułami.
+	// Domyślnie true. Wyłącznik awaryjny: RULES_ACK=off (bez redeployu kodu).
+	RulesAckRequired bool `json:"rules_ack_required"`
 }
 
 func Load() (*Config, error) {
@@ -53,6 +59,7 @@ func Load() (*Config, error) {
 		ContentDir: "./content",
 		EditToken:           os.Getenv("EDIT_TOKEN"),
 		SessionRotateHours:  24,
+		RulesAckRequired:    true,
 	}
 
 	// Override from env vars (12-factor)
@@ -85,6 +92,11 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("VAULT_URL"); v != "" {
 		cfg.VaultURL = v
+	}
+	// Opt-out only: anything other than an explicit "off" leaves the gate on,
+	// so a typo in the env fails closed rather than silently unguarding.
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("RULES_ACK")), "off") {
+		cfg.RulesAckRequired = false
 	}
 	if v := os.Getenv("AGENT_TOKEN"); v != "" {
 		cfg.AgentToken = v
