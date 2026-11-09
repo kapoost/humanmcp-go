@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -66,22 +67,27 @@ func (p *Piece) IsUnlocked() bool {
 }
 
 type Store struct {
+	// mu chroni pieces. Store jest wspoldzielony przez handlery HTTP i MCP,
+	// ktore Go obsluguje w osobnych goroutine'ach, wiec Save/Delete z jednego
+	// zadania pisalo do mapy, po ktorej inne wlasnie iterowalo.
+	mu     sync.RWMutex
 	dir    string
 	pieces map[string]*Piece
-	cache  *Cache[[]*Piece]  // TTL cache for List()
 }
 
 func NewStore(dir string) *Store {
 	return &Store{
 		dir:    dir,
 		pieces: make(map[string]*Piece),
-		cache:  NewCache[[]*Piece](5 * time.Second),
 	}
 }
 
 func (s *Store) Load() error {
-	s.pieces = make(map[string]*Piece)
-	return filepath.WalkDir(s.dir, func(path string, d os.DirEntry, err error) error {
+	// Budujemy do mapy lokalnej i podmieniamy pod lockiem — inaczej blokada
+	// trzymalaby sie przez caly obchod katalogu, a czytelnicy widzieliby mape
+	// w polowie zapelniona.
+	fresh := make(map[string]*Piece)
+	err := filepath.WalkDir(s.dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".md") {
 			return nil
 		}
@@ -95,12 +101,21 @@ func (s *Store) Load() error {
 		if p.Type == "" { p.Type = "poem" }
 		if p.Access == "" { p.Access = AccessPublic }
 		if p.Published.IsZero() { p.Published = time.Now() }
-		s.pieces[p.Slug] = p
+		fresh[p.Slug] = p
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.pieces = fresh
+	s.mu.Unlock()
+	return nil
 }
 
 func (s *Store) List(includeBody bool) []*Piece {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	out := make([]*Piece, 0, len(s.pieces))
 	for _, p := range s.pieces {
 		cp := *p
@@ -116,6 +131,8 @@ func (s *Store) List(includeBody bool) []*Piece {
 }
 
 func (s *Store) Get(slug string, unlocked bool) (*Piece, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	p, ok := s.pieces[slug]
 	if !ok {
 		return nil, fmt.Errorf("not found: %s", slug)
@@ -129,6 +146,8 @@ func (s *Store) Get(slug string, unlocked bool) (*Piece, error) {
 }
 
 func (s *Store) GetForEdit(slug string) (*Piece, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	p, ok := s.pieces[slug]
 	if !ok {
 		return nil, fmt.Errorf("not found: %s", slug)
@@ -137,6 +156,8 @@ func (s *Store) GetForEdit(slug string) (*Piece, error) {
 }
 
 func (s *Store) CheckAnswer(slug, answer string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	p, ok := s.pieces[slug]
 	if !ok || p.Gate != GateChallenge {
 		return false
@@ -163,21 +184,25 @@ func (s *Store) Save(p *Piece) error {
 	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
 		return err
 	}
+	s.mu.Lock()
 	s.pieces[p.Slug] = p
-	s.cache.Invalidate()
+	s.mu.Unlock()
 	return nil
 }
 
 func (s *Store) Delete(slug string) error {
+	s.mu.RLock()
 	p, ok := s.pieces[slug]
+	s.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("not found: %s", slug)
 	}
 	if err := os.Remove(p.FilePath); err != nil {
 		return err
 	}
+	s.mu.Lock()
 	delete(s.pieces, slug)
-	s.cache.Invalidate()
+	s.mu.Unlock()
 	return nil
 }
 

@@ -23,7 +23,7 @@ func testStores(t *testing.T) (*content.SessionCode, *content.MemoryStore, *cont
 	t.Helper()
 	sc := content.NewSessionCode(24 * time.Hour)
 	ms := content.NewMemoryStore(t.TempDir())
-	ss := content.NewSkillStore(t.TempDir())
+	ss := content.NewSkillStore(t.TempDir(), "")
 	return sc, ms, ss
 }
 
@@ -655,6 +655,29 @@ func TestCORSOnAllAPIs(t *testing.T) {
 		cors := w.Header().Get("Access-Control-Allow-Origin")
 		if cors != "*" {
 			t.Errorf("%s missing CORS header, got %q", ep, cors)
+		}
+	}
+}
+
+// /files/ oddawal slug prosto do filepath.Join, ktore skleja i CZYSCI sciezke,
+// wiec sekwencja ".." wyprowadzala poza katalog blobow. Dotad bronilo przed tym
+// tylko to, ze slug musial byc sufiksem jakiegos FileRef — oslona uboczna,
+// ktora znika przy pierwszej zmianie reguly dopasowania. Istniejacy
+// TestPathTraversalBlocked bada /p/, nie /files/.
+func TestFilesPathTraversalBlocked(t *testing.T) {
+	h, _ := newTestHandler(t)
+	for _, p := range []string{
+		"/files/../../../etc/passwd",
+		"/files/..%2f..%2f..%2fetc%2fpasswd",
+		"/files/subdir/x.jpg",
+		"/files/..",
+	} {
+		w := serve(h, httptest.NewRequest("GET", p, nil))
+		if w.Code == 200 {
+			t.Errorf("%s zwrocil 200 — straznik nie zadzialal", p)
+		}
+		if strings.Contains(w.Body.String(), "root:") {
+			t.Errorf("%s wypuscil zawartosc /etc/passwd", p)
 		}
 	}
 }

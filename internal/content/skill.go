@@ -87,7 +87,11 @@ type SkillStore struct {
 	// cache (TTL via cachedAt)
 	personaCache map[string]cachedPersona
 	skillCache   map[string]cachedSkill
-	listCacheAt  time.Time
+	// Osobne znaczniki. Wspólne pole powodowało, że odświeżenie person
+	// przedłużało ważność cache skilli: ListSkills widziało świeży
+	// listCacheAt i oddawało listę pobraną dawno temu.
+	listPCacheAt time.Time
+	listSCacheAt time.Time
 	listPCache   []*Persona
 	listSCache   []*Skill
 }
@@ -114,7 +118,7 @@ func NewSkillStore(contentDir, vaultURL string) *SkillStore {
 func (s *SkillStore) ListPersonas() ([]*Persona, error) {
 	if s.vaultURL != "" {
 		s.mu.RLock()
-		fresh := time.Since(s.listCacheAt) < cacheTTL && s.listPCache != nil
+		fresh := time.Since(s.listPCacheAt) < cacheTTL && s.listPCache != nil
 		cached := s.listPCache
 		s.mu.RUnlock()
 		if fresh {
@@ -123,7 +127,7 @@ func (s *SkillStore) ListPersonas() ([]*Persona, error) {
 		if list, err := s.fetchPersonasFromVault(); err == nil {
 			s.mu.Lock()
 			s.listPCache = list
-			s.listCacheAt = time.Now()
+			s.listPCacheAt = time.Now()
 			s.mu.Unlock()
 			return list, nil
 		}
@@ -277,7 +281,7 @@ func (s *SkillStore) DeletePersona(slug string) error {
 func (s *SkillStore) ListSkills(category string) ([]*Skill, error) {
 	if s.vaultURL != "" {
 		s.mu.RLock()
-		fresh := time.Since(s.listCacheAt) < cacheTTL && s.listSCache != nil
+		fresh := time.Since(s.listSCacheAt) < cacheTTL && s.listSCache != nil
 		cached := s.listSCache
 		s.mu.RUnlock()
 		if fresh {
@@ -286,8 +290,7 @@ func (s *SkillStore) ListSkills(category string) ([]*Skill, error) {
 		if list, err := s.fetchSkillsFromVault(); err == nil {
 			s.mu.Lock()
 			s.listSCache = list
-			// listCacheAt shared with personas — fine, both refresh together
-			s.listCacheAt = time.Now()
+			s.listSCacheAt = time.Now()
 			s.mu.Unlock()
 			return filterByCategory(list, category), nil
 		}
@@ -478,5 +481,6 @@ func (s *SkillStore) InvalidateCache() {
 	s.skillCache = make(map[string]cachedSkill)
 	s.listPCache = nil
 	s.listSCache = nil
-	s.listCacheAt = time.Time{}
+	s.listPCacheAt = time.Time{}
+	s.listSCacheAt = time.Time{}
 }

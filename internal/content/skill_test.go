@@ -6,7 +6,7 @@ import (
 )
 
 func TestSkillSaveAndGet(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	sk := &Skill{
 		Slug:     "go-stack",
 		Category: "tech",
@@ -30,7 +30,7 @@ func TestSkillSaveAndGet(t *testing.T) {
 }
 
 func TestSkillSaveRequiresSlug(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	err := ss.SaveSkill(&Skill{Title: "no slug"})
 	if err == nil {
 		t.Error("save without slug should fail")
@@ -38,7 +38,7 @@ func TestSkillSaveRequiresSlug(t *testing.T) {
 }
 
 func TestSkillList(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	ss.SaveSkill(&Skill{Slug: "s1", Category: "tech", Title: "T1", Body: "b"})
 	ss.SaveSkill(&Skill{Slug: "s2", Category: "workflow", Title: "T2", Body: "b"})
 	ss.SaveSkill(&Skill{Slug: "s3", Category: "tech", Title: "T3", Body: "b"})
@@ -55,7 +55,7 @@ func TestSkillList(t *testing.T) {
 }
 
 func TestSkillDelete(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	ss.SaveSkill(&Skill{Slug: "to-delete", Category: "x", Title: "x", Body: "x"})
 
 	if err := ss.DeleteSkill("to-delete"); err != nil {
@@ -68,14 +68,14 @@ func TestSkillDelete(t *testing.T) {
 }
 
 func TestSkillDeleteNotFound(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	if err := ss.DeleteSkill("nieistniejacy"); err == nil {
 		t.Error("deleting nonexistent skill should return error")
 	}
 }
 
 func TestPersonaSaveAndGet(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	p := &Persona{
 		Slug:   "hermiona",
 		Name:   "Hermiona",
@@ -99,7 +99,7 @@ func TestPersonaSaveAndGet(t *testing.T) {
 }
 
 func TestPersonaSaveRequiresSlug(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	err := ss.SavePersona(&Persona{Name: "no slug"})
 	if err == nil {
 		t.Error("save without slug should fail")
@@ -107,7 +107,7 @@ func TestPersonaSaveRequiresSlug(t *testing.T) {
 }
 
 func TestPersonaList(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	ss.SavePersona(&Persona{Slug: "p1", Name: "A", Role: "r", Prompt: "x"})
 	ss.SavePersona(&Persona{Slug: "p2", Name: "B", Role: "r", Prompt: "x"})
 
@@ -118,7 +118,7 @@ func TestPersonaList(t *testing.T) {
 }
 
 func TestPersonaDelete(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	ss.SavePersona(&Persona{Slug: "to-del", Name: "x", Role: "x", Prompt: "x"})
 	if err := ss.DeletePersona("to-del"); err != nil {
 		t.Fatalf("delete failed: %v", err)
@@ -130,7 +130,7 @@ func TestPersonaDelete(t *testing.T) {
 }
 
 func TestSkillCategories(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	ss.SaveSkill(&Skill{Slug: "a", Category: "tech", Title: "a", Body: "b"})
 	ss.SaveSkill(&Skill{Slug: "b", Category: "tech", Title: "b", Body: "b"})
 	ss.SaveSkill(&Skill{Slug: "c", Category: "workflow", Title: "c", Body: "b"})
@@ -145,7 +145,7 @@ func TestSkillCategories(t *testing.T) {
 }
 
 func TestSkillUpdatedAtChangesOnSave(t *testing.T) {
-	ss := NewSkillStore(t.TempDir())
+	ss := NewSkillStore(t.TempDir(), "")
 	sk := &Skill{Slug: "s", Category: "x", Title: "x", Body: "v1"}
 	ss.SaveSkill(sk)
 	first, _ := ss.GetSkill("s")

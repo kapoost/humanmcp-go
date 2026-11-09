@@ -1,8 +1,10 @@
 package content
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -241,5 +243,55 @@ func writeMD(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
 		t.Fatalf("writeMD: %v", err)
+	}
+}
+
+// Store jest wspoldzielony przez handlery HTTP i MCP, a Go obsluguje kazde
+// zadanie w osobnej goroutine. Bez tego testu wyscig na mapie `pieces` jest
+// niewidoczny: reszta pakietu chodzi sekwencyjnie, wiec `-race` nigdy nie
+// dotyka tej sciezki. Fix, ktorego nie da sie zademonstrowac, nie przezyje
+// nastepnego refaktoru.
+func TestStoreConcurrentReadWrite(t *testing.T) {
+	dir := t.TempDir()
+	s := NewStore(dir)
+	if err := s.Load(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 5; i++ {
+		if err := s.Save(&Piece{Slug: fmt.Sprintf("seed-%d", i), Title: "seed", Access: AccessPublic}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	const workers, rounds = 8, 40
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; i < rounds; i++ {
+				switch w % 4 {
+				case 0:
+					slug := fmt.Sprintf("w%d-%d", w, i)
+					_ = s.Save(&Piece{Slug: slug, Title: "x", Access: AccessPublic})
+					_ = s.Delete(slug)
+				case 1:
+					_ = s.List(false)
+				case 2:
+					_, _ = s.Get("seed-0", false)
+					_, _ = s.GetForEdit("seed-1")
+				case 3:
+					_ = s.CheckAnswer("seed-2", "cokolwiek")
+					_ = s.Load()
+				}
+			}
+		}(w)
+	}
+	wg.Wait()
+
+	// Ziarno musi przetrwac cala kanonade — Load() podmienia mape, wiec
+	// to sprawdza tez, czy podmiana nie gubi zapisow z dysku.
+	if got := len(s.List(false)); got < 5 {
+		t.Errorf("po wspolbieznych operacjach zostalo %d kawalkow, spodziewam sie >= 5", got)
 	}
 }

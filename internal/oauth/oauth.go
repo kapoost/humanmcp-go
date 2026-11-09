@@ -3,12 +3,15 @@ package oauth
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -251,7 +254,11 @@ func (p *Provider) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		password := r.FormValue("password")
 
-		if password != p.ownerPassword {
+		// Pusty ownerPassword = autoryzacja wylaczona, nie "wpuszczaj
+		// kazdego". Bez tej galezi instancja bez ustawionego hasla oddawala
+		// kod autoryzacyjny za pustym formularzem.
+		if p.ownerPassword == "" ||
+			subtle.ConstantTimeCompare([]byte(password), []byte(p.ownerPassword)) != 1 {
 			log.Printf("[OAuth] failed auth attempt from %s", ip)
 			p.serveConsentPage(w, q, "Niepoprawne hasło. Spróbuj ponownie.")
 			return
@@ -303,14 +310,19 @@ func (p *Provider) serveConsentPage(w http.ResponseWriter, q map[string][]string
 
 	errHTML := ""
 	if errMsg != "" {
-		errHTML = fmt.Sprintf(`<div class="err">%s</div>`, errMsg)
+		errHTML = fmt.Sprintf(`<div class="err">%s</div>`, html.EscapeString(errMsg))
 	}
 
-	// Rebuild query string for form action
+	// Rebuild query string for form action. Dwa kodowania, bo dwa konteksty:
+	// QueryEscape robi z tego poprawny URL, EscapeString — poprawna wartosc
+	// atrybutu HTML. Same w sobie nie wystarczaja: bez pierwszego klucz z `&`
+	// doklada parametr, bez drugiego wartosc z cudzyslowem wychodzi z atrybutu
+	// i wstrzykuje skrypt na strone, na ktorej uzytkownik za chwile wpisze
+	// haslo wlasciciela.
 	var qs []string
 	for k, vs := range q {
 		for _, v := range vs {
-			qs = append(qs, fmt.Sprintf("%s=%s", k, v))
+			qs = append(qs, fmt.Sprintf("%s=%s", url.QueryEscape(k), url.QueryEscape(v)))
 		}
 	}
 
@@ -350,7 +362,7 @@ button.primary:hover{opacity:.9}
 <button type="submit" class="primary">Authorize</button>
 </form>
 <p class="foot">Your data stays under your control.</p>
-</div></body></html>`, clientName, errHTML, strings.Join(qs, "&"))
+</div></body></html>`, html.EscapeString(clientName), errHTML, html.EscapeString(strings.Join(qs, "&")))
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(html))
@@ -442,13 +454,20 @@ func randomToken(nBytes int) string {
 	return hex.EncodeToString(b)
 }
 
+// validRedirect dopuszcza wylacznie URI zarejestrowane przez klienta.
+//
+// Wczesniej konczylo sie `return true` z komentarzem o rejestracji dynamicznej
+// — ale handleRegister ODRZUCA zgloszenie bez redirect_uris, wiec kazdy klient
+// ma je zapisane i furtka nie obslugiwala zadnego realnego przypadku.
+// Obslugiwala natomiast kradziez kodu autoryzacyjnego: atakujacy podstawial
+// wlasny redirect_uri i odbieral cudzy code na swoim serwerze.
 func validRedirect(registered []string, uri string) bool {
 	for _, r := range registered {
 		if r == uri {
 			return true
 		}
 	}
-	return true // allow any redirect for dynamic registration clients
+	return false
 }
 
 func getFirst(q map[string][]string, key string) string {

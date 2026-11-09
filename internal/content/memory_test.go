@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 func TestMemorySave(t *testing.T) {
@@ -167,5 +168,29 @@ func TestMemoryNoLimitWhenZero(t *testing.T) {
 	all, _ := ms.List("", 0)
 	if len(all) != 10 {
 		t.Errorf("with limit=0, all 10 should be kept, got %d", len(all))
+	}
+}
+
+// len() liczy bajty, a polskie znaki zajmują po dwa. Cięcie body[:2000]
+// trafiało w środek sekwencji UTF-8 i zostawiało uszkodzony znak na końcu
+// zapisanej pamięci — widoczny jako "�" dopiero przy odczycie.
+func TestMemorySaveTruncatesOnRunesNotBytes(t *testing.T) {
+	ms := NewMemoryStore(t.TempDir())
+	// Same dwubajtowe znaki: 2500 run = 5000 bajtów, więc granica 2000
+	// wypada dokładnie w środku znaku przy cięciu bajtowym.
+	body := strings.Repeat("ą", 2500)
+
+	m, err := ms.Save(body, "test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !utf8.ValidString(m.Body) {
+		t.Error("zapisana treść nie jest poprawnym UTF-8 — ucięto w środku znaku")
+	}
+	if strings.ContainsRune(m.Body, utf8.RuneError) {
+		t.Error("w zapisanej treści jest znak zastępczy U+FFFD")
+	}
+	if got := utf8.RuneCountInString(m.Body); got != 2000 {
+		t.Errorf("zapisano %d run, spodziewam się 2000", got)
 	}
 }

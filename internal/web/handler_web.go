@@ -1246,6 +1246,15 @@ func (h *Handler) handleFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// slug wchodzi do filepath.Join, ktore skleja i CZYSCI sciezke — wiec
+	// "../../etc/passwd" wyszloby poza katalog blobow. Dzis broni przed tym
+	// tylko przypadek: slug musi byc sufiksem jakiegos FileRef, a te wygladaja
+	// jak "blobs/files/img-0395.jpeg". To oslona uboczna, nie zabezpieczenie —
+	// zmiana reguly dopasowania zdjelaby ja bez sladu w testach.
+	if filepath.Base(slug) != slug {
+		http.NotFound(w, r)
+		return
+	}
 	blobs, _ := h.blobStore.Load()
 	for _, b := range blobs {
 		if b.FileRef != "" && strings.HasSuffix(b.FileRef, slug) {

@@ -46,8 +46,11 @@ func (ms *MemoryStore) Save(body, agentHint string, tags []string) (*Memory, err
 	if strings.TrimSpace(body) == "" {
 		return nil, fmt.Errorf("body cannot be empty")
 	}
-	if len(body) > 2000 {
-		body = body[:2000]
+	// Po runach, nie po bajtach. len() liczy bajty, a polski tekst ma
+	// dwubajtowe znaki — ciecie w srodku sekwencji UTF-8 zostawialo
+	// uszkodzony znak na koncu zapisanej pamieci.
+	if r := []rune(body); len(r) > 2000 {
+		body = string(r[:2000])
 	}
 	m := &Memory{
 		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
