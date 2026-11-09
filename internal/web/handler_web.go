@@ -388,8 +388,14 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Separate pieces by type for sectioned layout
-	var poems, artworks, otherPieces []*content.Piece
+	var poems, artworks, code, otherPieces []*content.Piece
 	for _, p := range pieces {
+		// code first: isPersonaPiece matches on substring, so a short persona
+		// slug would otherwise swallow a repo of the same name.
+		if p.Type == "code" {
+			code = append(code, p)
+			continue
+		}
 		if isPersonaPiece(p) {
 			continue // skip personas — they belong to /team
 		}
@@ -431,6 +437,7 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"Bio":           h.cfg.AuthorBio,
 		"Pieces":        pieces,
 		"Poems":         poems,
+		"Code":          code,
 		"OtherPieces":   otherPieces,
 		"Images":        images,
 		"Artworks":      artworks,
@@ -2556,7 +2563,7 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 			},
 			"how_to_start": []string{
 				"1. Call get_author_profile — learn who you are talking to",
-				"2. Call list_content — browse public poems, essays, artworks",
+				"2. Call list_content — browse public poems, essays, artworks; type=code for his active repos",
 				"3. Call ask_human — ask kapoost a question (private, async)",
 				"4. Ask the user for their session code (Polish poetry fragment from dashboard)",
 				"5. Call bootstrap_session(code, format=full) — receive complete context",
@@ -2565,6 +2572,7 @@ func (h *Handler) handleForAgents(w http.ResponseWriter, r *http.Request) {
 				"ask_human — ask the author a question privately (returns question_id)",
 				"get_answer — check if the author answered (by question_id)",
 				"leave_comment — react to any piece (kapoost reads every one)",
+				"list_content(type=code) — what kapoost is building now, with github.com/kapoost links",
 				"read_content — read poems, essays, artworks (respects gates and licenses)",
 				"get_certificate — full IP certificate with originality index",
 			},

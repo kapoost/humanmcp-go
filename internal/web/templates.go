@@ -64,6 +64,25 @@ const allTemplates = `
 </div>
 {{end}}
 
+<!-- kod -->
+{{if .Code}}
+<div class="section" id="kod">
+<div class="section-head" data-i18n="sec_kod">--- #kod ─────────────────────────────────────────────</div>
+<div id="code-list">
+{{range .Code}}
+<div class="irc-line navigable" data-href="{{if .URL}}{{.URL}}{{else}}/p/{{.Slug}}{{end}}">
+  <span class="irc-date">{{shortDate .Published}}</span>
+  <span class="irc-title"><a href="{{if .URL}}{{.URL}}{{else}}/p/{{.Slug}}{{end}}">{{.Title}}</a></span>
+  <a href="/p/{{.Slug}}" class="edit-btn">read</a>
+  {{if $.IsOwner}}<a href="/edit/{{.Slug}}" class="edit-btn">edit</a>{{end}}
+</div>
+{{if .Description}}<div class="irc-tags-line">{{.Description}}</div>{{end}}
+{{if .Tags}}<div class="irc-tags-line">{{range .Tags}}<span class="irc-tag">#{{.}}</span> {{end}}</div>{{end}}
+{{end}}
+</div>
+</div>
+{{end}}
+
 <!-- obrazy -->
 {{if .Images}}
 <div class="section" id="obrazy">
@@ -134,10 +153,11 @@ const allTemplates = `
   var i18n = {
     pl: {
       sec_wiersze: '--- #wiersze ─────────────────────────────────────────',
+      sec_kod: '--- #kod ─────────────────────────────────────────────',
       sec_obrazy: '--- #obrazy ──────────────────────────────────────────',
       sec_artworks: '--- #artworks ────────────────────────────────────────',
       sec_ogloszenia: '--- #ogłoszenia ──────────────────────────────────────',
-      nav_wiersze: 'wiersze', nav_obrazy: 'obrazy', nav_artworks: 'artworks', nav_ogloszenia: 'ogłoszenia',
+      nav_wiersze: 'wiersze', nav_kod: 'kod', nav_obrazy: 'obrazy', nav_artworks: 'artworks', nav_ogloszenia: 'ogłoszenia',
       ob_create: 'utwórz', ob_post: '+ wpis', ob_image: '+ obraz', ob_artwork: '+ dzieło', ob_listing: '+ ogłoszenie',
       ob_browse: 'przeglądaj', ob_gallery: 'galeria', ob_artworks: 'dzieła', ob_listings: 'ogłoszenia', ob_messages: 'wiadomości', ob_questions: 'pytania',
       footer_written: 'Wiersze pisane przez człowieka',
@@ -145,7 +165,7 @@ const allTemplates = `
       help_title: 'skróty klawiszowe',
       help_next: 'następny', help_prev: 'poprzedni', help_open: 'otwórz', help_search: 'szukaj',
       help_tab: 'następna sekcja', help_close: 'zamknij pomoc',
-      sl_wiersze: 'wiersze', sl_obrazy: 'obrazy', sl_artworks: 'dzieła', sl_ogloszenia: 'ogłoszenia',
+      sl_wiersze: 'wiersze', sl_kod: 'kod', sl_obrazy: 'obrazy', sl_artworks: 'dzieła', sl_ogloszenia: 'ogłoszenia',
       aw_price: 'Cena',
       license_rules: 'Licencja i zasady użycia',
       human_use: 'Ludzie mogą',
@@ -153,10 +173,11 @@ const allTemplates = `
     },
     en: {
       sec_wiersze: '--- #poems ───────────────────────────────────────────',
+      sec_kod: '--- #code ────────────────────────────────────────────',
       sec_obrazy: '--- #images ──────────────────────────────────────────',
       sec_artworks: '--- #artworks ────────────────────────────────────────',
       sec_ogloszenia: '--- #listings ────────────────────────────────────────',
-      nav_wiersze: 'poems', nav_obrazy: 'images', nav_artworks: 'artworks', nav_ogloszenia: 'listings',
+      nav_wiersze: 'poems', nav_kod: 'code', nav_obrazy: 'images', nav_artworks: 'artworks', nav_ogloszenia: 'listings',
       ob_create: 'create', ob_post: '+ post', ob_image: '+ image', ob_artwork: '+ artwork', ob_listing: '+ listing',
       ob_browse: 'browse', ob_gallery: 'gallery', ob_artworks: 'artworks', ob_listings: 'listings', ob_messages: 'messages', ob_questions: 'questions',
       footer_written: 'Poems written by human',
@@ -164,7 +185,7 @@ const allTemplates = `
       help_title: 'keyboard shortcuts',
       help_next: 'next item', help_prev: 'previous item', help_open: 'open selected', help_search: 'search',
       help_tab: 'next section', help_close: 'close help',
-      sl_wiersze: 'poems', sl_obrazy: 'images', sl_artworks: 'artworks', sl_ogloszenia: 'listings',
+      sl_wiersze: 'poems', sl_kod: 'code', sl_obrazy: 'images', sl_artworks: 'artworks', sl_ogloszenia: 'listings',
       aw_price: 'Price',
       license_rules: 'License & usage rules',
       human_use: 'Humans may',
@@ -207,7 +228,7 @@ const allTemplates = `
   });
 
   // --- sections ---
-  var allSections = ['wiersze','obrazy','artworks','ogloszenia'];
+  var allSections = ['wiersze','kod','obrazy','artworks','ogloszenia'];
   var sections = allSections.filter(function(id){ return document.getElementById(id); });
   var secIdx = 0;
 
@@ -870,6 +891,7 @@ a:hover{color:var(--accent);text-decoration:underline;filter:brightness(1.3);}
         <a href="/logout" style="color:var(--muted);">logout</a>
       {{else}}
         {{if .Poems}}<a href="#wiersze" style="color:var(--accent2);" data-i18n="nav_wiersze">wiersze</a>{{end}}
+        {{if .Code}}<a href="#kod" style="color:var(--accent2);" data-i18n="nav_kod">kod</a>{{end}}
         {{if .Images}}<a href="#obrazy" style="color:var(--accent2);" data-i18n="nav_obrazy">obrazy</a>{{end}}
         {{if .Artworks}}<a href="#artworks" style="color:var(--accent2);" data-i18n="nav_artworks">artworks</a>{{end}}
         {{if .Listings}}<a href="#ogloszenia" style="color:var(--accent2);" data-i18n="nav_ogloszenia">ogłoszenia</a>{{end}}

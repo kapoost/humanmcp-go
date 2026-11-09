@@ -350,10 +350,16 @@ A sailor. A poet. A musician learning. A CTO.
 He lives between the sea, the code, and the verse.
 Everything here comes from real experience — no filler.
 
+WHAT HE IS BUILDING RIGHT NOW:
+Call list_content(type="code") — his active public repositories, newest push first,
+each with a github.com/kapoost link. Read it before advising on anything technical:
+it is the difference between generic advice and advice about his actual stack.
+
 THIS SERVER HAS TWO LAYERS:
 
 PUBLIC — available to all agents:
 - Author profile, published poems, essays, artworks
+- Code: what he is working on (list_content type=code)
 - List of skills (titles and categories only)
 - Content verification, licensing, comments, messages
 - ask_human — ask kapoost a question privately (async Q&A)
@@ -376,7 +382,7 @@ Marketplace (all servers, searchable): https://marketplace.humanmcp.net/mcp
 
 TOOLS — start here:
 1. get_author_profile  — who is kapoost
-2. list_content        — public poems and essays
+2. list_content        — public poems, essays, and code (type=code)
 3. bootstrap_session   — unlock private context (session code required)
 4. list_skills         — skill catalog (titles only, full content after bootstrap)
 5. read_content        — read any public piece
@@ -441,13 +447,13 @@ func (h *Handler) buildTools() []Tool {
 		},
 		{
 			Name:        "list_content",
-			Description: "Lists all published pieces by kapoost. Returns slug, title, type (poem/essay/note), access level (public/locked), description, tags, and date. Filter by type or tag.",
+			Description: "Lists all published pieces by kapoost. Returns slug, title, type (poem/essay/note/code), access level (public/locked), description, tags, url, and date. Filter by type or tag. Use type=code to see what kapoost is currently building, newest push first.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"type": map[string]interface{}{
 						"type":        "string",
-						"description": "Filter by type: poem, essay, note, audio",
+						"description": "Filter by type: poem, essay, note, audio, code",
 					},
 					"tag": map[string]interface{}{
 						"type":        "string",
@@ -1211,7 +1217,14 @@ func (h *Handler) toolListContent(w http.ResponseWriter, req *Request, args json
 		if len(p.Tags) > 0 {
 			sb.WriteString(fmt.Sprintf("tags:   %s\n", strings.Join(p.Tags, ", ")))
 		}
-		sb.WriteString(fmt.Sprintf("date:   %s\n", p.Published.Format("2 January 2006")))
+		if p.URL != "" {
+			sb.WriteString(fmt.Sprintf("url:    %s\n", p.URL))
+		}
+		if p.Type == "code" {
+			sb.WriteString(fmt.Sprintf("last push: %s\n", p.Published.Format("2 January 2006")))
+		} else {
+			sb.WriteString(fmt.Sprintf("date:   %s\n", p.Published.Format("2 January 2006")))
+		}
 		sb.WriteString("\n")
 	}
 	sb.WriteString("— read_content <slug> for public pieces\n")
