@@ -3,7 +3,7 @@
   "name": "io.github.kapoost/humanmcp",
   "title": "humanMCP — kapoost",
   "description": "Personal MCP server for humans who create. Proof of authorship, license control.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "homepage": "https://humanmcp.net",
   "repository": {
